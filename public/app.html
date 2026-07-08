@@ -1,440 +1,1087 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة تسعير مشاريع التصميم الداخلي</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@500;600;700&display=swap');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>لوحة تسعير مشاريع التصميم الداخلي</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@500;600;700&display=swap");
 
-  :root{
-    --bg: #F4F2ED; --paper: #FFFFFF; --ink: #211D17; --ink-soft: #726C63;
-    --line: #E5E1D6; --line-strong: #D3CBB8; --pine: #8A6512; --pine-dark: #6B4E0C;
-    --pine-tint: #FBF1D9; --brass: #CC9A06; --brass-tint: #FBEFC7; --danger: #A33B2D; --radius: 10px;
-  }
-  *{ box-sizing: border-box; }
-  body{ margin:0; }
-  .app{ font-family:'Cairo','Tahoma',sans-serif; background:var(--bg); color:var(--ink); padding:20px 20px 60px; min-height:100vh; }
-  .wrap{ max-width:1180px; margin:0 auto; }
+      :root {
+        --bg: #f4f2ed;
+        --paper: #ffffff;
+        --ink: #211d17;
+        --ink-soft: #726c63;
+        --line: #e5e1d6;
+        --line-strong: #d3cbb8;
+        --pine: #8a6512;
+        --pine-dark: #6b4e0c;
+        --pine-tint: #fbf1d9;
+        --brass: #cc9a06;
+        --brass-tint: #fbefc7;
+        --danger: #a33b2d;
+        --radius: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      .app {
+        font-family: "Cairo", "Tahoma", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        padding: 20px 20px 60px;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
 
-  .topbar{
-    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
-    background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:12px 18px; margin-bottom:16px;
-  }
-  .topbar .who{ font-size:13.5px; color:var(--ink-soft); }
-  .topbar .who b{ color:var(--ink); }
-  .topbar .role-badge{
-    display:inline-block; margin-right:6px; font-size:11px; font-weight:700; padding:2px 9px;
-    border-radius:999px; background:var(--brass-tint); color:#6b4f16;
-  }
-  .topbar .links{ display:flex; gap:10px; align-items:center; }
-  .topbar a, .topbar button{
-    font-family:inherit; font-size:13px; font-weight:700; color:var(--pine-dark); text-decoration:none;
-    background:transparent; border:1px solid var(--line-strong); padding:7px 14px; border-radius:8px; cursor:pointer;
-  }
-  .topbar a:hover, .topbar button:hover{ background:var(--pine-tint); }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 18px;
+        margin-bottom: 16px;
+      }
+      .topbar .who {
+        font-size: 13.5px;
+        color: var(--ink-soft);
+      }
+      .topbar .who b {
+        color: var(--ink);
+      }
+      .topbar .role-badge {
+        display: inline-block;
+        margin-right: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: var(--brass-tint);
+        color: #6b4f16;
+      }
+      .topbar .links {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .topbar a,
+      .topbar button {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--pine-dark);
+        text-decoration: none;
+        background: transparent;
+        border: 1px solid var(--line-strong);
+        padding: 7px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .topbar a:hover,
+      .topbar button:hover {
+        background: var(--pine-tint);
+      }
 
-  .hero{ background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:24px 32px; margin-bottom:20px; position:relative; overflow:hidden; }
-  .hero::before{ content:""; position:absolute; inset:0 0 auto 0; height:6px; background: repeating-linear-gradient(90deg, var(--pine) 0 28px, var(--brass) 28px 56px); opacity:.85; }
-  .eyebrow{ font-size:12.5px; letter-spacing:.12em; color:var(--pine-dark); font-weight:700; margin:6px 0 6px; }
-  h1{ font-family:'Markazi Text','Cairo',serif; font-size:36px; font-weight:700; margin:0 0 8px; }
-  .tagline{ color:var(--ink-soft); font-size:14.5px; margin:0 0 18px; max-width:640px; line-height:1.7; }
-  .project-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .project-row label{ font-size:13.5px; color:var(--ink-soft); font-weight:600; }
-  .project-row input{ font-family:inherit; font-size:15px; padding:9px 14px; border:1px solid var(--line-strong); border-radius:8px; background:#fff; min-width:240px; color:var(--ink); }
-  .new-quote-btn{
-    font-family:inherit; font-size:13px; font-weight:700; color:var(--ink-soft); background:#fff;
-    border:1px solid var(--line-strong); padding:9px 14px; border-radius:8px; cursor:pointer;
-  }
-  .new-quote-btn:hover{ background:var(--pine-tint); color:var(--pine-dark); }
+      .hero {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 6px;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--pine) 0 28px,
+          var(--brass) 28px 56px
+        );
+        opacity: 0.85;
+      }
+      .eyebrow {
+        font-size: 12.5px;
+        letter-spacing: 0.12em;
+        color: var(--pine-dark);
+        font-weight: 700;
+        margin: 6px 0 6px;
+      }
+      h1 {
+        font-family: "Markazi Text", "Cairo", serif;
+        font-size: 36px;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .tagline {
+        color: var(--ink-soft);
+        font-size: 14.5px;
+        margin: 0 0 18px;
+        max-width: 640px;
+        line-height: 1.7;
+      }
+      .project-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .project-row label {
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .project-row input {
+        font-family: inherit;
+        font-size: 15px;
+        padding: 9px 14px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        min-width: 240px;
+        color: var(--ink);
+      }
+      .new-quote-btn {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        background: #fff;
+        border: 1px solid var(--line-strong);
+        padding: 9px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .new-quote-btn:hover {
+        background: var(--pine-tint);
+        color: var(--pine-dark);
+      }
 
-  .swatch-board{ display:flex; gap:10px; overflow-x:auto; padding:4px 2px 14px; margin-bottom:6px; }
-  .swatch{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 14px 9px 10px; border-radius:999px; cursor:pointer; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); font-size:13.5px; font-weight:600; white-space:nowrap; transition:.15s; }
-  .swatch .chip{ width:16px; height:16px; border-radius:5px; flex:0 0 auto; }
-  .swatch.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
-  .swatch .count{ font-size:11.5px; opacity:.75; }
+      .swatch-board {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 4px 2px 14px;
+        margin-bottom: 6px;
+      }
+      .swatch {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px 9px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        color: var(--ink-soft);
+        font-size: 13.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: 0.15s;
+      }
+      .swatch .chip {
+        width: 16px;
+        height: 16px;
+        border-radius: 5px;
+        flex: 0 0 auto;
+      }
+      .swatch.active {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .swatch .count {
+        font-size: 11.5px;
+        opacity: 0.75;
+      }
 
-  .layout{ display:flex; gap:20px; align-items:flex-start; }
-  .main{ flex:1 1 auto; min-width:0; }
-  .sidebar{ flex:0 0 340px; position:sticky; top:16px; background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:22px; max-height:calc(100vh - 32px); overflow-y:auto; }
+      .layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+      }
+      .main {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .sidebar {
+        flex: 0 0 340px;
+        position: sticky;
+        top: 16px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+      }
 
-  .cat-panel{ background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:22px 24px; margin-bottom:16px; }
-  .cat-panel h2{ font-family:'Markazi Text',serif; font-size:24px; margin:0 0 3px; display:flex; align-items:center; gap:10px; }
-  .cat-panel h2 .chip-big{ width:14px; height:14px; border-radius:4px; }
-  .cat-sub{ color:var(--ink-soft); font-size:13px; margin:0 0 16px; }
+      .cat-panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+      }
+      .cat-panel h2 {
+        font-family: "Markazi Text", serif;
+        font-size: 24px;
+        margin: 0 0 3px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .cat-panel h2 .chip-big {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+      }
+      .cat-sub {
+        color: var(--ink-soft);
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
 
-  table.items{ width:100%; border-collapse:collapse; font-size:14px; }
-  table.items th{ text-align:right; font-weight:600; color:var(--ink-soft); font-size:12.5px; border-bottom:1px solid var(--line-strong); padding:0 6px 8px; }
-  table.items td{ padding:6px; border-bottom:1px solid var(--line); vertical-align:middle; }
-  table.items input, table.items select{ width:100%; font-family:inherit; font-size:14px; padding:7px 8px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); }
-  table.items input[type=number]{ text-align:center; }
-  .col-name{ width:32%; } .col-unit{ width:14%; } .col-qty{ width:12%; } .col-price{ width:16%; }
-  .col-total{ width:16%; font-weight:700; text-align:left; padding-left:4px; white-space:nowrap; }
-  .col-del{ width:34px; text-align:center; }
-  .del-btn{ border:none; background:transparent; color:var(--ink-soft); cursor:pointer; font-size:16px; line-height:1; padding:4px; border-radius:6px; }
-  .del-btn:hover{ color:var(--danger); background:rgba(163,59,45,.08); }
+      table.items {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      table.items th {
+        text-align: right;
+        font-weight: 600;
+        color: var(--ink-soft);
+        font-size: 12.5px;
+        border-bottom: 1px solid var(--line-strong);
+        padding: 0 6px 8px;
+      }
+      table.items td {
+        padding: 6px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      table.items input,
+      table.items select {
+        width: 100%;
+        font-family: inherit;
+        font-size: 14px;
+        padding: 7px 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--ink);
+      }
+      table.items input[type="number"] {
+        text-align: center;
+      }
+      .col-name {
+        width: 32%;
+      }
+      .col-unit {
+        width: 14%;
+      }
+      .col-qty {
+        width: 12%;
+      }
+      .col-price {
+        width: 16%;
+      }
+      .col-total {
+        width: 16%;
+        font-weight: 700;
+        text-align: left;
+        padding-left: 4px;
+        white-space: nowrap;
+      }
+      .col-del {
+        width: 34px;
+        text-align: center;
+      }
+      .del-btn {
+        border: none;
+        background: transparent;
+        color: var(--ink-soft);
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        padding: 4px;
+        border-radius: 6px;
+      }
+      .del-btn:hover {
+        color: var(--danger);
+        background: rgba(163, 59, 45, 0.08);
+      }
 
-  .add-row{ margin-top:12px; display:flex; align-items:center; gap:8px; background:transparent; border:1px dashed var(--line-strong); color:var(--pine-dark); font-family:inherit; font-weight:700; font-size:13.5px; padding:9px 14px; border-radius:8px; cursor:pointer; width:100%; justify-content:center; }
-  .add-row:hover{ background:var(--pine-tint); }
-  .cat-empty{ color:var(--ink-soft); font-size:13.5px; padding:10px 0 4px; }
+      .add-row {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: 1px dashed var(--line-strong);
+        color: var(--pine-dark);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13.5px;
+        padding: 9px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        justify-content: center;
+      }
+      .add-row:hover {
+        background: var(--pine-tint);
+      }
+      .cat-empty {
+        color: var(--ink-soft);
+        font-size: 13.5px;
+        padding: 10px 0 4px;
+      }
 
-  .sidebar h2{ font-family:'Markazi Text',serif; font-size:22px; margin:0 0 14px; }
-  .cat-totals{ font-size:13px; margin-bottom:14px; }
-  .cat-totals-row{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dotted var(--line); color:var(--ink-soft); }
-  .cat-totals-row .n{ color:var(--ink); font-weight:600; }
+      .sidebar h2 {
+        font-family: "Markazi Text", serif;
+        font-size: 22px;
+        margin: 0 0 14px;
+      }
+      .cat-totals {
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+      .cat-totals-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px dotted var(--line);
+        color: var(--ink-soft);
+      }
+      .cat-totals-row .n {
+        color: var(--ink);
+        font-weight: 600;
+      }
 
-  .settings{ margin:14px 0; display:flex; flex-direction:column; gap:10px; }
-  .settings label{ font-size:12.5px; color:var(--ink-soft); font-weight:600; display:flex; flex-direction:column; gap:5px; }
-  .settings input, .settings select{ font-family:inherit; font-size:14px; padding:8px 10px; border:1px solid var(--line-strong); border-radius:7px; background:#fff; color:var(--ink); }
-  .discount-row{ display:flex; gap:6px; }
-  .discount-row input{ flex:1; }
-  .discount-row select{ width:70px; }
+      .settings {
+        margin: 14px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .settings label {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .settings input,
+      .settings select {
+        font-family: inherit;
+        font-size: 14px;
+        padding: 8px 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--ink);
+      }
+      .discount-row {
+        display: flex;
+        gap: 6px;
+      }
+      .discount-row input {
+        flex: 1;
+      }
+      .discount-row select {
+        width: 70px;
+      }
 
-  .totals-breakdown{ margin-top:14px; border-top:1px solid var(--line-strong); padding-top:12px; font-size:13.5px; }
-  .tb-row{ display:flex; justify-content:space-between; padding:5px 0; color:var(--ink-soft); }
-  .tb-row .n{ color:var(--ink); font-weight:600; }
+      .totals-breakdown {
+        margin-top: 14px;
+        border-top: 1px solid var(--line-strong);
+        padding-top: 12px;
+        font-size: 13.5px;
+      }
+      .tb-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        color: var(--ink-soft);
+      }
+      .tb-row .n {
+        color: var(--ink);
+        font-weight: 600;
+      }
 
-  .grand-total{ margin-top:12px; background:var(--pine); color:#fff; border-radius:12px; padding:16px 18px; display:flex; justify-content:space-between; align-items:baseline; }
-  .grand-total .label{ font-size:13px; opacity:.85; font-weight:600; }
-  .grand-total .value{ font-family:'Markazi Text',serif; font-size:26px; font-weight:700; }
+      .grand-total {
+        margin-top: 12px;
+        background: var(--pine);
+        color: #fff;
+        border-radius: 12px;
+        padding: 16px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .grand-total .label {
+        font-size: 13px;
+        opacity: 0.85;
+        font-weight: 600;
+      }
+      .grand-total .value {
+        font-family: "Markazi Text", serif;
+        font-size: 26px;
+        font-weight: 700;
+      }
 
-  .actions{ display:flex; gap:8px; margin-top:14px; }
-  .actions button{ flex:1; font-family:inherit; font-weight:700; font-size:13.5px; padding:10px 8px; border-radius:8px; cursor:pointer; border:1px solid var(--line-strong); }
-  #saveQuoteBtn{ background:var(--brass); color:#fff; border-color:var(--brass); }
-  #saveQuoteBtn:hover{ background:#8f6e30; }
-  #saveQuoteBtn:disabled{ opacity:.6; cursor:default; }
-  #printBtn{ background:#fff; color:var(--ink); }
-  #printBtn:hover{ background:var(--pine-tint); }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .actions button {
+        flex: 1;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13.5px;
+        padding: 10px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid var(--line-strong);
+      }
+      #saveQuoteBtn {
+        background: var(--brass);
+        color: #fff;
+        border-color: var(--brass);
+      }
+      #saveQuoteBtn:hover {
+        background: #8f6e30;
+      }
+      #saveQuoteBtn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      #printBtn {
+        background: #fff;
+        color: var(--ink);
+      }
+      #printBtn:hover {
+        background: var(--pine-tint);
+      }
 
-  .saved-quotes{ margin-top:18px; border-top:1px solid var(--line-strong); padding-top:14px; }
-  .saved-quotes h3{ font-size:13px; color:var(--ink-soft); margin:0 0 10px; font-weight:700; }
-  .saved-item{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px dotted var(--line); font-size:13px; }
-  .saved-item .info{ min-width:0; }
-  .saved-item .name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .saved-item .meta{ color:var(--ink-soft); font-size:11.5px; }
-  .saved-item .btns{ display:flex; gap:4px; flex:0 0 auto; }
-  .saved-item button{ border:1px solid var(--line-strong); background:#fff; border-radius:6px; padding:4px 8px; font-family:inherit; font-size:11.5px; cursor:pointer; color:var(--ink-soft); }
-  .saved-item button:hover{ color:var(--ink); background:var(--pine-tint); }
-  .empty-note{ color:var(--ink-soft); font-size:12.5px; }
+      .saved-quotes {
+        margin-top: 18px;
+        border-top: 1px solid var(--line-strong);
+        padding-top: 14px;
+      }
+      .saved-quotes h3 {
+        font-size: 13px;
+        color: var(--ink-soft);
+        margin: 0 0 10px;
+        font-weight: 700;
+      }
+      .saved-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+        border-bottom: 1px dotted var(--line);
+        font-size: 13px;
+      }
+      .saved-item .info {
+        min-width: 0;
+      }
+      .saved-item .name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .saved-item .meta {
+        color: var(--ink-soft);
+        font-size: 11.5px;
+      }
+      .saved-item .btns {
+        display: flex;
+        gap: 4px;
+        flex: 0 0 auto;
+      }
+      .saved-item button {
+        border: 1px solid var(--line-strong);
+        background: #fff;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-family: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .saved-item button:hover {
+        color: var(--ink);
+        background: var(--pine-tint);
+      }
+      .empty-note {
+        color: var(--ink-soft);
+        font-size: 12.5px;
+      }
 
-  .save-toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:10px 20px; border-radius:999px; font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:all .25s; z-index:50; }
-  .save-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+      .save-toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--ink);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 13.5px;
+        font-weight: 600;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s;
+        z-index: 50;
+      }
+      .save-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
 
-  @media (max-width: 860px){ .layout{ flex-direction:column; } .sidebar{ position:static; width:100%; flex-basis:auto; max-height:none; } h1{ font-size:28px; } }
-  @media print{
-    .swatch-board, .add-row, .del-btn, #saveQuoteBtn, #printBtn, .saved-quotes, .project-row input, .topbar, .new-quote-btn{ display:none !important; }
-    .sidebar{ position:static; } .layout{ flex-direction:column; } .app{ background:#fff; padding:0; }
-    .hero, .cat-panel, .sidebar{ border-color:#999; }
-  }
-</style>
-</head>
-<body>
-<div class="app">
-  <div class="wrap">
+      @media (max-width: 860px) {
+        .layout {
+          flex-direction: column;
+        }
+        .sidebar {
+          position: static;
+          width: 100%;
+          flex-basis: auto;
+          max-height: none;
+        }
+        h1 {
+          font-size: 28px;
+        }
+      }
+      @media print {
+        .swatch-board,
+        .add-row,
+        .del-btn,
+        #saveQuoteBtn,
+        #printBtn,
+        .saved-quotes,
+        .project-row input,
+        .topbar,
+        .new-quote-btn {
+          display: none !important;
+        }
+        .sidebar {
+          position: static;
+        }
+        .layout {
+          flex-direction: column;
+        }
+        .app {
+          background: #fff;
+          padding: 0;
+        }
+        .hero,
+        .cat-panel,
+        .sidebar {
+          border-color: #999;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="who">
+            أهلاً، <b id="userName">...</b>
+            <span class="role-badge" id="roleBadge"></span>
+          </div>
+          <div class="links">
+            <a href="/admin" id="adminLink" style="display: none"
+              >إدارة الفريق</a
+            >
+            <button id="logoutBtn">تسجيل خروج</button>
+          </div>
+        </div>
 
-    <div class="topbar">
-      <div class="who">أهلاً، <b id="userName">...</b> <span class="role-badge" id="roleBadge"></span></div>
-      <div class="links">
-        <a href="/admin" id="adminLink" style="display:none;">إدارة الفريق</a>
-        <button id="logoutBtn">تسجيل خروج</button>
-      </div>
-    </div>
+        <header class="hero">
+          <div class="eyebrow">TWiNS Interior Design · أداة تسعير مشتركة</div>
+          <h1>لوحة تسعير التصميم الداخلي</h1>
+          <p class="tagline">
+            جهّز عرض السعر بندًا ببند، واحفظه — بيصير مرئي لباقي الفريق والمدير
+            مباشرة.
+          </p>
+          <div class="project-row">
+            <label for="projectName">اسم المشروع</label>
+            <input
+              id="projectName"
+              type="text"
+              placeholder="مثال: فيلا الشميساني"
+            />
+            <button class="new-quote-btn" id="newQuoteBtn">+ عرض جديد</button>
+          </div>
+        </header>
 
-    <header class="hero">
-      <div class="eyebrow">TWiNS Interior Design · أداة تسعير مشتركة</div>
-      <h1>لوحة تسعير التصميم الداخلي</h1>
-      <p class="tagline">جهّز عرض السعر بندًا ببند، واحفظه — بيصير مرئي لباقي الفريق والمدير مباشرة.</p>
-      <div class="project-row">
-        <label for="projectName">اسم المشروع</label>
-        <input id="projectName" type="text" placeholder="مثال: فيلا الشميساني">
-        <button class="new-quote-btn" id="newQuoteBtn">+ عرض جديد</button>
-      </div>
-    </header>
+        <nav class="swatch-board" id="swatchBoard"></nav>
 
-    <nav class="swatch-board" id="swatchBoard"></nav>
+        <div class="layout">
+          <main class="main">
+            <section class="cat-panel" id="catPanel"></section>
+          </main>
 
-    <div class="layout">
-      <main class="main">
-        <section class="cat-panel" id="catPanel"></section>
-      </main>
+          <aside class="sidebar">
+            <h2>ملخص العرض</h2>
+            <div class="cat-totals" id="catTotals"></div>
 
-      <aside class="sidebar">
-        <h2>ملخص العرض</h2>
-        <div class="cat-totals" id="catTotals"></div>
-
-        <div class="settings">
-          <label>نسبة الإدارة والربح (%)<input id="markupPct" type="number" min="0" step="1" value="20"></label>
-          <label>الضريبة العامة على المبيعات (%)<input id="taxPct" type="number" min="0" step="1" value="16"></label>
-          <label>خصم
-            <div class="discount-row">
-              <input id="discountVal" type="number" min="0" step="1" value="0">
-              <select id="discountType"><option value="fixed">د.أ</option><option value="pct">%</option></select>
+            <div class="settings">
+              <label
+                >نسبة الإدارة والربح (%)<input
+                  id="markupPct"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="20"
+              /></label>
+              <label
+                >الضريبة العامة على المبيعات (%)<input
+                  id="taxPct"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="16"
+              /></label>
+              <label
+                >خصم
+                <div class="discount-row">
+                  <input
+                    id="discountVal"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value="0"
+                  />
+                  <select id="discountType">
+                    <option value="fixed">د.أ</option>
+                    <option value="pct">%</option>
+                  </select>
+                </div>
+              </label>
             </div>
-          </label>
-        </div>
 
-        <div class="totals-breakdown" id="totalsBreakdown"></div>
-        <div class="grand-total"><span class="label">الإجمالي النهائي</span><span class="value" id="grandTotalVal">0.00 د.أ</span></div>
+            <div class="totals-breakdown" id="totalsBreakdown"></div>
+            <div class="grand-total">
+              <span class="label">الإجمالي النهائي</span
+              ><span class="value" id="grandTotalVal">0.00 د.أ</span>
+            </div>
 
-        <div class="actions">
-          <button id="saveQuoteBtn">حفظ العرض</button>
-          <button id="printBtn">طباعة / PDF</button>
-        </div>
+            <div class="actions">
+              <button id="saveQuoteBtn">حفظ العرض</button>
+              <button id="printBtn">طباعة / PDF</button>
+            </div>
 
-        <div class="saved-quotes">
-          <h3 id="savedListTitle">عروض محفوظة</h3>
-          <div id="savedList"><p class="empty-note">جاري التحميل...</p></div>
+            <div class="saved-quotes">
+              <h3 id="savedListTitle">عروض محفوظة</h3>
+              <div id="savedList">
+                <p class="empty-note">جاري التحميل...</p>
+              </div>
+            </div>
+          </aside>
         </div>
-      </aside>
+      </div>
     </div>
-  </div>
-</div>
-<div class="save-toast" id="saveToast">تم الحفظ</div>
+    <div class="save-toast" id="saveToast">تم الحفظ</div>
 
-<script>
-const CATEGORIES = [
-  { id:'furniture', name:'أثاث', color:'#8B5E3C' },
-  { id:'paint',     name:'دهان',  color:'#C97B63' },
-  { id:'lighting',  name:'إضاءة', color:'#D4A017' },
-  { id:'flooring',  name:'أرضيات', color:'#6B4A2E' },
-  { id:'ceiling',   name:'جبس وأسقف', color:'#9B9488' },
-  { id:'textile',   name:'ستائر وتنجيد', color:'#4C6B63' },
-  { id:'labor',     name:'تنفيذ وعمالة', color:'#55606B' },
-  { id:'design',    name:'أتعاب التصميم', color:'#8A6512' },
-];
-const UNITS = ['م²','متر طولي','عدد','مقطوع','ساعة'];
+    <script>
+      const CATEGORIES = [
+        { id: "furniture", name: "أثاث", color: "#8B5E3C" },
+        { id: "paint", name: "دهان", color: "#C97B63" },
+        { id: "lighting", name: "إضاءة", color: "#D4A017" },
+        { id: "flooring", name: "أرضيات", color: "#6B4A2E" },
+        { id: "ceiling", name: "جبس وأسقف", color: "#9B9488" },
+        { id: "textile", name: "ستائر وتنجيد", color: "#4C6B63" },
+        { id: "labor", name: "تنفيذ وعمالة", color: "#55606B" },
+        { id: "design", name: "أتعاب التصميم", color: "#8A6512" },
+      ];
+      const UNITS = ["م²", "متر طولي", "عدد", "مقطوع", "ساعة"];
 
-// ---------- حماية الصفحة: لازم تسجيل دخول ----------
-const token = localStorage.getItem('token');
-const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-if (!token || !currentUser) window.location.href = '/index.html';
+      // ---------- حماية الصفحة: لازم تسجيل دخول ----------
+      const token = localStorage.getItem("token");
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (!token || !currentUser) window.location.href = "/index.html";
 
-async function api(path, options = {}) {
-  const res = await fetch('/api' + path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + token,
-      ...(options.headers || {}),
-    },
-  });
-  if (res.status === 401) {
-    localStorage.removeItem('token'); localStorage.removeItem('user');
-    window.location.href = '/index.html';
-    throw new Error('unauthorized');
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'صار في خطأ بالاتصال بالسيرفر');
-  return data;
-}
+      async function api(path, options = {}) {
+        const res = await fetch("/api" + path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+            ...(options.headers || {}),
+          },
+        });
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/index.html";
+          throw new Error("unauthorized");
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data.error || "صار في خطأ بالاتصال بالسيرفر");
+        return data;
+      }
 
-let state = { projectName:'', markupPct:20, taxPct:16, discountVal:0, discountType:'fixed', items:{} };
-CATEGORIES.forEach(c => state.items[c.id] = []);
-let activeCat = CATEGORIES[0].id;
-let currentQuoteId = null;
-let uidCounter = 1;
-const uid = () => 'it' + (uidCounter++);
+      let state = {
+        projectName: "",
+        markupPct: 20,
+        taxPct: 16,
+        discountVal: 0,
+        discountType: "fixed",
+        items: {},
+      };
+      CATEGORIES.forEach((c) => (state.items[c.id] = []));
+      let activeCat = CATEGORIES[0].id;
+      let currentQuoteId = null;
+      let uidCounter = 1;
+      const uid = () => "it" + uidCounter++;
 
-function money(n){
-  n = Number.isFinite(n) ? n : 0;
-  return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' د.أ';
-}
-function catSubtotal(catId){ return (state.items[catId]||[]).reduce((s,it)=> s + (Number(it.qty)||0)*(Number(it.price)||0), 0); }
-function itemsSubtotal(){ return CATEGORIES.reduce((s,c)=> s + catSubtotal(c.id), 0); }
-function computeTotals(){
-  const base = itemsSubtotal();
-  const markup = base * (Number(state.markupPct)||0) / 100;
-  const afterMarkup = base + markup;
-  let discount = state.discountType === 'pct' ? afterMarkup * (Number(state.discountVal)||0) / 100 : (Number(state.discountVal)||0);
-  const afterDiscount = Math.max(afterMarkup - discount, 0);
-  const tax = afterDiscount * (Number(state.taxPct)||0) / 100;
-  return { base, markup, discount, tax, grand: afterDiscount + tax };
-}
-function escapeAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+      function money(n) {
+        n = Number.isFinite(n) ? n : 0;
+        return (
+          n.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }) + " د.أ"
+        );
+      }
+      function catSubtotal(catId) {
+        return (state.items[catId] || []).reduce(
+          (s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0),
+          0,
+        );
+      }
+      function itemsSubtotal() {
+        return CATEGORIES.reduce((s, c) => s + catSubtotal(c.id), 0);
+      }
+      function computeTotals() {
+        const base = itemsSubtotal();
+        const markup = (base * (Number(state.markupPct) || 0)) / 100;
+        const afterMarkup = base + markup;
+        let discount =
+          state.discountType === "pct"
+            ? (afterMarkup * (Number(state.discountVal) || 0)) / 100
+            : Number(state.discountVal) || 0;
+        const afterDiscount = Math.max(afterMarkup - discount, 0);
+        const tax = (afterDiscount * (Number(state.taxPct) || 0)) / 100;
+        return { base, markup, discount, tax, grand: afterDiscount + tax };
+      }
+      function escapeAttr(s) {
+        return (s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;");
+      }
 
-function renderSwatchBoard(){
-  const el = document.getElementById('swatchBoard'); el.innerHTML = '';
-  CATEGORIES.forEach(c => {
-    const btn = document.createElement('div');
-    btn.className = 'swatch' + (c.id === activeCat ? ' active' : '');
-    const count = (state.items[c.id]||[]).length;
-    btn.innerHTML = `<span class="chip" style="background:${c.color}"></span>${c.name}<span class="count">${count>0?'· '+count:''}</span>`;
-    btn.onclick = () => { activeCat = c.id; renderAll(); };
-    el.appendChild(btn);
-  });
-}
+      function renderSwatchBoard() {
+        const el = document.getElementById("swatchBoard");
+        el.innerHTML = "";
+        CATEGORIES.forEach((c) => {
+          const btn = document.createElement("div");
+          btn.className = "swatch" + (c.id === activeCat ? " active" : "");
+          const count = (state.items[c.id] || []).length;
+          btn.innerHTML = `<span class="chip" style="background:${c.color}"></span>${c.name}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
+          btn.onclick = () => {
+            activeCat = c.id;
+            renderAll();
+          };
+          el.appendChild(btn);
+        });
+      }
 
-function renderCatPanel(){
-  const cat = CATEGORIES.find(c => c.id === activeCat);
-  const panel = document.getElementById('catPanel');
-  const items = state.items[cat.id] || [];
-  let rows = '';
-  items.forEach(it => {
-    const total = (Number(it.qty)||0) * (Number(it.price)||0);
-    rows += `<tr data-id="${it.id}">
+      function renderCatPanel() {
+        const cat = CATEGORIES.find((c) => c.id === activeCat);
+        const panel = document.getElementById("catPanel");
+        const items = state.items[cat.id] || [];
+        let rows = "";
+        items.forEach((it) => {
+          const total = (Number(it.qty) || 0) * (Number(it.price) || 0);
+          rows += `<tr data-id="${it.id}">
       <td class="col-name"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند"></td>
-      <td class="col-unit"><select class="f-unit">${UNITS.map(u=>`<option value="${u}" ${u===it.unit?'selected':''}>${u}</option>`).join('')}</select></td>
+      <td class="col-unit"><select class="f-unit">${UNITS.map((u) => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
       <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
       <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${it.price}"></td>
       <td class="col-total">${money(total)}</td>
       <td class="col-del"><button class="del-btn" title="حذف البند">✕</button></td>
     </tr>`;
-  });
-  panel.innerHTML = `
+        });
+        panel.innerHTML = `
     <h2><span class="chip-big" style="background:${cat.color}"></span>${cat.name}</h2>
     <p class="cat-sub">أضف بنود هالفئة، وحدد الوحدة والكمية وسعر الوحدة — والإجمالي بيحسب حاله.</p>
-    ${items.length ? `<table class="items"><thead><tr>
+    ${
+      items.length
+        ? `<table class="items"><thead><tr>
         <th class="col-name">البند</th><th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
         <th class="col-price">سعر الوحدة</th><th class="col-total">الإجمالي</th><th class="col-del"></th>
-      </tr></thead><tbody>${rows}</tbody></table>` : `<p class="cat-empty">ما في بنود لسا بهالفئة. ابدأ بإضافة أول بند.</p>`}
+      </tr></thead><tbody>${rows}</tbody></table>`
+        : `<p class="cat-empty">ما في بنود لسا بهالفئة. ابدأ بإضافة أول بند.</p>`
+    }
     <button class="add-row" id="addItemBtn">+ إضافة بند إلى ${cat.name}</button>`;
 
-  document.getElementById('addItemBtn').onclick = () => {
-    state.items[cat.id].push({ id: uid(), name:'', unit: UNITS[0], qty:1, price:0 });
-    renderAll();
-  };
-  panel.querySelectorAll('tr[data-id]').forEach(tr => {
-    const id = tr.getAttribute('data-id');
-    const item = items.find(i => i.id === id);
-    tr.querySelector('.f-name').oninput = e => { item.name = e.target.value; };
-    tr.querySelector('.f-unit').onchange = e => { item.unit = e.target.value; };
-    tr.querySelector('.f-qty').oninput = e => { item.qty = e.target.value; renderTotalsOnly(); };
-    tr.querySelector('.f-price').oninput = e => { item.price = e.target.value; renderTotalsOnly(); };
-    tr.querySelector('.del-btn').onclick = () => { state.items[cat.id] = state.items[cat.id].filter(i => i.id !== id); renderAll(); };
-  });
-}
+        document.getElementById("addItemBtn").onclick = () => {
+          state.items[cat.id].push({
+            id: uid(),
+            name: "",
+            unit: UNITS[0],
+            qty: 1,
+            price: 0,
+          });
+          renderAll();
+        };
+        panel.querySelectorAll("tr[data-id]").forEach((tr) => {
+          const id = tr.getAttribute("data-id");
+          const item = items.find((i) => i.id === id);
+          tr.querySelector(".f-name").oninput = (e) => {
+            item.name = e.target.value;
+          };
+          tr.querySelector(".f-unit").onchange = (e) => {
+            item.unit = e.target.value;
+          };
+          tr.querySelector(".f-qty").oninput = (e) => {
+            item.qty = e.target.value;
+            renderTotalsOnly();
+          };
+          tr.querySelector(".f-price").oninput = (e) => {
+            item.price = e.target.value;
+            renderTotalsOnly();
+          };
+          tr.querySelector(".del-btn").onclick = () => {
+            state.items[cat.id] = state.items[cat.id].filter(
+              (i) => i.id !== id,
+            );
+            renderAll();
+          };
+        });
+      }
 
-function renderTotalsOnly(){
-  const cat = CATEGORIES.find(c => c.id === activeCat);
-  const items = state.items[cat.id] || [];
-  document.querySelectorAll('#catPanel tr[data-id]').forEach(tr => {
-    const item = items.find(i => i.id === tr.getAttribute('data-id'));
-    if (item) tr.querySelector('.col-total').textContent = money((Number(item.qty)||0)*(Number(item.price)||0));
-  });
-  renderSidebarTotals();
-  renderSwatchCounts();
-}
-function renderSwatchCounts(){
-  document.querySelectorAll('.swatch').forEach((el,i) => {
-    const c = CATEGORIES[i]; const count = (state.items[c.id]||[]).length;
-    const countEl = el.querySelector('.count'); if (countEl) countEl.textContent = count>0 ? '· '+count : '';
-  });
-}
-function renderSidebarTotals(){
-  const catTotalsEl = document.getElementById('catTotals');
-  catTotalsEl.innerHTML = CATEGORIES.map(c => {
-    const sub = catSubtotal(c.id);
-    if (sub === 0 && (state.items[c.id]||[]).length === 0) return '';
-    return `<div class="cat-totals-row"><span>${c.name}</span><span class="n">${money(sub)}</span></div>`;
-  }).join('') || '<p class="empty-note">ابدأ بإضافة بنود لعرض الملخص.</p>';
-  const t = computeTotals();
-  document.getElementById('totalsBreakdown').innerHTML = `
+      function renderTotalsOnly() {
+        const cat = CATEGORIES.find((c) => c.id === activeCat);
+        const items = state.items[cat.id] || [];
+        document.querySelectorAll("#catPanel tr[data-id]").forEach((tr) => {
+          const item = items.find((i) => i.id === tr.getAttribute("data-id"));
+          if (item)
+            tr.querySelector(".col-total").textContent = money(
+              (Number(item.qty) || 0) * (Number(item.price) || 0),
+            );
+        });
+        renderSidebarTotals();
+        renderSwatchCounts();
+      }
+      function renderSwatchCounts() {
+        document.querySelectorAll(".swatch").forEach((el, i) => {
+          const c = CATEGORIES[i];
+          const count = (state.items[c.id] || []).length;
+          const countEl = el.querySelector(".count");
+          if (countEl) countEl.textContent = count > 0 ? "· " + count : "";
+        });
+      }
+      function renderSidebarTotals() {
+        const catTotalsEl = document.getElementById("catTotals");
+        catTotalsEl.innerHTML =
+          CATEGORIES.map((c) => {
+            const sub = catSubtotal(c.id);
+            if (sub === 0 && (state.items[c.id] || []).length === 0) return "";
+            return `<div class="cat-totals-row"><span>${c.name}</span><span class="n">${money(sub)}</span></div>`;
+          }).join("") ||
+          '<p class="empty-note">ابدأ بإضافة بنود لعرض الملخص.</p>';
+        const t = computeTotals();
+        document.getElementById("totalsBreakdown").innerHTML = `
     <div class="tb-row"><span>مجموع البنود</span><span class="n">${money(t.base)}</span></div>
-    <div class="tb-row"><span>الإدارة والربح (${state.markupPct||0}%)</span><span class="n">+ ${money(t.markup)}</span></div>
-    ${t.discount>0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${money(t.discount)}</span></div>` : ''}
-    <div class="tb-row"><span>الضريبة (${state.taxPct||0}%)</span><span class="n">+ ${money(t.tax)}</span></div>`;
-  document.getElementById('grandTotalVal').textContent = money(t.grand);
-}
-function renderAll(){ renderSwatchBoard(); renderCatPanel(); renderSidebarTotals(); }
+    <div class="tb-row"><span>الإدارة والربح (${state.markupPct || 0}%)</span><span class="n">+ ${money(t.markup)}</span></div>
+    ${t.discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${money(t.discount)}</span></div>` : ""}
+    <div class="tb-row"><span>الضريبة (${state.taxPct || 0}%)</span><span class="n">+ ${money(t.tax)}</span></div>`;
+        document.getElementById("grandTotalVal").textContent = money(t.grand);
+      }
+      function renderAll() {
+        renderSwatchBoard();
+        renderCatPanel();
+        renderSidebarTotals();
+      }
 
-document.getElementById('projectName').oninput = e => { state.projectName = e.target.value; };
-document.getElementById('markupPct').oninput = e => { state.markupPct = e.target.value; renderSidebarTotals(); };
-document.getElementById('taxPct').oninput = e => { state.taxPct = e.target.value; renderSidebarTotals(); };
-document.getElementById('discountVal').oninput = e => { state.discountVal = e.target.value; renderSidebarTotals(); };
-document.getElementById('discountType').onchange = e => { state.discountType = e.target.value; renderSidebarTotals(); };
-document.getElementById('printBtn').onclick = () => window.print();
-document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href = '/index.html'; };
-document.getElementById('newQuoteBtn').onclick = () => {
-  currentQuoteId = null;
-  state = { projectName:'', markupPct:20, taxPct:16, discountVal:0, discountType:'fixed', items:{} };
-  CATEGORIES.forEach(c => state.items[c.id] = []);
-  activeCat = CATEGORIES[0].id;
-  document.getElementById('projectName').value = '';
-  document.getElementById('markupPct').value = 20;
-  document.getElementById('taxPct').value = 16;
-  document.getElementById('discountVal').value = 0;
-  document.getElementById('discountType').value = 'fixed';
-  renderAll();
-  showToast('عرض جديد — جاهز تبدأ فيه');
-};
+      document.getElementById("projectName").oninput = (e) => {
+        state.projectName = e.target.value;
+      };
+      document.getElementById("markupPct").oninput = (e) => {
+        state.markupPct = e.target.value;
+        renderSidebarTotals();
+      };
+      document.getElementById("taxPct").oninput = (e) => {
+        state.taxPct = e.target.value;
+        renderSidebarTotals();
+      };
+      document.getElementById("discountVal").oninput = (e) => {
+        state.discountVal = e.target.value;
+        renderSidebarTotals();
+      };
+      document.getElementById("discountType").onchange = (e) => {
+        state.discountType = e.target.value;
+        renderSidebarTotals();
+      };
+      document.getElementById("printBtn").onclick = () => window.print();
+      document.getElementById("logoutBtn").onclick = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      };
+      document.getElementById("newQuoteBtn").onclick = () => {
+        currentQuoteId = null;
+        state = {
+          projectName: "",
+          markupPct: 20,
+          taxPct: 16,
+          discountVal: 0,
+          discountType: "fixed",
+          items: {},
+        };
+        CATEGORIES.forEach((c) => (state.items[c.id] = []));
+        activeCat = CATEGORIES[0].id;
+        document.getElementById("projectName").value = "";
+        document.getElementById("markupPct").value = 20;
+        document.getElementById("taxPct").value = 16;
+        document.getElementById("discountVal").value = 0;
+        document.getElementById("discountType").value = "fixed";
+        renderAll();
+        showToast("عرض جديد — جاهز تبدأ فيه");
+      };
 
-function showToast(msg){
-  const t = document.getElementById('saveToast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=> t.classList.remove('show'), 1800);
-}
+      function showToast(msg) {
+        const t = document.getElementById("saveToast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1800);
+      }
 
-document.getElementById('saveQuoteBtn').onclick = async () => {
-  const btn = document.getElementById('saveQuoteBtn');
-  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
-  try {
-    const t = computeTotals();
-    const body = { project_name: state.projectName || 'مشروع بدون اسم', data: state, total: t.grand };
-    if (currentQuoteId) {
-      await api('/quotes/' + currentQuoteId, { method:'PUT', body: JSON.stringify(body) });
-    } else {
-      const res = await api('/quotes', { method:'POST', body: JSON.stringify(body) });
-      currentQuoteId = res.id;
-    }
-    showToast('تم حفظ العرض');
-    loadSavedList();
-  } catch (e) {
-    showToast(e.message || 'تعذر الحفظ');
-  } finally {
-    btn.disabled = false; btn.textContent = 'حفظ العرض';
-  }
-};
+      document.getElementById("saveQuoteBtn").onclick = async () => {
+        const btn = document.getElementById("saveQuoteBtn");
+        btn.disabled = true;
+        btn.textContent = "جاري الحفظ...";
+        try {
+          const t = computeTotals();
+          const body = {
+            project_name: state.projectName || "مشروع بدون اسم",
+            data: state,
+            total: t.grand,
+          };
+          if (currentQuoteId) {
+            await api("/quotes/" + currentQuoteId, {
+              method: "PUT",
+              body: JSON.stringify(body),
+            });
+          } else {
+            const res = await api("/quotes", {
+              method: "POST",
+              body: JSON.stringify(body),
+            });
+            currentQuoteId = res.id;
+          }
+          showToast("تم حفظ العرض");
+          loadSavedList();
+        } catch (e) {
+          showToast(e.message || "تعذر الحفظ");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "حفظ العرض";
+        }
+      };
 
-async function loadSavedList(){
-  const el = document.getElementById('savedList');
-  document.getElementById('savedListTitle').textContent = currentUser.role === 'admin' ? 'كل عروض الفريق' : 'عروضي المحفوظة';
-  try {
-    const { quotes } = await api('/quotes');
-    if (!quotes.length) { el.innerHTML = '<p class="empty-note">ما في عروض محفوظة بعد.</p>'; return; }
-    el.innerHTML = quotes.map(q => `
+      async function loadSavedList() {
+        const el = document.getElementById("savedList");
+        document.getElementById("savedListTitle").textContent =
+          currentUser.role === "admin" ? "كل عروض الفريق" : "عروضي المحفوظة";
+        try {
+          const { quotes } = await api("/quotes");
+          if (!quotes.length) {
+            el.innerHTML = '<p class="empty-note">ما في عروض محفوظة بعد.</p>';
+            return;
+          }
+          el.innerHTML = quotes
+            .map(
+              (q) => `
       <div class="saved-item" data-id="${q.id}">
         <div class="info">
-          <div class="name">${escapeAttr(q.project_name)}${q.designer_name ? ' · <span style="color:var(--ink-soft); font-weight:400;">'+escapeAttr(q.designer_name)+'</span>' : ''}</div>
-          <div class="meta">${new Date(q.updated_at).toLocaleDateString('ar-JO')} · ${money(q.total)}</div>
+          <div class="name">${escapeAttr(q.project_name)}${q.designer_name ? ' · <span style="color:var(--ink-soft); font-weight:400;">' + escapeAttr(q.designer_name) + "</span>" : ""}</div>
+          <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${money(q.total)}</div>
         </div>
         <div class="btns"><button class="load-btn">فتح</button><button class="del-q-btn">حذف</button></div>
-      </div>`).join('');
+      </div>`,
+            )
+            .join("");
 
-    el.querySelectorAll('.saved-item').forEach(row => {
-      const id = row.getAttribute('data-id');
-      row.querySelector('.load-btn').onclick = async () => {
-        try {
-          const { quote } = await api('/quotes/' + id);
-          currentQuoteId = quote.id;
-          state = quote.data;
-          CATEGORIES.forEach(c => { if (!state.items[c.id]) state.items[c.id] = []; });
-          activeCat = CATEGORIES[0].id;
-          document.getElementById('projectName').value = state.projectName || '';
-          document.getElementById('markupPct').value = state.markupPct;
-          document.getElementById('taxPct').value = state.taxPct;
-          document.getElementById('discountVal').value = state.discountVal;
-          document.getElementById('discountType').value = state.discountType;
-          renderAll();
-          showToast('تم فتح العرض');
-        } catch (e) { showToast(e.message || 'تعذر فتح هذا العرض'); }
-      };
-      row.querySelector('.del-q-btn').onclick = async () => {
-        try { await api('/quotes/' + id, { method:'DELETE' }); loadSavedList(); if (currentQuoteId == id) document.getElementById('newQuoteBtn').click(); }
-        catch (e) { showToast(e.message || 'تعذر الحذف'); }
-      };
-    });
-  } catch (e) {
-    el.innerHTML = '<p class="empty-note">تعذر تحميل العروض المحفوظة.</p>';
-  }
-}
+          el.querySelectorAll(".saved-item").forEach((row) => {
+            const id = row.getAttribute("data-id");
+            row.querySelector(".load-btn").onclick = async () => {
+              try {
+                const { quote } = await api("/quotes/" + id);
+                currentQuoteId = quote.id;
+                state = quote.data;
+                CATEGORIES.forEach((c) => {
+                  if (!state.items[c.id]) state.items[c.id] = [];
+                });
+                activeCat = CATEGORIES[0].id;
+                document.getElementById("projectName").value =
+                  state.projectName || "";
+                document.getElementById("markupPct").value = state.markupPct;
+                document.getElementById("taxPct").value = state.taxPct;
+                document.getElementById("discountVal").value =
+                  state.discountVal;
+                document.getElementById("discountType").value =
+                  state.discountType;
+                renderAll();
+                showToast("تم فتح العرض");
+              } catch (e) {
+                showToast(e.message || "تعذر فتح هذا العرض");
+              }
+            };
+            row.querySelector(".del-q-btn").onclick = async () => {
+              try {
+                await api("/quotes/" + id, { method: "DELETE" });
+                loadSavedList();
+                if (currentQuoteId == id)
+                  document.getElementById("newQuoteBtn").click();
+              } catch (e) {
+                showToast(e.message || "تعذر الحذف");
+              }
+            };
+          });
+        } catch (e) {
+          el.innerHTML =
+            '<p class="empty-note">تعذر تحميل العروض المحفوظة.</p>';
+        }
+      }
 
-(async function init(){
-  document.getElementById('userName').textContent = currentUser.name;
-  document.getElementById('roleBadge').textContent = currentUser.role === 'admin' ? 'مدير' : 'مصمم';
-  if (currentUser.role === 'admin') document.getElementById('adminLink').style.display = 'inline-block';
-  renderAll();
-  loadSavedList();
-})();
-</script>
-</body>
+      (async function init() {
+        document.getElementById("userName").textContent = currentUser.name;
+        document.getElementById("roleBadge").textContent =
+          currentUser.role === "admin" ? "مدير" : "مصمم";
+        if (currentUser.role === "admin")
+          document.getElementById("adminLink").style.display = "inline-block";
+        renderAll();
+        loadSavedList();
+      })();
+    </script>
+  </body>
 </html>
