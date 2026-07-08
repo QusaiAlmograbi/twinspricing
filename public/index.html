@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول — لوحة تسعير التصميم الداخلي</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@600;700&display=swap");
+      :root {
+        --bg: #f4f2ed;
+        --paper: #ffffff;
+        --ink: #211d17;
+        --ink-soft: #726c63;
+        --line: #e5e1d6;
+        --line-strong: #d3cbb8;
+        --pine: #8a6512;
+        --pine-dark: #6b4e0c;
+        --brass: #cc9a06;
+        --danger: #a33b2d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        font-family: "Cairo", "Tahoma", sans-serif;
+        color: var(--ink);
+        padding: 20px;
+      }
+      .card {
+        width: 100%;
+        max-width: 400px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 30px 28px;
+        position: relative;
+        overflow: hidden;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 6px;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--pine) 0 28px,
+          var(--brass) 28px 56px
+        );
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        color: var(--pine-dark);
+        font-weight: 700;
+        margin: 8px 0 4px;
+      }
+      h1 {
+        font-family: "Markazi Text", serif;
+        font-size: 28px;
+        margin: 0 0 20px;
+      }
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-soft);
+        display: block;
+        margin: 14px 0 6px;
+      }
+      input {
+        width: 100%;
+        font-family: inherit;
+        font-size: 15px;
+        padding: 10px 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
+      button {
+        width: 100%;
+        margin-top: 22px;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid var(--pine);
+        background: var(--pine);
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--pine-dark);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .switch {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+      }
+      .switch a {
+        color: var(--pine-dark);
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .error {
+        background: #fbeae7;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-top: 14px;
+        display: none;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 6px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="eyebrow">TWiNS Interior Design</div>
+      <h1 id="formTitle">تسجيل الدخول</h1>
+      <form id="authForm">
+        <div id="nameField" style="display: none">
+          <label for="name">الاسم</label>
+          <input id="name" type="text" placeholder="الاسم الكامل" />
+        </div>
+        <label for="email">الإيميل</label>
+        <input
+          id="email"
+          type="email"
+          placeholder="name@company.com"
+          required
+        />
+        <label for="password">كلمة المرور</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="6 أحرف على الأقل"
+          required
+        />
+        <div class="hint" id="registerHint" style="display: none"></div>
+        <button type="submit" id="submitBtn">دخول</button>
+        <div class="error" id="errorBox"></div>
+      </form>
+      <div class="switch">
+        <span id="switchText">أول مرة تستخدم الأداة؟</span>
+        <a id="switchLink">أنشئ حساب</a>
+      </div>
+    </div>
+
+    <script>
+      let mode = "login";
+      const form = document.getElementById("authForm");
+      const errorBox = document.getElementById("errorBox");
+      const nameField = document.getElementById("nameField");
+      const registerHint = document.getElementById("registerHint");
+
+      // إذا في جلسة مسجلة مسبقاً، حوّل مباشرة للأداة
+      if (localStorage.getItem("token")) window.location.href = "/app";
+
+      document.getElementById("switchLink").onclick = () => {
+        mode = mode === "login" ? "register" : "login";
+        document.getElementById("formTitle").textContent =
+          mode === "login" ? "تسجيل الدخول" : "إنشاء حساب جديد";
+        document.getElementById("submitBtn").textContent =
+          mode === "login" ? "دخول" : "إنشاء الحساب";
+        document.getElementById("switchText").textContent =
+          mode === "login" ? "أول مرة تستخدم الأداة؟" : "عندك حساب مسبقاً؟";
+        document.getElementById("switchLink").textContent =
+          mode === "login" ? "أنشئ حساب" : "سجّل الدخول";
+        nameField.style.display = mode === "register" ? "block" : "none";
+        registerHint.style.display = mode === "register" ? "block" : "none";
+        errorBox.style.display = "none";
+      };
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        errorBox.style.display = "none";
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.disabled = true;
+        const payload = {
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        };
+        if (mode === "register")
+          payload.name = document.getElementById("name").value;
+
+        try {
+          const res = await fetch("/api/auth/" + mode, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok)
+            throw new Error(data.error || "صار في خطأ، حاول مرة ثانية");
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          window.location.href = "/app";
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.style.display = "block";
+        } finally {
+          submitBtn.disabled = false;
+        }
+      };
+    </script>
+  </body>
+</html>
