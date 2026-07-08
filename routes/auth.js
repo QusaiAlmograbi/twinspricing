@@ -16,7 +16,7 @@ function parsePermissions(value) {
   }
 }
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: "الرجاء تعبئة كل الحقول" });
@@ -27,20 +27,21 @@ router.post("/register", (req, res) => {
       .json({ error: "كلمة المرور لازم تكون 6 أحرف على الأقل" });
   }
   const cleanEmail = email.toLowerCase().trim();
-  const existing = db
+  const existing = await db
     .prepare("SELECT id FROM users WHERE email = ?")
     .get(cleanEmail);
   if (existing) {
     return res.status(400).json({ error: "هذا الإيميل مسجل مسبقاً" });
   }
 
-  const ownerCount = db
+  const ownerCountRow = await db
     .prepare("SELECT COUNT(*) as c FROM users WHERE role = 'owner'")
-    .get().c;
+    .get();
+  const ownerCount = ownerCountRow?.c || 0;
   const role = ownerCount === 0 ? "owner" : "designer";
   const password_hash = bcrypt.hashSync(password, 10);
 
-  const info = db
+  const info = await db
     .prepare(
       "INSERT INTO users (name, email, password_hash, role, permissions) VALUES (?,?,?,?,?)",
     )
@@ -57,10 +58,10 @@ router.post("/register", (req, res) => {
   res.json({ token, user });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || "").toLowerCase().trim();
-  const user = db
+  const user = await db
     .prepare("SELECT * FROM users WHERE email = ?")
     .get(cleanEmail);
   if (!user || !bcrypt.compareSync(password || "", user.password_hash)) {
