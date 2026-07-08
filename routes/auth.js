@@ -34,11 +34,13 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ error: "هذا الإيميل مسجل مسبقاً" });
   }
 
-  const ownerCountRow = await db
-    .prepare("SELECT COUNT(*) as c FROM users WHERE role = 'owner'")
+  const usersCountRow = await db
+    .prepare("SELECT COUNT(*) as c FROM users")
     .get();
-  const ownerCount = ownerCountRow?.c || 0;
-  const role = ownerCount === 0 ? "owner" : "designer";
+
+  const usersCount = Number(usersCountRow?.c || 0);
+
+  const role = usersCount === 0 ? "owner" : "designer";
   const password_hash = bcrypt.hashSync(password, 10);
 
   const info = await db
