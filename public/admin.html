@@ -135,6 +135,52 @@
         background: #fbeae7;
         color: var(--danger);
       }
+      .access-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr 1fr auto;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+      .access-grid select {
+        width: 100%;
+      }
+      .access-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .access-actions button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--pine);
+        color: #fff;
+        background: var(--pine);
+        cursor: pointer;
+      }
+      .access-actions button:hover {
+        background: var(--pine-dark);
+      }
+      .access-note {
+        grid-column: 1 / -1;
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      .delete-btn {
+        font-family: inherit;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #d3c0b0;
+        background: #f8e6e3;
+        color: var(--danger);
+        cursor: pointer;
+      }
+      .delete-btn:hover {
+        background: #f2d2cf;
+      }
     </style>
   </head>
   <body>
@@ -146,20 +192,35 @@
         <div class="eyebrow">TWiNS Interior Design · للمدير فقط</div>
         <h1>إدارة الفريق</h1>
         <p class="sub">
-          حدد صلاحية كل عضو — "مدير" يشوف ويعدّل كل عروض الفريق، و"مصمم" يشوف
-          عروضه هو بس.
+          حدد صلاحية كل عضو — "مالك" و"مدير" يمكنهم إدارة الفريق ومنح صلاحية
+          مشاهدة المشاريع للمصممين.
         </p>
+        <section class="access-grid">
+          <div>
+            <label for="quoteSelect">اختر مشروع</label>
+            <select id="quoteSelect"></select>
+          </div>
+          <div>
+            <label for="designerSelect">اختر مصمم</label>
+            <select id="designerSelect"></select>
+          </div>
+          <div class="access-actions">
+            <button id="grantAccessBtn">منح وصول للمشروع</button>
+          </div>
+          <div class="access-note" id="accessNote"></div>
+        </section>
         <table>
           <thead>
             <tr>
               <th>الاسم</th>
               <th>الإيميل</th>
               <th>الصلاحية</th>
+              <th>إجراءات</th>
             </tr>
           </thead>
           <tbody id="usersBody">
             <tr>
-              <td colspan="3">جاري التحميل...</td>
+              <td colspan="4">جاري التحميل...</td>
             </tr>
           </tbody>
         </table>
@@ -171,7 +232,8 @@
       const token = localStorage.getItem("token");
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
       if (!token || !currentUser) window.location.href = "/index.html";
-      if (currentUser.role !== "admin") window.location.href = "/app";
+      if (currentUser.role !== "admin" && currentUser.role !== "owner")
+        window.location.href = "/app";
 
       async function api(path, options = {}) {
         const res = await fetch("/api" + path, {
@@ -214,7 +276,11 @@
           <select class="role-select">
             <option value="designer" ${u.role === "designer" ? "selected" : ""}>مصمم</option>
             <option value="admin" ${u.role === "admin" ? "selected" : ""}>مدير</option>
+            <option value="owner" ${u.role === "owner" ? "selected" : ""}>مالك</option>
           </select>
+        </td>
+        <td>
+          <button class="delete-btn" data-id="${u.id}">حذف المستخدم</button>
         </td>
       </tr>`,
             )
@@ -233,12 +299,79 @@
                 loadUsers();
               }
             };
+            const deleteBtn = tr.querySelector(".delete-btn");
+            if (deleteBtn) {
+              deleteBtn.onclick = async () => {
+                if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
+                try {
+                  await api("/users/" + id, { method: "DELETE" });
+                  showMsg("تم حذف المستخدم", true);
+                  loadUsers();
+                  loadAccessData();
+                } catch (err) {
+                  showMsg(err.message, false);
+                }
+              };
+            }
           });
         } catch (e) {
           body.innerHTML = `<tr><td colspan="3">تعذر تحميل قائمة الفريق</td></tr>`;
         }
       }
+      async function loadAccessData() {
+        const quoteSelect = document.getElementById("quoteSelect");
+        const designerSelect = document.getElementById("designerSelect");
+        const accessNote = document.getElementById("accessNote");
+
+        try {
+          const [{ quotes }, { users }] = await Promise.all([
+            api("/quotes"),
+            api("/users"),
+          ]);
+
+          quoteSelect.innerHTML = quotes
+            .map(
+              (q) =>
+                `<option value="${q.id}">${q.project_name} · ${new Date(
+                  q.updated_at,
+                ).toLocaleDateString("ar-JO")}</option>`,
+            )
+            .join("");
+          const designers = users.filter((u) => u.role === "designer");
+          designerSelect.innerHTML = designers
+            .map(
+              (u) => `<option value="${u.id}">${u.name} — ${u.email}</option>`,
+            )
+            .join("");
+
+          accessNote.textContent = designers.length
+            ? "اختر المشروع والمصمم ثم اضغط منح وصول للمشروع."
+            : "لا يوجد مصممين متاحين حالياً.";
+        } catch (e) {
+          accessNote.textContent = "تعذر تحميل المشاريع أو المستخدمين.";
+        }
+      }
+
+      document.getElementById("grantAccessBtn").onclick = async () => {
+        const quoteId = document.getElementById("quoteSelect").value;
+        const userId = document.getElementById("designerSelect").value;
+        if (!quoteId || !userId) {
+          showMsg("اختر مشروعًا ومصممًا أولاً.", false);
+          return;
+        }
+        try {
+          await api(`/quotes/${quoteId}/access`, {
+            method: "POST",
+            body: JSON.stringify({ user_id: Number(userId) }),
+          });
+          showMsg("تم منح الوصول للمشروع.", true);
+        } catch (err) {
+          showMsg(err.message, false);
+        }
+      };
+
       loadUsers();
+      loadAccessData();
     </script>
   </body>
 </html>

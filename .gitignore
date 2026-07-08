@@ -3,3 +3,5 @@ node_modules/
 *.log
 .DS_Store
 data/*.db
+data/*.db-wal
+data/*.db-shm
