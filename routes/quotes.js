@@ -5,10 +5,10 @@ const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   let rows;
   if (isAdminOrOwner(req.user.role)) {
-    rows = db
+    rows = await db
       .prepare(
         `SELECT q.id, q.project_name, q.total, q.created_at, q.updated_at,
                 u.id as user_id, u.name as designer_name
@@ -17,7 +17,7 @@ router.get("/", (req, res) => {
       )
       .all();
   } else {
-    rows = db
+    rows = await db
       .prepare(
         `SELECT q.id, q.project_name, q.total, q.created_at, q.updated_at
          FROM quotes q
@@ -32,10 +32,12 @@ router.get("/", (req, res) => {
   res.json({ quotes: rows });
 });
 
-router.get("/:id", (req, res) => {
-  const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+router.get("/:id", async (req, res) => {
+  const q = await db
+    .prepare("SELECT * FROM quotes WHERE id = ?")
+    .get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
-  const hasAccess = db
+  const hasAccess = await db
     .prepare("SELECT 1 FROM project_access WHERE quote_id = ? AND user_id = ?")
     .get(q.id, req.user.id);
   if (
@@ -48,13 +50,13 @@ router.get("/:id", (req, res) => {
   res.json({ quote: { ...q, data: JSON.parse(q.data) } });
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { project_name, data, total } = req.body;
   if (!data) return res.status(400).json({ error: "بيانات العرض ناقصة" });
-  const info = db
+  const info = await db
     .prepare(
       `INSERT INTO quotes (user_id, project_name, data, total, created_at, updated_at)
-       VALUES (?,?,?,?, datetime('now'), datetime('now'))`,
+       VALUES (?,?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     )
     .run(
       req.user.id,
@@ -65,7 +67,7 @@ router.post("/", (req, res) => {
   res.json({ id: info.lastInsertRowid });
 });
 
-router.post("/:id/access", (req, res) => {
+router.post("/:id/access", async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -75,23 +77,27 @@ router.post("/:id/access", (req, res) => {
   const quoteId = Number(req.params.id);
   const { user_id, project_id, quote_id, permission = "view" } = req.body;
   const userId = Number(user_id ?? project_id ?? quote_id);
-  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
+  const quote = await db
+    .prepare("SELECT * FROM quotes WHERE id = ?")
+    .get(quoteId);
   if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+  const user = await db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
   if (!user) return res.status(404).json({ error: "المستخدم غير موجود" });
   if (user.role !== "designer") {
     return res.status(400).json({ error: "يمكن منح الوصول لمصمم فقط" });
   }
 
-  db.prepare(
-    `INSERT OR IGNORE INTO project_access (quote_id, user_id, granted_by, permission)
-     VALUES (?,?,?,?)`,
-  ).run(quoteId, userId, req.user.id, permission || "view");
+  await db
+    .prepare(
+      `INSERT INTO project_access (quote_id, user_id, granted_by, permission)
+     VALUES (?,?,?,?) ON CONFLICT (quote_id, user_id) DO NOTHING`,
+    )
+    .run(quoteId, userId, req.user.id, permission || "view");
 
   res.json({ ok: true });
 });
 
-router.delete("/:id/access/:userId?", (req, res) => {
+router.delete("/:id/access/:userId?", async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -106,43 +112,51 @@ router.delete("/:id/access/:userId?", (req, res) => {
     return res.status(400).json({ error: "يجب اختيار المستخدم" });
   }
 
-  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
+  const quote = await db
+    .prepare("SELECT * FROM quotes WHERE id = ?")
+    .get(quoteId);
   if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
 
-  db.prepare(
-    "DELETE FROM project_access WHERE quote_id = ? AND user_id = ?",
-  ).run(quoteId, userId);
+  await db
+    .prepare("DELETE FROM project_access WHERE quote_id = ? AND user_id = ?")
+    .run(quoteId, userId);
   res.json({ ok: true });
 });
 
-router.put("/:id", (req, res) => {
-  const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+router.put("/:id", async (req, res) => {
+  const q = await db
+    .prepare("SELECT * FROM quotes WHERE id = ?")
+    .get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
   if (!isAdminOrOwner(req.user.role) && q.user_id !== req.user.id) {
     return res.status(403).json({ error: "ما عندك صلاحية لتعديل هذا العرض" });
   }
   const { project_name, data, total } = req.body;
-  db.prepare(
-    `UPDATE quotes SET project_name = ?, data = ?, total = ?, updated_at = datetime('now') WHERE id = ?`,
-  ).run(
-    project_name || "مشروع بدون اسم",
-    JSON.stringify(data),
-    total || 0,
-    req.params.id,
-  );
+  await db
+    .prepare(
+      `UPDATE quotes SET project_name = ?, data = ?, total = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .run(
+      project_name || "مشروع بدون اسم",
+      JSON.stringify(data),
+      total || 0,
+      req.params.id,
+    );
   res.json({ ok: true });
 });
 
-router.delete("/:id", (req, res) => {
-  const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+router.delete("/:id", async (req, res) => {
+  const q = await db
+    .prepare("SELECT * FROM quotes WHERE id = ?")
+    .get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
   if (!isAdminOrOwner(req.user.role) && q.user_id !== req.user.id) {
     return res.status(403).json({ error: "ما عندك صلاحية لحذف هذا العرض" });
   }
-  db.prepare("DELETE FROM project_access WHERE quote_id = ?").run(
-    req.params.id,
-  );
-  db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
+  await db
+    .prepare("DELETE FROM project_access WHERE quote_id = ?")
+    .run(req.params.id);
+  await db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
 

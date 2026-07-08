@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
+const db = require("./db");
 const authRoutes = require("./routes/auth");
 const quotesRoutes = require("./routes/quotes");
 const usersRoutes = require("./routes/users");
@@ -46,10 +47,17 @@ function createApp() {
   return app;
 }
 
-function startServer(
+async function startServer(
   port = process.env.PORT || 3000,
   host = process.env.HOST || "0.0.0.0",
 ) {
+  try {
+    await db.initializeDatabase();
+  } catch (error) {
+    console.error("فشل تهيئة قاعدة PostgreSQL:", error);
+    throw error;
+  }
+
   const app = createApp();
   const server = app.listen(port, host, () => {
     console.log(`السيرفر شغال على http://${host}:${server.address().port}`);
@@ -70,7 +78,10 @@ function startServer(
 }
 
 if (require.main === module) {
-  startServer();
+  startServer().catch((error) => {
+    console.error("فشل بدء الخادم:", error);
+    process.exit(1);
+  });
 }
 
 module.exports = { createApp, startServer };
