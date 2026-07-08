@@ -11,6 +11,17 @@ if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+
+function tableColumns(tableName) {
+  return db.prepare(`PRAGMA table_info(${tableName})`).all();
+}
+
+function addColumnIfMissing(tableName, columnName, definition) {
+  if (!tableColumns(tableName).some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -19,6 +30,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'designer',
+    permissions TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -38,6 +50,7 @@ db.exec(`
     quote_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     granted_by INTEGER NOT NULL,
+    permission TEXT NOT NULL DEFAULT 'view',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (quote_id) REFERENCES quotes(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -45,5 +58,23 @@ db.exec(`
     UNIQUE(quote_id, user_id)
   );
 `);
+
+addColumnIfMissing("users", "role", "TEXT NOT NULL DEFAULT 'designer'");
+addColumnIfMissing("users", "permissions", "TEXT NOT NULL DEFAULT '{}'");
+db.prepare(
+  "UPDATE users SET role = COALESCE(NULLIF(TRIM(role), ''), 'designer') WHERE role IS NULL OR TRIM(COALESCE(role, '')) = ''",
+).run();
+db.prepare(
+  "UPDATE users SET permissions = COALESCE(NULLIF(TRIM(permissions), ''), '{}') WHERE permissions IS NULL OR TRIM(COALESCE(permissions, '')) = ''",
+).run();
+
+addColumnIfMissing(
+  "project_access",
+  "permission",
+  "TEXT NOT NULL DEFAULT 'view'",
+);
+db.prepare(
+  "UPDATE project_access SET permission = COALESCE(NULLIF(TRIM(permission), ''), 'view') WHERE permission IS NULL OR TRIM(COALESCE(permission, '')) = ''",
+).run();
 
 module.exports = db;
