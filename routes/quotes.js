@@ -73,7 +73,7 @@ router.post("/:id/access", (req, res) => {
   }
 
   const quoteId = Number(req.params.id);
-  const { user_id } = req.body;
+  const { user_id, permission = "view" } = req.body;
   const userId = Number(user_id);
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
   if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
@@ -84,9 +84,9 @@ router.post("/:id/access", (req, res) => {
   }
 
   db.prepare(
-    `INSERT OR IGNORE INTO project_access (quote_id, user_id, granted_by)
-     VALUES (?,?,?)`,
-  ).run(quoteId, userId, req.user.id);
+    `INSERT OR IGNORE INTO project_access (quote_id, user_id, granted_by, permission)
+     VALUES (?,?,?,?)`,
+  ).run(quoteId, userId, req.user.id, permission || "view");
 
   res.json({ ok: true });
 });

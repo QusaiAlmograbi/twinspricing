@@ -31,11 +31,31 @@
         background: var(--bg);
         font-family: "Cairo", "Tahoma", sans-serif;
         color: var(--ink);
-        padding: 20px;
+        padding: 24px;
+      }
+      .page-shell {
+        width: min(100%, 460px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+      .hero-banner {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .hero-banner img {
+        width: min(320px, 88vw);
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 10px 22px rgba(33, 29, 23, 0.12));
       }
       .card {
         width: 100%;
-        max-width: 400px;
         background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 16px;
@@ -131,38 +151,57 @@
         margin-top: 6px;
         line-height: 1.6;
       }
+      @media (max-width: 640px) {
+        body {
+          padding: 16px;
+        }
+        .page-shell {
+          gap: 16px;
+        }
+        .hero-banner img {
+          width: min(260px, 90vw);
+        }
+        .card {
+          padding: 24px 20px;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="card">
-      <div class="eyebrow">TWiNS Interior Design</div>
-      <h1 id="formTitle">تسجيل الدخول</h1>
-      <form id="authForm">
-        <div id="nameField" style="display: none">
-          <label for="name">الاسم</label>
-          <input id="name" type="text" placeholder="الاسم الكامل" />
+    <div class="page-shell">
+      <div class="hero-banner" aria-label="شعار TWiNS Interior Design">
+        <img src="/logo.svg" alt="شعار TWiNS Interior Design" />
+      </div>
+      <div class="card">
+        <div class="eyebrow">TWiNS Interior Design</div>
+        <h1 id="formTitle">تسجيل الدخول</h1>
+        <form id="authForm">
+          <div id="nameField" style="display: none">
+            <label for="name">الاسم</label>
+            <input id="name" type="text" placeholder="الاسم الكامل" />
+          </div>
+          <label for="email">الإيميل</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="name@company.com"
+            required
+          />
+          <label for="password">كلمة المرور</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="6 أحرف على الأقل"
+            required
+          />
+          <div class="hint" id="registerHint" style="display: none"></div>
+          <button type="submit" id="submitBtn">دخول</button>
+          <div class="error" id="errorBox"></div>
+        </form>
+        <div class="switch">
+          <span id="switchText">أول مرة تستخدم الأداة؟</span>
+          <a id="switchLink">أنشئ حساب</a>
         </div>
-        <label for="email">الإيميل</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="name@company.com"
-          required
-        />
-        <label for="password">كلمة المرور</label>
-        <input
-          id="password"
-          type="password"
-          placeholder="6 أحرف على الأقل"
-          required
-        />
-        <div class="hint" id="registerHint" style="display: none"></div>
-        <button type="submit" id="submitBtn">دخول</button>
-        <div class="error" id="errorBox"></div>
-      </form>
-      <div class="switch">
-        <span id="switchText">أول مرة تستخدم الأداة؟</span>
-        <a id="switchLink">أنشئ حساب</a>
       </div>
     </div>
 
