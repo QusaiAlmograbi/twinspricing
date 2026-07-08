@@ -1,13 +1,13 @@
 const express = require("express");
 const db = require("../db");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 
 const router = express.Router();
 router.use(requireAuth);
 
 router.get("/", (req, res) => {
   let rows;
-  if (req.user.role === "admin") {
+  if (isAdminOrOwner(req.user.role)) {
     rows = db
       .prepare(
         `SELECT q.id, q.project_name, q.total, q.created_at, q.updated_at,
@@ -19,10 +19,15 @@ router.get("/", (req, res) => {
   } else {
     rows = db
       .prepare(
-        `SELECT id, project_name, total, created_at, updated_at
-         FROM quotes WHERE user_id = ? ORDER BY updated_at DESC`,
+        `SELECT q.id, q.project_name, q.total, q.created_at, q.updated_at
+         FROM quotes q
+         WHERE q.user_id = ?
+           OR EXISTS (
+             SELECT 1 FROM project_access pa WHERE pa.quote_id = q.id AND pa.user_id = ?
+           )
+         ORDER BY q.updated_at DESC`,
       )
-      .all(req.user.id);
+      .all(req.user.id, req.user.id);
   }
   res.json({ quotes: rows });
 });
@@ -30,7 +35,14 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
-  if (req.user.role !== "admin" && q.user_id !== req.user.id) {
+  const hasAccess = db
+    .prepare("SELECT 1 FROM project_access WHERE quote_id = ? AND user_id = ?")
+    .get(q.id, req.user.id);
+  if (
+    !isAdminOrOwner(req.user.role) &&
+    q.user_id !== req.user.id &&
+    !hasAccess
+  ) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
   res.json({ quote: { ...q, data: JSON.parse(q.data) } });
@@ -53,10 +65,36 @@ router.post("/", (req, res) => {
   res.json({ id: info.lastInsertRowid });
 });
 
+router.post("/:id/access", (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res
+      .status(403)
+      .json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const quoteId = Number(req.params.id);
+  const { user_id } = req.body;
+  const userId = Number(user_id);
+  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
+  if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+  if (!user) return res.status(404).json({ error: "المستخدم غير موجود" });
+  if (user.role !== "designer") {
+    return res.status(400).json({ error: "يمكن منح الوصول لمصمم فقط" });
+  }
+
+  db.prepare(
+    `INSERT OR IGNORE INTO project_access (quote_id, user_id, granted_by)
+     VALUES (?,?,?)`,
+  ).run(quoteId, userId, req.user.id);
+
+  res.json({ ok: true });
+});
+
 router.put("/:id", (req, res) => {
   const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
-  if (req.user.role !== "admin" && q.user_id !== req.user.id) {
+  if (!isAdminOrOwner(req.user.role) && q.user_id !== req.user.id) {
     return res.status(403).json({ error: "ما عندك صلاحية لتعديل هذا العرض" });
   }
   const { project_name, data, total } = req.body;
@@ -74,9 +112,12 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
   const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
-  if (req.user.role !== "admin" && q.user_id !== req.user.id) {
+  if (!isAdminOrOwner(req.user.role) && q.user_id !== req.user.id) {
     return res.status(403).json({ error: "ما عندك صلاحية لحذف هذا العرض" });
   }
+  db.prepare("DELETE FROM project_access WHERE quote_id = ?").run(
+    req.params.id,
+  );
   db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });

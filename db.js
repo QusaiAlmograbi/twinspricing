@@ -32,6 +32,18 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS project_access (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quote_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    granted_by INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (quote_id) REFERENCES quotes(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (granted_by) REFERENCES users(id),
+    UNIQUE(quote_id, user_id)
+  );
 `);
 
 module.exports = db;

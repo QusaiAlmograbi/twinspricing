@@ -114,6 +114,18 @@
         );
         opacity: 0.85;
       }
+      .hero-image-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .hero-image-wrap img {
+        max-width: 100%;
+        height: auto;
+        width: min(420px, 100%);
+        object-fit: contain;
+        display: block;
+      }
       .eyebrow {
         font-size: 12.5px;
         letter-spacing: 0.12em;
@@ -622,6 +634,9 @@
 
         <header class="hero">
           <div class="eyebrow">TWiNS Interior Design · أداة تسعير مشتركة</div>
+          <div class="hero-image-wrap">
+            <img src="/logo.svg" alt="TWiNS Interior Design" />
+          </div>
           <h1>لوحة تسعير التصميم الداخلي</h1>
           <p class="tagline">
             جهّز عرض السعر بندًا ببند، واحفظه — بيصير مرئي لباقي الفريق والمدير
@@ -1011,7 +1026,9 @@
       async function loadSavedList() {
         const el = document.getElementById("savedList");
         document.getElementById("savedListTitle").textContent =
-          currentUser.role === "admin" ? "كل عروض الفريق" : "عروضي المحفوظة";
+          currentUser.role === "admin" || currentUser.role === "owner"
+            ? "كل عروض الفريق"
+            : "عروضي المحفوظة";
         try {
           const { quotes } = await api("/quotes");
           if (!quotes.length) {
@@ -1076,9 +1093,14 @@
       (async function init() {
         document.getElementById("userName").textContent = currentUser.name;
         document.getElementById("roleBadge").textContent =
-          currentUser.role === "admin" ? "مدير" : "مصمم";
-        if (currentUser.role === "admin")
+          currentUser.role === "admin"
+            ? "مدير"
+            : currentUser.role === "owner"
+              ? "مالك"
+              : "مصمم";
+        if (currentUser.role === "admin" || currentUser.role === "owner") {
           document.getElementById("adminLink").style.display = "inline-block";
+        }
         renderAll();
         loadSavedList();
       })();
