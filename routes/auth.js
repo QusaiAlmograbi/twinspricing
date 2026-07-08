@@ -6,6 +6,16 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
+function parsePermissions(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return {};
+  }
+}
+
 router.post("/register", (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
@@ -20,24 +30,28 @@ router.post("/register", (req, res) => {
   const existing = db
     .prepare("SELECT id FROM users WHERE email = ?")
     .get(cleanEmail);
-  if (existing)
+  if (existing) {
     return res.status(400).json({ error: "هذا الإيميل مسجل مسبقاً" });
+  }
 
-  const userCount = db.prepare("SELECT COUNT(*) as c FROM users").get().c;
-  const role = userCount === 0 ? "admin" : "designer";
+  const ownerCount = db
+    .prepare("SELECT COUNT(*) as c FROM users WHERE role = 'owner'")
+    .get().c;
+  const role = ownerCount === 0 ? "owner" : "designer";
   const password_hash = bcrypt.hashSync(password, 10);
 
   const info = db
     .prepare(
-      "INSERT INTO users (name, email, password_hash, role) VALUES (?,?,?,?)",
+      "INSERT INTO users (name, email, password_hash, role, permissions) VALUES (?,?,?,?,?)",
     )
-    .run(name.trim(), cleanEmail, password_hash, role);
+    .run(name.trim(), cleanEmail, password_hash, role, "{}");
 
   const user = {
     id: info.lastInsertRowid,
     name: name.trim(),
     email: cleanEmail,
     role,
+    permissions: {},
   };
   const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "30d" });
   res.json({ token, user });
@@ -57,6 +71,7 @@ router.post("/login", (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    permissions: parsePermissions(user.permissions),
   };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
   res.json({ token, user: payload });
