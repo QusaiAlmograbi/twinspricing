@@ -1,5 +1,9 @@
 const jwt = require("jsonwebtoken");
 
+function isOwner(role) {
+  return role === "owner";
+}
+
 function isAdminOrOwner(role) {
   return role === "admin" || role === "owner";
 }
@@ -28,10 +32,16 @@ function requireAdmin(req, res, next) {
 }
 
 function requireOwner(req, res, next) {
-  if (req.user.role !== "owner") {
+  if (!isOwner(req.user.role)) {
     return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مالك" });
   }
   next();
 }
 
-module.exports = { requireAuth, requireAdmin, requireOwner, isAdminOrOwner };
+module.exports = {
+  requireAuth,
+  requireAdmin,
+  requireOwner,
+  isAdminOrOwner,
+  isOwner,
+};

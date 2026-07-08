@@ -62,7 +62,13 @@ db.exec(`
 addColumnIfMissing("users", "role", "TEXT NOT NULL DEFAULT 'designer'");
 addColumnIfMissing("users", "permissions", "TEXT NOT NULL DEFAULT '{}'");
 db.prepare(
-  "UPDATE users SET role = COALESCE(NULLIF(TRIM(role), ''), 'designer') WHERE role IS NULL OR TRIM(COALESCE(role, '')) = ''",
+  "UPDATE users SET role = 'owner' WHERE LOWER(TRIM(COALESCE(role, ''))) = 'owner'",
+).run();
+db.prepare(
+  "UPDATE users SET role = 'admin' WHERE LOWER(TRIM(COALESCE(role, ''))) = 'admin'",
+).run();
+db.prepare(
+  "UPDATE users SET role = 'designer' WHERE role IS NULL OR TRIM(COALESCE(role, '')) = '' OR LOWER(TRIM(COALESCE(role, ''))) NOT IN ('owner', 'admin', 'designer')",
 ).run();
 db.prepare(
   "UPDATE users SET permissions = COALESCE(NULLIF(TRIM(permissions), ''), '{}') WHERE permissions IS NULL OR TRIM(COALESCE(permissions, '')) = ''",

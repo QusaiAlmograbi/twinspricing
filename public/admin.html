@@ -192,8 +192,8 @@
         <div class="eyebrow">TWiNS Interior Design · للمدير فقط</div>
         <h1>إدارة الفريق</h1>
         <p class="sub">
-          حدد صلاحية كل عضو — "مالك" و"مدير" يمكنهم إدارة الفريق ومنح صلاحية
-          مشاهدة المشاريع للمصممين.
+          "المالك" فقط هو من يملك إدارة المستخدمين وتغيير الأدوار، بينما
+          "المدير" يمكنه فقط منح وإزالة وصول المشاريع للمصممين.
         </p>
         <section class="access-grid">
           <div>
@@ -266,9 +266,11 @@
         const body = document.getElementById("usersBody");
         try {
           const { users } = await api("/users");
+          const canManageUsers = currentUser.role === "owner";
           body.innerHTML = users
-            .map(
-              (u) => `
+            .map((u) => {
+              if (canManageUsers) {
+                return `
       <tr data-id="${u.id}">
         <td>${u.name}</td>
         <td style="color:var(--ink-soft)">${u.email}</td>
@@ -282,40 +284,50 @@
         <td>
           <button class="delete-btn" data-id="${u.id}">حذف المستخدم</button>
         </td>
-      </tr>`,
-            )
-            .join("");
-          body.querySelectorAll("tr[data-id]").forEach((tr) => {
-            const id = tr.getAttribute("data-id");
-            tr.querySelector(".role-select").onchange = async (e) => {
-              try {
-                await api("/users/" + id + "/role", {
-                  method: "PATCH",
-                  body: JSON.stringify({ role: e.target.value }),
-                });
-                showMsg("تم تحديث الصلاحية", true);
-              } catch (err) {
-                showMsg(err.message, false);
-                loadUsers();
+      </tr>`;
               }
-            };
-            const deleteBtn = tr.querySelector(".delete-btn");
-            if (deleteBtn) {
-              deleteBtn.onclick = async () => {
-                if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
+              return `
+      <tr>
+        <td>${u.name}</td>
+        <td style="color:var(--ink-soft)">${u.email}</td>
+        <td><span class="role-pill">${u.role === "owner" ? "مالك" : u.role === "admin" ? "مدير" : "مصمم"}</span></td>
+        <td>غير متاح</td>
+      </tr>`;
+            })
+            .join("");
+          if (canManageUsers) {
+            body.querySelectorAll("tr[data-id]").forEach((tr) => {
+              const id = tr.getAttribute("data-id");
+              tr.querySelector(".role-select").onchange = async (e) => {
                 try {
-                  await api("/users/" + id, { method: "DELETE" });
-                  showMsg("تم حذف المستخدم", true);
-                  loadUsers();
-                  loadAccessData();
+                  await api("/users/" + id + "/role", {
+                    method: "PATCH",
+                    body: JSON.stringify({ role: e.target.value }),
+                  });
+                  showMsg("تم تحديث الصلاحية", true);
                 } catch (err) {
                   showMsg(err.message, false);
+                  loadUsers();
                 }
               };
-            }
-          });
+              const deleteBtn = tr.querySelector(".delete-btn");
+              if (deleteBtn) {
+                deleteBtn.onclick = async () => {
+                  if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
+                  try {
+                    await api("/users/" + id, { method: "DELETE" });
+                    showMsg("تم حذف المستخدم", true);
+                    loadUsers();
+                    loadAccessData();
+                  } catch (err) {
+                    showMsg(err.message, false);
+                  }
+                };
+              }
+            });
+          }
         } catch (e) {
-          body.innerHTML = `<tr><td colspan="3">تعذر تحميل قائمة الفريق</td></tr>`;
+          body.innerHTML = `<tr><td colspan="4">تعذر تحميل قائمة الفريق</td></tr>`;
         }
       }
       async function loadAccessData() {

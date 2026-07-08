@@ -1,50 +1,65 @@
 const express = require("express");
 const db = require("../db");
-const {
-  requireAuth,
-  requireAdmin,
-  isAdminOrOwner,
-} = require("../middleware/auth");
+const { requireAuth, requireOwner } = require("../middleware/auth");
 
 const router = express.Router();
-router.use(requireAuth, requireAdmin);
+router.use(requireAuth);
 
 router.get("/", (req, res) => {
+  if (!["owner", "admin"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
   const rows = db
     .prepare(
-      "SELECT id, name, email, role, created_at FROM users ORDER BY created_at ASC",
+      "SELECT id, name, email, role, permissions, created_at FROM users ORDER BY created_at ASC",
     )
     .all();
   res.json({ users: rows });
 });
 
-router.patch("/:id/role", (req, res) => {
-  const { role } = req.body;
+router.patch("/:id/role", requireOwner, (req, res) => {
+  const { role, permissions } = req.body;
   if (!["admin", "owner", "designer"].includes(role)) {
     return res.status(400).json({ error: "صلاحية غير صحيحة" });
   }
 
   const targetId = Number(req.params.id);
-  if (targetId === req.user.id && role !== req.user.role) {
+  if (targetId === req.user.id) {
     return res
       .status(400)
       .json({ error: "ما تقدر تغير صلاحيتك الحالية بنفسك" });
   }
 
-  if (role === "owner" && req.user.role !== "admin") {
-    return res.status(403).json({ error: "فقط المدير يمكنه إنشاء مالك" });
-  }
-
-  const user = db.prepare("SELECT id FROM users WHERE id = ?").get(targetId);
+  const user = db
+    .prepare("SELECT id, role FROM users WHERE id = ?")
+    .get(targetId);
   if (!user) {
     return res.status(404).json({ error: "المستخدم غير موجود" });
   }
 
-  db.prepare("UPDATE users SET role = ? WHERE id = ?").run(role, targetId);
+  const updates = ["role = ?"];
+  const values = [role];
+
+  if (permissions !== undefined) {
+    const normalizedPermissions =
+      typeof permissions === "string"
+        ? permissions
+        : JSON.stringify(permissions);
+    updates.push("permissions = ?");
+    values.push(normalizedPermissions);
+  }
+
+  values.push(targetId);
+  db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(
+    ...values,
+  );
   res.json({ ok: true });
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", requireOwner, (req, res) => {
   const targetId = Number(req.params.id);
   if (targetId === req.user.id) {
     return res.status(400).json({ error: "ما تقدر تحذف حسابك بنفسك" });

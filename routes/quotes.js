@@ -73,8 +73,8 @@ router.post("/:id/access", (req, res) => {
   }
 
   const quoteId = Number(req.params.id);
-  const { user_id, permission = "view" } = req.body;
-  const userId = Number(user_id);
+  const { user_id, project_id, quote_id, permission = "view" } = req.body;
+  const userId = Number(user_id ?? project_id ?? quote_id);
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
   if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -88,6 +88,30 @@ router.post("/:id/access", (req, res) => {
      VALUES (?,?,?,?)`,
   ).run(quoteId, userId, req.user.id, permission || "view");
 
+  res.json({ ok: true });
+});
+
+router.delete("/:id/access/:userId?", (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res
+      .status(403)
+      .json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const quoteId = Number(req.params.id);
+  const userId = Number(
+    req.params.userId ?? req.body.user_id ?? req.body.project_id,
+  );
+  if (!userId) {
+    return res.status(400).json({ error: "يجب اختيار المستخدم" });
+  }
+
+  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
+  if (!quote) return res.status(404).json({ error: "المشروع غير موجود" });
+
+  db.prepare(
+    "DELETE FROM project_access WHERE quote_id = ? AND user_id = ?",
+  ).run(quoteId, userId);
   res.json({ ok: true });
 });
 
