@@ -181,6 +181,118 @@
       .delete-btn:hover {
         background: #f2d2cf;
       }
+      .pending-section {
+        margin-bottom: 24px;
+      }
+      .pending-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .pending-header h2 {
+        font-family: "Markazi Text", serif;
+        font-size: 20px;
+        margin: 0;
+      }
+      .pending-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .pending-empty {
+        color: var(--ink-soft);
+        font-size: 13.5px;
+        padding: 8px 0;
+      }
+      .pending-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .pending-row:last-child {
+        border-bottom: none;
+      }
+      .pending-info {
+        min-width: 0;
+      }
+      .pending-info .name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .pending-info .meta {
+        color: var(--ink-soft);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+      .pending-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .approve-btn {
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #3b6d11;
+        background: #eaf3de;
+        color: #3b6d11;
+        cursor: pointer;
+      }
+      .approve-btn:hover {
+        background: #d4e8c0;
+      }
+      .reject-btn {
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #d3c0b0;
+        background: #f8e6e3;
+        color: var(--danger);
+        cursor: pointer;
+      }
+      .reject-btn:hover {
+        background: #f2d2cf;
+      }
+      .section-divider {
+        border: none;
+        border-top: 1px solid var(--line-strong);
+        margin: 20px 0;
+      }
+      .status-pill {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .status-approved {
+        background: #eaf3de;
+        color: #3b6d11;
+      }
+      .status-pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .status-rejected {
+        background: #fbeae7;
+        color: var(--danger);
+      }
     </style>
   </head>
   <body>
@@ -209,12 +321,24 @@
           </div>
           <div class="access-note" id="accessNote"></div>
         </section>
+        <hr class="section-divider" />
+        <section class="pending-section" id="pendingSection">
+          <div class="pending-header">
+            <h2>طلبات التسجيل</h2>
+            <span class="pending-badge" id="pendingBadge" style="display:none">0</span>
+          </div>
+          <div id="pendingList">
+            <p class="pending-empty">جاري التحميل...</p>
+          </div>
+        </section>
+        <hr class="section-divider" />
         <table>
           <thead>
             <tr>
               <th>الاسم</th>
               <th>الإيميل</th>
               <th>الصلاحية</th>
+              <th>الحالة</th>
               <th>إجراءات</th>
             </tr>
           </thead>
@@ -267,6 +391,10 @@
         try {
           const { users } = await api("/users");
           const canManageUsers = currentUser.role === "owner";
+          function statusPill(s) {
+            const label = s === "approved" ? "موافق" : s === "pending" ? "معلق" : "مرفوض";
+            return `<span class="status-pill status-${s}">${label}</span>`;
+          }
           body.innerHTML = users
             .map((u) => {
               if (canManageUsers) {
@@ -281,6 +409,7 @@
             <option value="owner" ${u.role === "owner" ? "selected" : ""}>مالك</option>
           </select>
         </td>
+        <td>${statusPill(u.status || "approved")}</td>
         <td>
           <button class="delete-btn" data-id="${u.id}">حذف المستخدم</button>
         </td>
@@ -291,6 +420,7 @@
         <td>${u.name}</td>
         <td style="color:var(--ink-soft)">${u.email}</td>
         <td><span class="role-pill">${u.role === "owner" ? "مالك" : u.role === "admin" ? "مدير" : "مصمم"}</span></td>
+        <td>${statusPill(u.status || "approved")}</td>
         <td>غير متاح</td>
       </tr>`;
             })
@@ -319,6 +449,7 @@
                     showMsg("تم حذف المستخدم", true);
                     loadUsers();
                     loadAccessData();
+                    loadPendingUsers();
                   } catch (err) {
                     showMsg(err.message, false);
                   }
@@ -327,7 +458,7 @@
             });
           }
         } catch (e) {
-          body.innerHTML = `<tr><td colspan="4">تعذر تحميل قائمة الفريق</td></tr>`;
+          body.innerHTML = `<tr><td colspan="5">تعذر تحميل قائمة الفريق</td></tr>`;
         }
       }
       async function loadAccessData() {
@@ -384,6 +515,69 @@
 
       loadUsers();
       loadAccessData();
+      loadPendingUsers();
+
+      async function loadPendingUsers() {
+        const list = document.getElementById("pendingList");
+        const badge = document.getElementById("pendingBadge");
+        try {
+          const { users } = await api("/users/pending");
+          if (!users.length) {
+            list.innerHTML = '<p class="pending-empty">ما في طلبات معلقة حالياً.</p>';
+            badge.style.display = "none";
+            return;
+          }
+          badge.textContent = users.length;
+          badge.style.display = "inline-flex";
+          list.innerHTML = users
+            .map(
+              (u) => `
+      <div class="pending-row" data-id="${u.id}">
+        <div class="pending-info">
+          <div class="name">${u.name}</div>
+          <div class="meta">${u.email} · ${u.role === "admin" ? "مدير" : "مصمم"} · ${new Date(u.created_at).toLocaleDateString("ar-JO")}</div>
+        </div>
+        <div class="pending-actions">
+          <button class="approve-btn" data-id="${u.id}">موافقة</button>
+          <button class="reject-btn" data-id="${u.id}">رفض</button>
+        </div>
+      </div>`,
+            )
+            .join("");
+
+          list.querySelectorAll(".approve-btn").forEach((btn) => {
+            btn.onclick = async () => {
+              const id = btn.getAttribute("data-id");
+              try {
+                await api("/users/" + id + "/approve", { method: "POST" });
+                showMsg("تمت الموافقة على المستخدم", true);
+                loadPendingUsers();
+                loadUsers();
+                loadAccessData();
+              } catch (err) {
+                showMsg(err.message, false);
+              }
+            };
+          });
+
+          list.querySelectorAll(".reject-btn").forEach((btn) => {
+            btn.onclick = async () => {
+              const id = btn.getAttribute("data-id");
+              if (!confirm("هل أنت متأكد من رفض هذا الطلب؟")) return;
+              try {
+                await api("/users/" + id + "/reject", { method: "POST" });
+                showMsg("تم رفض الطلب", true);
+                loadPendingUsers();
+              } catch (err) {
+                showMsg(err.message, false);
+              }
+            };
+          });
+        } catch (e) {
+          list.innerHTML = '<p class="pending-empty">تعذر تحميل الطلبات المعلقة.</p>';
+          badge.style.display = "none";
+        }
+      }
     </script>
   </body>
 </html>

@@ -145,6 +145,16 @@
         margin-top: 14px;
         display: none;
       }
+      .success {
+        background: #eaf3de;
+        border: 1px solid #3b6d11;
+        color: #3b6d11;
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-top: 14px;
+        display: none;
+      }
       .hint {
         font-size: 12px;
         color: var(--ink-soft);
@@ -197,6 +207,7 @@
           <div class="hint" id="registerHint" style="display: none"></div>
           <button type="submit" id="submitBtn">دخول</button>
           <div class="error" id="errorBox"></div>
+          <div class="success" id="successBox"></div>
         </form>
         <div class="switch">
           <span id="switchText">أول مرة تستخدم الأداة؟</span>
@@ -209,6 +220,7 @@
       let mode = "login";
       const form = document.getElementById("authForm");
       const errorBox = document.getElementById("errorBox");
+      const successBox = document.getElementById("successBox");
       const nameField = document.getElementById("nameField");
       const registerHint = document.getElementById("registerHint");
 
@@ -228,11 +240,13 @@
         nameField.style.display = mode === "register" ? "block" : "none";
         registerHint.style.display = mode === "register" ? "block" : "none";
         errorBox.style.display = "none";
+        successBox.style.display = "none";
       };
 
       form.onsubmit = async (e) => {
         e.preventDefault();
         errorBox.style.display = "none";
+        successBox.style.display = "none";
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.disabled = true;
         const payload = {
@@ -251,6 +265,16 @@
           const data = await res.json();
           if (!res.ok)
             throw new Error(data.error || "صار في خطأ، حاول مرة ثانية");
+
+          if (data.pending) {
+            successBox.textContent = data.message;
+            successBox.style.display = "block";
+            document.getElementById("email").value = "";
+            document.getElementById("password").value = "";
+            document.getElementById("name").value = "";
+            return;
+          }
+
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
           window.location.href = "/app";

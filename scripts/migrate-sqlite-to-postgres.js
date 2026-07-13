@@ -26,6 +26,14 @@ async function main() {
 
       const columns = sqliteDb.prepare(`PRAGMA table_info(${table})`).all();
       const columnNames = columns.map((column) => column.name);
+
+      if (table === "users" && !columnNames.includes("status")) {
+        columnNames.push("status");
+        for (const row of rows) {
+          row.status = "approved";
+        }
+      }
+
       const insertColumns = columnNames.join(", ");
       const placeholders = columnNames
         .map((_, index) => `$${index + 1}`)
@@ -35,12 +43,17 @@ async function main() {
       );
 
       for (const row of rows) {
-        const values = columnNames.map((column) => row[column]);
+        const values = columnNames.map((column) => row[column] ?? null);
         await stmt.run(...values);
       }
     }
 
+    await db.exec(
+      "UPDATE users SET status = 'approved' WHERE status IS NULL OR TRIM(COALESCE(status, '')) = ''",
+    );
+
     console.log("Migration from SQLite to PostgreSQL completed.");
+    console.log("All existing users have been set to 'approved' status.");
   } catch (error) {
     console.error("Migration failed:", error);
     process.exitCode = 1;
