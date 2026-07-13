@@ -302,7 +302,7 @@
         text-align: center;
       }
       .col-name {
-        width: 32%;
+        width: 28%;
       }
       .col-unit {
         width: 14%;
@@ -551,6 +551,117 @@
         font-size: 12.5px;
       }
 
+      .col-img {
+        width: 48px;
+        text-align: center;
+      }
+      .item-img-btn {
+        width: 36px;
+        height: 36px;
+        border: 1px dashed var(--line-strong);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--ink-soft);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0;
+        transition: 0.15s;
+      }
+      .item-img-btn:hover {
+        background: var(--pine-tint);
+        color: var(--pine-dark);
+        border-color: var(--pine);
+      }
+      .item-thumb-wrap {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 36px;
+        border-radius: 7px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 1px solid var(--line);
+      }
+      .item-thumb-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .item-thumb-rm {
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .item-thumb-wrap:hover .item-thumb-rm {
+        opacity: 1;
+      }
+      .lightbox-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .lightbox-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .lightbox-overlay img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 10px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        cursor: default;
+      }
+      .lightbox-close {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        border: none;
+        font-size: 22px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .lightbox-close:hover {
+        background: rgba(255,255,255,0.3);
+      }
+      .item-img-input {
+        display: none;
+      }
+
       .save-toast {
         position: fixed;
         bottom: 22px;
@@ -595,7 +706,11 @@
         .saved-quotes,
         .project-row input,
         .topbar,
-        .new-quote-btn {
+        .new-quote-btn,
+        .item-thumb-rm,
+        .item-img-btn,
+        .item-img-input,
+        .lightbox-overlay {
           display: none !important;
         }
         .sidebar {
@@ -612,6 +727,10 @@
         .cat-panel,
         .sidebar {
           border-color: #999;
+        }
+        .item-thumb-wrap {
+          width: 44px;
+          height: 44px;
         }
       }
     </style>
@@ -721,6 +840,10 @@
       </div>
     </div>
     <div class="save-toast" id="saveToast">تم الحفظ</div>
+    <div class="lightbox-overlay" id="lightbox">
+      <button class="lightbox-close">✕</button>
+      <img id="lightboxImg" src="" alt="صورة البند" />
+    </div>
 
     <script>
       const CATEGORIES = [
@@ -812,6 +935,52 @@
           .replace(/</g, "&lt;");
       }
 
+      function compressImage(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const maxDim = 800;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h / w) * maxDim);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w / h) * maxDim);
+                  h = maxDim;
+                }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL("image/jpeg", 0.7));
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function openLightbox(src) {
+        const lb = document.getElementById("lightbox");
+        document.getElementById("lightboxImg").src = src;
+        lb.classList.add("open");
+      }
+      function closeLightbox() {
+        const lb = document.getElementById("lightbox");
+        lb.classList.remove("open");
+        document.getElementById("lightboxImg").src = "";
+      }
+      document.getElementById("lightbox").onclick = (e) => {
+        if (e.target === e.currentTarget || e.target.classList.contains("lightbox-close")) {
+          closeLightbox();
+        }
+      };
+
       function renderSwatchBoard() {
         const el = document.getElementById("swatchBoard");
         el.innerHTML = "";
@@ -835,8 +1004,12 @@
         let rows = "";
         items.forEach((it) => {
           const total = (Number(it.qty) || 0) * (Number(it.price) || 0);
+          const imgCell = it.image
+            ? `<td class="col-img"><div class="item-thumb-wrap" data-action="view-img"><img src="${it.image}" alt=""><button class="item-thumb-rm" data-action="rm-img" title="إزالة الصورة">✕</button></div></td>`
+            : `<td class="col-img"><button class="item-img-btn" data-action="add-img" title="إرفاق صورة">📷</button></td>`;
           rows += `<tr data-id="${it.id}">
       <td class="col-name"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند"></td>
+      ${imgCell}
       <td class="col-unit"><select class="f-unit">${UNITS.map((u) => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
       <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
       <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${it.price}"></td>
@@ -850,7 +1023,7 @@
     ${
       items.length
         ? `<table class="items"><thead><tr>
-        <th class="col-name">البند</th><th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
+        <th class="col-name">البند</th><th class="col-img"></th><th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
         <th class="col-price">سعر الوحدة</th><th class="col-total">الإجمالي</th><th class="col-del"></th>
       </tr></thead><tbody>${rows}</tbody></table>`
         : `<p class="cat-empty">ما في بنود لسا بهالفئة. ابدأ بإضافة أول بند.</p>`
@@ -890,6 +1063,40 @@
             );
             renderAll();
           };
+
+          const imgBtn = tr.querySelector("[data-action='add-img']");
+          const thumbWrap = tr.querySelector("[data-action='view-img']");
+          const rmBtn = tr.querySelector("[data-action='rm-img']");
+
+          if (imgBtn) {
+            const fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.accept = "image/*";
+            fileInput.className = "item-img-input";
+            tr.querySelector(".col-img").appendChild(fileInput);
+            imgBtn.onclick = () => fileInput.click();
+            fileInput.onchange = async (e) => {
+              const file = e.target.files && e.target.files[0];
+              if (!file) return;
+              item.image = await compressImage(file);
+              renderAll();
+            };
+          }
+
+          if (thumbWrap) {
+            thumbWrap.onclick = (e) => {
+              if (e.target.classList.contains("item-thumb-rm")) return;
+              openLightbox(item.image);
+            };
+          }
+
+          if (rmBtn) {
+            rmBtn.onclick = (e) => {
+              e.stopPropagation();
+              delete item.image;
+              renderAll();
+            };
+          }
         });
       }
 
