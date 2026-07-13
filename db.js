@@ -276,7 +276,13 @@ async function initializeDatabase() {
         );
       `);
 
-      await ensureColumnIfMissing(
+      // SAFEGUARD: When the status column is first added via ALTER TABLE,
+      // the DEFAULT 'pending' is applied to all pre-existing rows. These are
+      // trusted users who existed before the approval workflow was introduced,
+      // so we grandfather them in as 'approved' immediately. Only NEW inserts
+      // going forward should default to 'pending'. Do NOT remove this backfill
+      // — without it, all existing users (including the owner) get locked out.
+      const sqliteStatusAdded = await ensureColumnIfMissing(
         "users",
         "status",
         "TEXT NOT NULL DEFAULT 'pending'",
@@ -292,9 +298,11 @@ async function initializeDatabase() {
         "TEXT",
       );
 
-      await db.exec(
-        "UPDATE users SET status = 'approved' WHERE status IS NULL OR TRIM(COALESCE(status, '')) = ''",
-      );
+      if (sqliteStatusAdded) {
+        await db.exec(
+          "UPDATE users SET status = 'approved', approved_at = datetime('now') WHERE status = 'pending'",
+        );
+      }
 
       return true;
     }
@@ -349,7 +357,13 @@ async function initializeDatabase() {
       "permission",
       "TEXT NOT NULL DEFAULT 'view'",
     );
-    await ensureColumnIfMissing(
+    // SAFEGUARD: When the status column is first added via ALTER TABLE,
+    // the DEFAULT 'pending' is applied to all pre-existing rows. These are
+    // trusted users who existed before the approval workflow was introduced,
+    // so we grandfather them in as 'approved' immediately. Only NEW inserts
+    // going forward should default to 'pending'. Do NOT remove this backfill
+    // — without it, all existing users (including the owner) get locked out.
+    const pgStatusAdded = await ensureColumnIfMissing(
       "users",
       "status",
       "TEXT NOT NULL DEFAULT 'pending'",
@@ -365,8 +379,13 @@ async function initializeDatabase() {
       "TIMESTAMPTZ",
     );
 
+    if (pgStatusAdded) {
+      await exec(
+        "UPDATE users SET status = 'approved', approved_at = CURRENT_TIMESTAMP WHERE status = 'pending'",
+      );
+    }
+
     await exec(`
-      UPDATE users SET status = 'approved' WHERE status IS NULL OR TRIM(COALESCE(status, '')) = '';
       UPDATE users SET role = 'owner' WHERE LOWER(TRIM(COALESCE(role, ''))) = 'owner';
       UPDATE users SET role = 'admin' WHERE LOWER(TRIM(COALESCE(role, ''))) = 'admin';
       UPDATE users SET role = 'designer' WHERE role IS NULL OR TRIM(COALESCE(role, '')) = '' OR LOWER(TRIM(COALESCE(role, ''))) NOT IN ('owner', 'admin', 'designer');
@@ -400,7 +419,9 @@ async function ensureColumnIfMissing(tableName, columnName, definition) {
     await exec(
       `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`,
     );
+    return true;
   }
+  return false;
 }
 
 const db = {
