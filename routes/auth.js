@@ -34,14 +34,12 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ error: "الرجاء المحاولة مرة ثانية" });
   }
 
-  const usersCountRow = await db
-    .prepare("SELECT COUNT(*) as c FROM users")
+  const ownerRow = await db
+    .prepare("SELECT id FROM users WHERE role = 'owner' LIMIT 1")
     .get();
-
-  const usersCount = Number(usersCountRow?.c || 0);
-  const isFirstUser = usersCount === 0;
-  const role = isFirstUser ? "owner" : "designer";
-  const status = isFirstUser ? "approved" : "pending";
+  const hasOwner = !!ownerRow;
+  const role = hasOwner ? "designer" : "owner";
+  const status = hasOwner ? "pending" : "approved";
   const password_hash = bcrypt.hashSync(password, 10);
 
   const info = await db
@@ -50,7 +48,7 @@ router.post("/register", async (req, res) => {
     )
     .run(name.trim(), cleanEmail, password_hash, role, "{}", status);
 
-  if (isFirstUser) {
+  if (!hasOwner) {
     const user = {
       id: info.lastInsertRowid,
       name: name.trim(),
