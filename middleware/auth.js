@@ -16,22 +16,24 @@ async function requireAuth(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await db
-      .prepare("SELECT id, status FROM users WHERE id = ?")
+      .prepare("SELECT id, role, status FROM users WHERE id = ?")
       .get(decoded.id);
     if (!user) {
       return res
         .status(401)
         .json({ error: "الجلسة منتهية، سجّل الدخول مرة ثانية" });
     }
-    if (user.status === "pending") {
-      return res
-        .status(403)
-        .json({ error: "حسابك بانتظار الموافقة من المدير" });
-    }
-    if (user.status === "rejected") {
-      return res
-        .status(403)
-        .json({ error: "تم رفض حسابك، تواصل مع المدير" });
+    if (user.role !== "owner") {
+      if (user.status === "pending") {
+        return res
+          .status(403)
+          .json({ error: "حسابك بانتظار الموافقة من المدير" });
+      }
+      if (user.status === "rejected") {
+        return res
+          .status(403)
+          .json({ error: "تم رفض حسابك، تواصل مع المدير" });
+      }
     }
     req.user = decoded;
     next();
