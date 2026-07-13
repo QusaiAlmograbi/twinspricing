@@ -31,7 +31,7 @@ router.post("/register", async (req, res) => {
     .prepare("SELECT id FROM users WHERE email = ?")
     .get(cleanEmail);
   if (existing) {
-    return res.status(400).json({ error: "هذا الإيميل مسجل مسبقاً" });
+    return res.status(400).json({ error: "الرجاء المحاولة مرة ثانية" });
   }
 
   const usersCountRow = await db
@@ -39,25 +39,35 @@ router.post("/register", async (req, res) => {
     .get();
 
   const usersCount = Number(usersCountRow?.c || 0);
-
-  const role = usersCount === 0 ? "owner" : "designer";
+  const isFirstUser = usersCount === 0;
+  const role = isFirstUser ? "owner" : "designer";
+  const status = isFirstUser ? "approved" : "pending";
   const password_hash = bcrypt.hashSync(password, 10);
 
   const info = await db
     .prepare(
-      "INSERT INTO users (name, email, password_hash, role, permissions) VALUES (?,?,?,?,?)",
+      "INSERT INTO users (name, email, password_hash, role, permissions, status) VALUES (?,?,?,?,?,?)",
     )
-    .run(name.trim(), cleanEmail, password_hash, role, "{}");
+    .run(name.trim(), cleanEmail, password_hash, role, "{}", status);
 
-  const user = {
-    id: info.lastInsertRowid,
-    name: name.trim(),
-    email: cleanEmail,
-    role,
-    permissions: {},
-  };
-  const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "30d" });
-  res.json({ token, user });
+  if (isFirstUser) {
+    const user = {
+      id: info.lastInsertRowid,
+      name: name.trim(),
+      email: cleanEmail,
+      role,
+      permissions: {},
+    };
+    const token = jwt.sign(user, process.env.JWT_SECRET, {
+      expiresIn: "30d",
+    });
+    return res.json({ token, user });
+  }
+
+  res.json({
+    pending: true,
+    message: "حسابك بانتظار الموافقة من المدير",
+  });
 });
 
 router.post("/login", async (req, res) => {
@@ -68,6 +78,16 @@ router.post("/login", async (req, res) => {
     .get(cleanEmail);
   if (!user || !bcrypt.compareSync(password || "", user.password_hash)) {
     return res.status(401).json({ error: "الإيميل أو كلمة المرور غير صحيحة" });
+  }
+  if (user.status === "pending") {
+    return res
+      .status(403)
+      .json({ error: "حسابك بانتظار الموافقة من المدير" });
+  }
+  if (user.status === "rejected") {
+    return res
+      .status(403)
+      .json({ error: "تم رفض حسابك، تواصل مع المدير" });
   }
   const payload = {
     id: user.id,
