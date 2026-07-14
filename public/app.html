@@ -6,35 +6,67 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>لوحة تسعير مشاريع التصميم الداخلي</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@500;600;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&display=swap");
 
       :root {
-        --bg: #f4f2ed;
-        --paper: #ffffff;
-        --ink: #211d17;
-        --ink-soft: #726c63;
-        --line: #e5e1d6;
-        --line-strong: #d3cbb8;
-        --pine: #8a6512;
-        --pine-dark: #6b4e0c;
-        --pine-tint: #fbf1d9;
-        --brass: #cc9a06;
-        --brass-tint: #fbefc7;
-        --danger: #a33b2d;
-        --radius: 10px;
+        --bg: #0c0c0c;
+        --surface: #161616;
+        --surface-raised: #1e1e1e;
+        --champagne: #e8dcc8;
+        --ash: #7a756e;
+        --pewter: #2c2c2c;
+        --gold: #c9a84c;
+        --gold-dim: #a88a3a;
+        --gold-glow: rgba(201, 168, 76, 0.1);
+        --gold-glow-strong: rgba(201, 168, 76, 0.18);
+        --danger: #d4605a;
+        --danger-tint: rgba(212, 96, 90, 0.1);
+        --success: #5a9e6f;
+        --success-tint: rgba(90, 158, 111, 0.1);
+        --radius: 12px;
+      }
+      [data-theme="light"] {
+        --bg: #f5f2ed;
+        --surface: #ffffff;
+        --surface-raised: #f0ede8;
+        --champagne: #1c1a17;
+        --ash: #7a756e;
+        --pewter: #ddd8d0;
+        --gold: #9a7b2f;
+        --gold-dim: #7a6125;
+        --gold-glow: rgba(154, 123, 47, 0.1);
+        --gold-glow-strong: rgba(154, 123, 47, 0.18);
+        --danger: #c0453e;
+        --danger-tint: rgba(192, 69, 62, 0.08);
+        --success: #3d8b55;
+        --success-tint: rgba(61, 139, 85, 0.08);
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
       * {
         box-sizing: border-box;
       }
       body {
+        min-height: 100vh;
+        background: var(--bg);
+        font-family: "DM Sans", "Cairo", "Tahoma", sans-serif;
+        color: var(--champagne);
+        padding: 0;
         margin: 0;
+        -webkit-font-smoothing: antialiased;
       }
       .app {
-        font-family: "Cairo", "Tahoma", sans-serif;
         background: var(--bg);
-        color: var(--ink);
-        padding: 20px 20px 60px;
         min-height: 100vh;
+        padding: 20px 20px 60px;
       }
       .wrap {
         max-width: 1180px;
@@ -47,18 +79,18 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 10px;
-        background: var(--paper);
-        border: 1px solid var(--line);
+        background: var(--surface);
+        border: 1px solid var(--pewter);
         border-radius: 14px;
         padding: 12px 18px;
         margin-bottom: 16px;
       }
       .topbar .who {
         font-size: 13.5px;
-        color: var(--ink-soft);
+        color: var(--ash);
       }
       .topbar .who b {
-        color: var(--ink);
+        color: var(--champagne);
       }
       .topbar .role-badge {
         display: inline-block;
@@ -67,8 +99,8 @@
         font-weight: 700;
         padding: 2px 9px;
         border-radius: 999px;
-        background: var(--brass-tint);
-        color: #6b4f16;
+        background: var(--gold-glow-strong);
+        color: var(--gold);
       }
       .topbar-avatar-circle {
         display: inline-flex;
@@ -78,8 +110,8 @@
         height: 32px;
         border-radius: 50%;
         overflow: hidden;
-        background: var(--pine-tint);
-        border: 2px solid var(--line-strong);
+        background: var(--surface-raised);
+        border: 2px solid var(--pewter);
         flex-shrink: 0;
         vertical-align: middle;
       }
@@ -98,29 +130,42 @@
         gap: 10px;
         align-items: center;
       }
-      .topbar a,
-      .topbar button {
+      .topbar .links a {
         font-family: inherit;
         font-size: 13px;
-        font-weight: 700;
-        color: var(--pine-dark);
+        font-weight: 600;
+        color: var(--ash);
         text-decoration: none;
-        background: transparent;
-        border: 1px solid var(--line-strong);
-        padding: 7px 14px;
+        padding: 6px 14px;
+        border-radius: 8px;
+        transition: color 0.2s;
+      }
+      .topbar .links a:hover {
+        color: var(--gold);
+      }
+      .topbar .logout-btn {
+        background: none;
+        border: 1px solid var(--pewter);
+        color: var(--ash);
+        padding: 6px 14px;
         border-radius: 8px;
         cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
       }
-      .topbar a:hover,
-      .topbar button:hover {
-        background: var(--pine-tint);
+      .topbar .logout-btn:hover {
+        border-color: var(--gold-dim);
+        color: var(--gold);
       }
 
       .hero {
-        background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 16px;
         padding: 24px 32px;
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        border-radius: 16px;
         margin-bottom: 20px;
         position: relative;
         overflow: hidden;
@@ -128,14 +173,11 @@
       .hero::before {
         content: "";
         position: absolute;
-        inset: 0 0 auto 0;
-        height: 6px;
-        background: repeating-linear-gradient(
-          90deg,
-          var(--pine) 0 28px,
-          var(--brass) 28px 56px
-        );
-        opacity: 0.85;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--gold);
       }
       .hero-image-wrap {
         display: flex;
@@ -149,25 +191,27 @@
         object-fit: contain;
         display: block;
       }
-      .eyebrow {
-        font-size: 12.5px;
-        letter-spacing: 0.12em;
-        color: var(--pine-dark);
-        font-weight: 700;
+      .hero .eyebrow {
+        color: var(--gold);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+        font-weight: 600;
         margin: 6px 0 6px;
       }
-      h1 {
-        font-family: "Markazi Text", "Cairo", serif;
-        font-size: 36px;
-        font-weight: 700;
+      .hero h1 {
+        font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--champagne);
         margin: 0 0 8px;
       }
-      .tagline {
-        color: var(--ink-soft);
-        font-size: 14.5px;
+      .hero p {
+        color: var(--ash);
+        font-size: 13px;
+        line-height: 1.7;
         margin: 0 0 18px;
         max-width: 640px;
-        line-height: 1.7;
       }
       .project-row {
         display: flex;
@@ -177,33 +221,33 @@
       }
       .project-row label {
         font-size: 13.5px;
-        color: var(--ink-soft);
+        color: var(--ash);
         font-weight: 600;
       }
       .project-row input {
         font-family: inherit;
         font-size: 15px;
         padding: 9px 14px;
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--pewter);
         border-radius: 8px;
-        background: #fff;
+        background: var(--surface-raised);
         min-width: 240px;
-        color: var(--ink);
+        color: var(--champagne);
       }
       .new-quote-btn {
         font-family: inherit;
         font-size: 13px;
         font-weight: 700;
-        color: var(--ink-soft);
-        background: #fff;
-        border: 1px solid var(--line-strong);
+        color: var(--bg);
+        background: var(--gold);
+        border: none;
         padding: 9px 14px;
         border-radius: 8px;
         cursor: pointer;
+        transition: background 0.2s;
       }
       .new-quote-btn:hover {
-        background: var(--pine-tint);
-        color: var(--pine-dark);
+        background: var(--gold-dim);
       }
 
       .swatch-board {
@@ -221,9 +265,9 @@
         padding: 9px 14px 9px 10px;
         border-radius: 999px;
         cursor: pointer;
-        background: var(--paper);
-        border: 1px solid var(--line);
-        color: var(--ink-soft);
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        color: var(--ash);
         font-size: 13.5px;
         font-weight: 600;
         white-space: nowrap;
@@ -236,9 +280,9 @@
         flex: 0 0 auto;
       }
       .swatch.active {
-        background: var(--ink);
-        color: #fff;
-        border-color: var(--ink);
+        background: var(--champagne);
+        color: var(--bg);
+        border-color: var(--champagne);
       }
       .swatch .count {
         font-size: 11.5px;
@@ -258,8 +302,8 @@
         flex: 0 0 340px;
         position: sticky;
         top: 16px;
-        background: var(--paper);
-        border: 1px solid var(--line);
+        background: var(--surface);
+        border: 1px solid var(--pewter);
         border-radius: 16px;
         padding: 22px;
         max-height: calc(100vh - 32px);
@@ -267,19 +311,20 @@
       }
 
       .cat-panel {
-        background: var(--paper);
-        border: 1px solid var(--line);
+        background: var(--surface);
+        border: 1px solid var(--pewter);
         border-radius: 16px;
         padding: 22px 24px;
         margin-bottom: 16px;
       }
       .cat-panel h2 {
-        font-family: "Markazi Text", serif;
+        font-family: "Cormorant Garamond", "Cairo", serif;
         font-size: 24px;
         margin: 0 0 3px;
         display: flex;
         align-items: center;
         gap: 10px;
+        color: var(--champagne);
       }
       .cat-panel h2 .chip-big {
         width: 14px;
@@ -287,7 +332,7 @@
         border-radius: 4px;
       }
       .cat-sub {
-        color: var(--ink-soft);
+        color: var(--ash);
         font-size: 13px;
         margin: 0 0 16px;
       }
@@ -300,14 +345,14 @@
       table.items th {
         text-align: right;
         font-weight: 600;
-        color: var(--ink-soft);
+        color: var(--ash);
         font-size: 12.5px;
-        border-bottom: 1px solid var(--line-strong);
+        border-bottom: 1px solid var(--pewter);
         padding: 0 6px 8px;
       }
       table.items td {
         padding: 6px;
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--pewter);
         vertical-align: middle;
       }
       table.items input,
@@ -316,10 +361,10 @@
         font-family: inherit;
         font-size: 14px;
         padding: 7px 8px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--pewter);
         border-radius: 7px;
-        background: #fff;
-        color: var(--ink);
+        background: var(--surface-raised);
+        color: var(--champagne);
       }
       table.items input[type="number"] {
         text-align: center;
@@ -342,6 +387,7 @@
         text-align: left;
         padding-left: 4px;
         white-space: nowrap;
+        color: var(--champagne);
       }
       .col-del {
         width: 34px;
@@ -349,17 +395,16 @@
       }
       .del-btn {
         border: none;
-        background: transparent;
-        color: var(--ink-soft);
+        background: var(--danger);
+        color: #fff;
         cursor: pointer;
         font-size: 16px;
         line-height: 1;
-        padding: 4px;
+        padding: 4px 8px;
         border-radius: 6px;
       }
       .del-btn:hover {
-        color: var(--danger);
-        background: rgba(163, 59, 45, 0.08);
+        opacity: 0.85;
       }
 
       .add-row {
@@ -368,8 +413,8 @@
         align-items: center;
         gap: 8px;
         background: transparent;
-        border: 1px dashed var(--line-strong);
-        color: var(--pine-dark);
+        border: 1px dashed var(--pewter);
+        color: var(--gold-dim);
         font-family: inherit;
         font-weight: 700;
         font-size: 13.5px;
@@ -378,20 +423,25 @@
         cursor: pointer;
         width: 100%;
         justify-content: center;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
       }
       .add-row:hover {
-        background: var(--pine-tint);
+        border-color: var(--gold-dim);
+        color: var(--gold);
       }
       .cat-empty {
-        color: var(--ink-soft);
+        color: var(--ash);
         font-size: 13.5px;
         padding: 10px 0 4px;
       }
 
       .sidebar h2 {
-        font-family: "Markazi Text", serif;
+        font-family: "Cormorant Garamond", "Cairo", serif;
         font-size: 22px;
         margin: 0 0 14px;
+        color: var(--champagne);
       }
       .cat-totals {
         font-size: 13px;
@@ -401,11 +451,11 @@
         display: flex;
         justify-content: space-between;
         padding: 6px 0;
-        border-bottom: 1px dotted var(--line);
-        color: var(--ink-soft);
+        border-bottom: 1px dotted var(--pewter);
+        color: var(--ash);
       }
       .cat-totals-row .n {
-        color: var(--ink);
+        color: var(--champagne);
         font-weight: 600;
       }
 
@@ -417,7 +467,7 @@
       }
       .settings label {
         font-size: 12.5px;
-        color: var(--ink-soft);
+        color: var(--ash);
         font-weight: 600;
         display: flex;
         flex-direction: column;
@@ -428,10 +478,10 @@
         font-family: inherit;
         font-size: 14px;
         padding: 8px 10px;
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--pewter);
         border-radius: 7px;
-        background: #fff;
-        color: var(--ink);
+        background: var(--surface-raised);
+        color: var(--champagne);
       }
       .discount-row {
         display: flex;
@@ -446,7 +496,7 @@
 
       .totals-breakdown {
         margin-top: 14px;
-        border-top: 1px solid var(--line-strong);
+        border-top: 1px solid var(--pewter);
         padding-top: 12px;
         font-size: 13.5px;
       }
@@ -454,17 +504,17 @@
         display: flex;
         justify-content: space-between;
         padding: 5px 0;
-        color: var(--ink-soft);
+        color: var(--ash);
       }
       .tb-row .n {
-        color: var(--ink);
+        color: var(--champagne);
         font-weight: 600;
       }
 
       .grand-total {
         margin-top: 12px;
-        background: var(--pine);
-        color: #fff;
+        background: var(--gold);
+        color: var(--bg);
         border-radius: 12px;
         padding: 16px 18px;
         display: flex;
@@ -477,7 +527,7 @@
         font-weight: 600;
       }
       .grand-total .value {
-        font-family: "Markazi Text", serif;
+        font-family: "Cormorant Garamond", serif;
         font-size: 26px;
         font-weight: 700;
       }
@@ -495,36 +545,38 @@
         padding: 10px 8px;
         border-radius: 8px;
         cursor: pointer;
-        border: 1px solid var(--line-strong);
+        border: none;
       }
       #saveQuoteBtn {
-        background: var(--brass);
-        color: #fff;
-        border-color: var(--brass);
+        background: var(--gold);
+        color: var(--bg);
+        border: none;
       }
       #saveQuoteBtn:hover {
-        background: #8f6e30;
+        background: var(--gold-dim);
       }
       #saveQuoteBtn:disabled {
         opacity: 0.6;
         cursor: default;
       }
       #printBtn {
-        background: #fff;
-        color: var(--ink);
+        background: none;
+        border: 1px solid var(--pewter);
+        color: var(--ash);
       }
       #printBtn:hover {
-        background: var(--pine-tint);
+        border-color: var(--gold-dim);
+        color: var(--gold);
       }
 
       .saved-quotes {
         margin-top: 18px;
-        border-top: 1px solid var(--line-strong);
+        border-top: 1px solid var(--pewter);
         padding-top: 14px;
       }
       .saved-quotes h3 {
         font-size: 13px;
-        color: var(--ink-soft);
+        color: var(--ash);
         margin: 0 0 10px;
         font-weight: 700;
       }
@@ -534,7 +586,7 @@
         align-items: center;
         gap: 8px;
         padding: 8px 0;
-        border-bottom: 1px dotted var(--line);
+        border-bottom: 1px dotted var(--pewter);
         font-size: 13px;
       }
       .saved-item .info {
@@ -545,9 +597,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        color: var(--champagne);
       }
       .saved-item .meta {
-        color: var(--ink-soft);
+        color: var(--ash);
         font-size: 11.5px;
       }
       .saved-item .btns {
@@ -555,22 +608,25 @@
         gap: 4px;
         flex: 0 0 auto;
       }
-      .saved-item button {
-        border: 1px solid var(--line-strong);
-        background: #fff;
+      .saved-item .btns button {
+        border: 1px solid var(--pewter);
+        background: var(--surface);
         border-radius: 6px;
         padding: 4px 8px;
         font-family: inherit;
         font-size: 11.5px;
         cursor: pointer;
-        color: var(--ink-soft);
+        color: var(--ash);
+        transition:
+          border-color 0.2s,
+          color 0.2s;
       }
-      .saved-item button:hover {
-        color: var(--ink);
-        background: var(--pine-tint);
+      .saved-item .btns button:hover {
+        color: var(--gold);
+        border-color: var(--gold-dim);
       }
       .empty-note {
-        color: var(--ink-soft);
+        color: var(--ash);
         font-size: 12.5px;
       }
 
@@ -581,10 +637,10 @@
       .item-img-btn {
         width: 36px;
         height: 36px;
-        border: 1px dashed var(--line-strong);
+        border: 1px dashed var(--pewter);
         border-radius: 7px;
         background: transparent;
-        color: var(--ink-soft);
+        color: var(--ash);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -595,9 +651,9 @@
         transition: 0.15s;
       }
       .item-img-btn:hover {
-        background: var(--pine-tint);
-        color: var(--pine-dark);
-        border-color: var(--pine);
+        background: var(--gold-glow);
+        color: var(--gold);
+        border-color: var(--gold-dim);
       }
       .item-thumb-wrap {
         position: relative;
@@ -607,7 +663,7 @@
         border-radius: 7px;
         overflow: hidden;
         cursor: pointer;
-        border: 1px solid var(--line);
+        border: 1px solid var(--pewter);
       }
       .item-thumb-wrap img {
         width: 100%;
@@ -641,7 +697,7 @@
       .lightbox-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.9);
         z-index: 1000;
         display: flex;
         align-items: center;
@@ -659,7 +715,7 @@
         max-width: 90vw;
         max-height: 90vh;
         border-radius: 10px;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
         cursor: default;
       }
       .lightbox-close {
@@ -669,8 +725,8 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.15);
-        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+        color: var(--champagne);
         border: none;
         font-size: 22px;
         cursor: pointer;
@@ -679,7 +735,7 @@
         justify-content: center;
       }
       .lightbox-close:hover {
-        background: rgba(255,255,255,0.3);
+        background: rgba(255, 255, 255, 0.3);
       }
       .item-img-input {
         display: none;
@@ -690,8 +746,8 @@
         bottom: 22px;
         left: 50%;
         transform: translateX(-50%) translateY(20px);
-        background: var(--ink);
-        color: #fff;
+        background: var(--gold);
+        color: var(--bg);
         padding: 10px 20px;
         border-radius: 999px;
         font-size: 13.5px;
@@ -706,6 +762,31 @@
         transform: translateX(-50%) translateY(0);
       }
 
+      .theme-toggle {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--pewter);
+        background: var(--surface);
+        color: var(--ash);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          color 0.2s,
+          border-color 0.2s;
+        z-index: 100;
+      }
+      .theme-toggle:hover {
+        color: var(--gold);
+        border-color: var(--gold-dim);
+      }
+
       @media (max-width: 860px) {
         .layout {
           flex-direction: column;
@@ -716,40 +797,52 @@
           flex-basis: auto;
           max-height: none;
         }
-        h1 {
-          font-size: 28px;
+        .hero h1 {
+          font-size: 22px;
         }
       }
       @media print {
-        .swatch-board,
-        .add-row,
-        .del-btn,
-        #saveQuoteBtn,
-        #printBtn,
-        .saved-quotes,
-        .project-row input,
+        body {
+          background: #fff;
+          color: #1a1a1a;
+        }
+        .app {
+          background: #fff;
+          padding: 0;
+          color: #1a1a1a;
+        }
         .topbar,
+        .save-btn-row,
+        .print-btn,
         .new-quote-btn,
-        .item-thumb-rm,
-        .item-img-btn,
-        .item-img-input,
+        .cat-header button,
+        .saved-section,
+        .toast-container,
         .lightbox-overlay {
           display: none !important;
+        }
+        .hero h1,
+        .sidebar h2,
+        .cat-panel h2 {
+          color: #1a1a1a;
+        }
+        .hero .eyebrow {
+          color: #666;
+        }
+        table.items input,
+        table.items select,
+        .project-row input,
+        .settings input,
+        .settings select {
+          background: #fff;
+          color: #1a1a1a;
+          border-color: #ccc;
         }
         .sidebar {
           position: static;
         }
         .layout {
           flex-direction: column;
-        }
-        .app {
-          background: #fff;
-          padding: 0;
-        }
-        .hero,
-        .cat-panel,
-        .sidebar {
-          border-color: #999;
         }
         .item-thumb-wrap {
           width: 44px;
@@ -759,14 +852,27 @@
     </style>
   </head>
   <body>
+    <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">
+      ☀
+    </button>
     <div class="app">
       <div class="wrap">
         <div class="topbar">
           <div class="who">
-            <a href="/profile" class="topbar-avatar" id="topbarAvatarLink" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+            <a
+              href="/profile"
+              class="topbar-avatar"
+              id="topbarAvatarLink"
+              style="
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+              "
+            >
               <span class="topbar-avatar-circle" id="topbarAvatarCircle">
                 <span class="topbar-avatar-placeholder">👤</span>
-                <img id="topbarAvatarImg" src="" alt="" style="display:none" />
+                <img id="topbarAvatarImg" src="" alt="" style="display: none" />
               </span>
               <b id="userName">...</b>
             </a>
@@ -777,7 +883,7 @@
               >إدارة الفريق</a
             >
             <a href="/profile">الملف الشخصي</a>
-            <button id="logoutBtn">تسجيل خروج</button>
+            <button id="logoutBtn" class="logout-btn">تسجيل خروج</button>
           </div>
         </div>
 
@@ -876,6 +982,19 @@
     </div>
 
     <script>
+      // Theme toggle
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      const themeBtn = document.getElementById("themeToggle");
+      themeBtn.textContent = savedTheme === "dark" ? "☀" : "☾";
+      themeBtn.onclick = () => {
+        const current = document.documentElement.getAttribute("data-theme");
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        themeBtn.textContent = next === "dark" ? "☀" : "☾";
+      };
+
       const CATEGORIES = [
         { id: "furniture", name: "أثاث", color: "#8B5E3C" },
         { id: "paint", name: "دهان", color: "#C97B63" },
@@ -1006,7 +1125,10 @@
         document.getElementById("lightboxImg").src = "";
       }
       document.getElementById("lightbox").onclick = (e) => {
-        if (e.target === e.currentTarget || e.target.classList.contains("lightbox-close")) {
+        if (
+          e.target === e.currentTarget ||
+          e.target.classList.contains("lightbox-close")
+        ) {
           closeLightbox();
         }
       };
@@ -1234,7 +1356,7 @@
         try {
           const t = computeTotals();
           const body = {
-            project_name: state.projectName || "مشروع بدون اسم",
+            project_name: state.projectName || " مشروع بدون اسم",
             data: state,
             total: t.grand,
           };
@@ -1277,7 +1399,7 @@
               (q) => `
       <div class="saved-item" data-id="${q.id}">
         <div class="info">
-          <div class="name">${escapeAttr(q.project_name)}${q.designer_name ? ' · <span style="color:var(--ink-soft); font-weight:400;">' + escapeAttr(q.designer_name) + "</span>" : ""}</div>
+          <div class="name">${escapeAttr(q.project_name)}${q.designer_name ? ' · <span style="color:var(--ash); font-weight:400;">' + escapeAttr(q.designer_name) + "</span>" : ""}</div>
           <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${money(q.total)}</div>
         </div>
         <div class="btns"><button class="load-btn">فتح</button><button class="del-q-btn">حذف</button></div>
@@ -1341,7 +1463,9 @@
         if (currentUser.avatar) {
           document.getElementById("topbarAvatarImg").src = currentUser.avatar;
           document.getElementById("topbarAvatarImg").style.display = "block";
-          document.getElementById("topbarAvatarCircle").querySelector(".topbar-avatar-placeholder").style.display = "none";
+          document
+            .getElementById("topbarAvatarCircle")
+            .querySelector(".topbar-avatar-placeholder").style.display = "none";
         }
         renderAll();
         loadSavedList();

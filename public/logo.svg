@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" role="img" aria-label="TWiNS Interior Design logo">
   <defs>
-    <linearGradient id="yellow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#D4A017" />
-      <stop offset="100%" stop-color="#CC9A06" />
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C9A84C" />
+      <stop offset="100%" stop-color="#A88A3A" />
     </linearGradient>
     <style>
-      .title { font-family: 'Cairo', 'Segoe UI', sans-serif; font-size: 96px; font-weight: 800; fill: url(#yellow); }
-      .subtitle { font-family: 'Cairo', 'Segoe UI', sans-serif; font-size: 26px; font-weight: 700; fill: #4C4B43; letter-spacing: 0.2em; }
+      .title { font-family: 'Cormorant Garamond', 'Cairo', serif; font-size: 88px; font-weight: 600; fill: url(#gold); }
+      .subtitle { font-family: 'DM Sans', 'Cairo', sans-serif; font-size: 22px; font-weight: 500; fill: #7A756E; letter-spacing: 0.22em; }
     </style>
   </defs>
-  <rect width="600" height="200" rx="24" fill="none" />
-  <text x="50%" y="70" text-anchor="middle" class="title">TWiNS</text>
-  <text x="50%" y="140" text-anchor="middle" class="subtitle">INTERIOR DESIGN</text>
+  <rect width="600" height="200" rx="12" fill="none" />
+  <text x="50%" y="72" text-anchor="middle" class="title">TWiNS</text>
+  <text x="50%" y="138" text-anchor="middle" class="subtitle">INTERIOR DESIGN</text>
 </svg>
