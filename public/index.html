@@ -6,178 +6,227 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>تسجيل الدخول — لوحة تسعير التصميم الداخلي</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@600;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&display=swap");
       :root {
-        --bg: #f4f2ed;
-        --paper: #ffffff;
-        --ink: #211d17;
-        --ink-soft: #726c63;
-        --line: #e5e1d6;
-        --line-strong: #d3cbb8;
-        --pine: #8a6512;
-        --pine-dark: #6b4e0c;
-        --brass: #cc9a06;
-        --danger: #a33b2d;
+        --bg: #0C0C0C;
+        --surface: #161616;
+        --surface-raised: #1E1E1E;
+        --champagne: #E8DCC8;
+        --ash: #7A756E;
+        --pewter: #2C2C2C;
+        --gold: #C9A84C;
+        --gold-dim: #A88A3A;
+        --gold-glow: rgba(201, 168, 76, 0.10);
+        --gold-glow-strong: rgba(201, 168, 76, 0.18);
+        --danger: #D4605A;
+        --danger-tint: rgba(212, 96, 90, 0.10);
+        --success: #5A9E6F;
+        --success-tint: rgba(90, 158, 111, 0.10);
+        --radius: 12px;
       }
-      * {
-        box-sizing: border-box;
+      [data-theme="light"] {
+        --bg: #F5F2ED;
+        --surface: #FFFFFF;
+        --surface-raised: #F0EDE8;
+        --champagne: #1C1A17;
+        --ash: #7A756E;
+        --pewter: #DDD8D0;
+        --gold: #9A7B2F;
+        --gold-dim: #7A6125;
+        --gold-glow: rgba(154, 123, 47, 0.10);
+        --gold-glow-strong: rgba(154, 123, 47, 0.18);
+        --danger: #C0453E;
+        --danger-tint: rgba(192, 69, 62, 0.08);
+        --success: #3D8B55;
+        --success-tint: rgba(61, 139, 85, 0.08);
+      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; }
+      html { scroll-behavior: smooth; }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
       }
       body {
-        margin: 0;
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--bg);
-        font-family: "Cairo", "Tahoma", sans-serif;
-        color: var(--ink);
+        font-family: "DM Sans", "Cairo", "Tahoma", sans-serif;
+        color: var(--champagne);
         padding: 24px;
+        -webkit-font-smoothing: antialiased;
       }
       .page-shell {
-        width: min(100%, 460px);
+        width: min(100%, 420px);
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 20px;
+        gap: 32px;
+        animation: rise 0.6s ease-out both;
       }
       .hero-banner {
         width: 100%;
         display: flex;
         justify-content: center;
-        align-items: center;
+        animation: rise 0.6s ease-out 0.1s both;
       }
       .hero-banner img {
-        width: min(320px, 88vw);
+        width: min(300px, 82vw);
         max-width: 100%;
         height: auto;
         object-fit: contain;
         display: block;
-        filter: drop-shadow(0 10px 22px rgba(33, 29, 23, 0.12));
       }
       .card {
         width: 100%;
-        background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 30px 28px;
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        border-radius: var(--radius);
+        padding: 36px 32px;
         position: relative;
         overflow: hidden;
+        animation: rise 0.6s ease-out 0.2s both;
       }
       .card::before {
         content: "";
         position: absolute;
-        inset: 0 0 auto 0;
-        height: 6px;
-        background: repeating-linear-gradient(
-          90deg,
-          var(--pine) 0 28px,
-          var(--brass) 28px 56px
-        );
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--gold);
       }
       .eyebrow {
-        font-size: 12px;
-        letter-spacing: 0.1em;
-        color: var(--pine-dark);
-        font-weight: 700;
-        margin: 8px 0 4px;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--gold);
+        font-weight: 600;
+        margin-bottom: 8px;
       }
       h1 {
-        font-family: "Markazi Text", serif;
-        font-size: 28px;
-        margin: 0 0 20px;
+        font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--champagne);
+        margin: 0 0 28px;
+        line-height: 1.2;
       }
       label {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ash);
         display: block;
-        margin: 14px 0 6px;
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
       }
       input {
         width: 100%;
         font-family: inherit;
         font-size: 15px;
-        padding: 10px 12px;
-        border: 1px solid var(--line-strong);
+        padding: 11px 14px;
+        border: 1px solid var(--pewter);
         border-radius: 8px;
-        background: #fff;
-        color: var(--ink);
+        background: var(--surface-raised);
+        color: var(--champagne);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px var(--gold-glow);
       }
       button {
         width: 100%;
-        margin-top: 22px;
+        margin-top: 24px;
         font-family: inherit;
-        font-weight: 700;
-        font-size: 15px;
+        font-weight: 600;
+        font-size: 14px;
         padding: 12px;
         border-radius: 8px;
-        border: 1px solid var(--pine);
-        background: var(--pine);
-        color: #fff;
+        border: none;
+        background: var(--gold);
+        color: var(--bg);
         cursor: pointer;
+        letter-spacing: 0.02em;
+        transition: background 0.2s, transform 0.1s;
       }
-      button:hover {
-        background: var(--pine-dark);
-      }
-      button:disabled {
-        opacity: 0.6;
-        cursor: default;
-      }
+      button:hover { background: var(--gold-dim); }
+      button:active { transform: scale(0.985); }
+      button:disabled { opacity: 0.5; cursor: default; transform: none; }
       .switch {
         text-align: center;
-        margin-top: 16px;
-        font-size: 13.5px;
-        color: var(--ink-soft);
+        margin-top: 20px;
+        font-size: 13px;
+        color: var(--ash);
       }
       .switch a {
-        color: var(--pine-dark);
-        font-weight: 700;
+        color: var(--gold);
+        font-weight: 600;
         cursor: pointer;
         text-decoration: none;
+        transition: color 0.2s;
       }
+      .switch a:hover { color: var(--champagne); }
       .error {
-        background: #fbeae7;
+        background: var(--danger-tint);
         border: 1px solid var(--danger);
         color: var(--danger);
         font-size: 13px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 8px;
         margin-top: 14px;
         display: none;
       }
       .success {
-        background: #eaf3de;
-        border: 1px solid #3b6d11;
-        color: #3b6d11;
+        background: var(--success-tint);
+        border: 1px solid var(--success);
+        color: var(--success);
         font-size: 13px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 8px;
         margin-top: 14px;
         display: none;
       }
       .hint {
         font-size: 12px;
-        color: var(--ink-soft);
-        margin-top: 6px;
+        color: var(--ash);
+        margin-top: 8px;
         line-height: 1.6;
       }
       @media (max-width: 640px) {
-        body {
-          padding: 16px;
-        }
-        .page-shell {
-          gap: 16px;
-        }
-        .hero-banner img {
-          width: min(260px, 90vw);
-        }
-        .card {
-          padding: 24px 20px;
-        }
+        body { padding: 16px; }
+        .page-shell { gap: 24px; }
+        .hero-banner img { width: min(240px, 88vw); }
+        .card { padding: 28px 22px; }
+      }
+      .theme-toggle {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--pewter);
+        background: var(--surface);
+        color: var(--ash);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s, border-color 0.2s;
+        z-index: 100;
+      }
+      .theme-toggle:hover {
+        color: var(--gold);
+        border-color: var(--gold-dim);
       }
     </style>
   </head>
   <body>
+    <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">☀</button>
     <div class="page-shell">
       <div class="hero-banner" aria-label="شعار TWiNS Interior Design">
         <img src="/logo.svg" alt="شعار TWiNS Interior Design" />
@@ -217,6 +266,19 @@
     </div>
 
     <script>
+      // Theme toggle
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      const themeBtn = document.getElementById("themeToggle");
+      themeBtn.textContent = savedTheme === "dark" ? "☀" : "☾";
+      themeBtn.onclick = () => {
+        const current = document.documentElement.getAttribute("data-theme");
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        themeBtn.textContent = next === "dark" ? "☀" : "☾";
+      };
+
       let mode = "login";
       const form = document.getElementById("authForm");
       const errorBox = document.getElementById("errorBox");
