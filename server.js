@@ -7,6 +7,7 @@ const db = require("./db");
 const authRoutes = require("./routes/auth");
 const quotesRoutes = require("./routes/quotes");
 const usersRoutes = require("./routes/users");
+const profileRoutes = require("./routes/profile");
 
 if (!process.env.JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
@@ -30,6 +31,7 @@ function createApp() {
   app.use("/api/auth", authRoutes);
   app.use("/api/quotes", quotesRoutes);
   app.use("/api/users", usersRoutes);
+  app.use("/api/profile", profileRoutes);
 
   app.use(express.static(path.join(__dirname, "public")));
 
@@ -39,6 +41,9 @@ function createApp() {
   );
   app.get("/admin", (req, res) =>
     res.sendFile(path.join(__dirname, "public", "admin.html")),
+  );
+  app.get("/profile", (req, res) =>
+    res.sendFile(path.join(__dirname, "public", "profile.html")),
   );
   app.get("/", (req, res) =>
     res.sendFile(path.join(__dirname, "public", "index.html")),

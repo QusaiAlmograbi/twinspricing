@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>الملف الشخصي — لوحة تسعير التصميم الداخلي</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Markazi+Text:wght@500;600;700&display=swap");
+      :root {
+        --bg: #f4f2ed;
+        --paper: #ffffff;
+        --ink: #211d17;
+        --ink-soft: #726c63;
+        --line: #e5e1d6;
+        --line-strong: #d3cbb8;
+        --pine: #8a6512;
+        --pine-dark: #6b4e0c;
+        --pine-tint: #fbf1d9;
+        --brass: #cc9a06;
+        --brass-tint: #fbefc7;
+        --danger: #a33b2d;
+        --radius: 10px;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      .app {
+        font-family: "Cairo", "Tahoma", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        padding: 20px 20px 60px;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 18px;
+        margin-bottom: 16px;
+      }
+      .topbar .links {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .topbar a,
+      .topbar button {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--pine-dark);
+        text-decoration: none;
+        background: transparent;
+        border: 1px solid var(--line-strong);
+        padding: 7px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .topbar a:hover,
+      .topbar button:hover {
+        background: var(--pine-tint);
+      }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 26px 28px;
+        margin-bottom: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 6px;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--pine) 0 28px,
+          var(--brass) 28px 56px
+        );
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        color: var(--pine-dark);
+        font-weight: 700;
+        margin: 8px 0 4px;
+      }
+      h1 {
+        font-family: "Markazi Text", "Cairo", serif;
+        font-size: 30px;
+        font-weight: 700;
+        margin: 0 0 20px;
+      }
+      h2 {
+        font-family: "Markazi Text", "Cairo", serif;
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 14px;
+      }
+
+      .avatar-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .avatar-wrap {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid var(--line-strong);
+        flex-shrink: 0;
+        cursor: pointer;
+        background: var(--pine-tint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .avatar-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .avatar-placeholder {
+        font-size: 40px;
+        color: var(--ink-soft);
+        opacity: 0.5;
+        user-select: none;
+      }
+      .avatar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .avatar-actions button {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid var(--line-strong);
+        background: #fff;
+        color: var(--ink);
+      }
+      .avatar-actions button:hover {
+        background: var(--pine-tint);
+      }
+      .avatar-actions .danger-btn {
+        color: var(--danger);
+        border-color: var(--danger);
+        background: #fbeae7;
+      }
+      .avatar-actions .danger-btn:hover {
+        background: #f2d2cf;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .info-item label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-soft);
+        margin-bottom: 4px;
+      }
+      .info-item .value {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .stats-row {
+        display: flex;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .stat-box {
+        flex: 1;
+        background: var(--pine-tint);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+      .stat-box .num {
+        font-family: "Markazi Text", serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--pine-dark);
+      }
+      .stat-box .lbl {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
+
+      .form-section {
+        margin-bottom: 0;
+      }
+      .form-section h2 {
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      label.field-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-soft);
+        margin: 14px 0 6px;
+      }
+      input[type="text"],
+      input[type="password"],
+      input[type="email"] {
+        width: 100%;
+        font-family: inherit;
+        font-size: 15px;
+        padding: 10px 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
+      input:focus {
+        outline: 2px solid var(--pine);
+        outline-offset: -1px;
+        border-color: var(--pine);
+      }
+      .btn {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--pine);
+        background: var(--pine);
+        color: #fff;
+        cursor: pointer;
+        margin-top: 16px;
+      }
+      .btn:hover {
+        background: var(--pine-dark);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .btn-outline {
+        background: #fff;
+        color: var(--pine-dark);
+      }
+      .btn-outline:hover {
+        background: var(--pine-tint);
+      }
+
+      .msg {
+        margin-top: 14px;
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        display: none;
+      }
+      .msg.show { display: block; }
+      .msg.ok {
+        background: #eaf3de;
+        color: #3b6d11;
+      }
+      .msg.err {
+        background: #fbeae7;
+        color: var(--danger);
+      }
+
+      .item-img-input { display: none; }
+
+      @media (max-width: 640px) {
+        body { padding: 12px; }
+        .avatar-section { flex-direction: column; align-items: flex-start; }
+        .info-grid { grid-template-columns: 1fr; }
+        .stats-row { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="links">
+            <a href="/app">→ رجوع لأداة التسعير</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">TWiNS Interior Design</div>
+          <h1>الملف الشخصي</h1>
+
+          <div class="avatar-section">
+            <div class="avatar-wrap" id="avatarWrap" title="اضغط لتغيير الصورة">
+              <span class="avatar-placeholder" id="avatarPlaceholder">👤</span>
+              <img id="avatarImg" src="" alt="الصورة الشخصية" style="display:none" />
+            </div>
+            <div class="avatar-actions">
+              <button id="changeAvatarBtn">تغيير الصورة</button>
+              <button id="deleteAvatarBtn" class="danger-btn" style="display:none">إزالة الصورة</button>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" class="item-img-input" />
+          </div>
+
+          <div class="info-grid" id="infoGrid">
+            <div class="info-item">
+              <label>الاسم</label>
+              <div class="value" id="infoName">...</div>
+            </div>
+            <div class="info-item">
+              <label>الإيميل</label>
+              <div class="value" id="infoEmail">...</div>
+            </div>
+            <div class="info-item">
+              <label>الصلاحية</label>
+              <div class="value" id="infoRole">...</div>
+            </div>
+            <div class="info-item">
+              <label>الحالة</label>
+              <div class="value" id="infoStatus">...</div>
+            </div>
+            <div class="info-item">
+              <label>تاريخ الإنشاء</label>
+              <div class="value" id="infoCreated">...</div>
+            </div>
+          </div>
+
+          <div class="stats-row" id="statsRow">
+            <div class="stat-box">
+              <div class="num" id="statQuotes">0</div>
+              <div class="lbl">عدد العروض</div>
+            </div>
+            <div class="stat-box">
+              <div class="num" id="statValue">0.00 د.أ</div>
+              <div class="lbl">القيمة الإجمالية</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-section">
+            <h2>تعديل الاسم</h2>
+            <label class="field-label" for="nameInput">الاسم الجديد</label>
+            <input type="text" id="nameInput" placeholder="أدخل الاسم الجديد" />
+            <button class="btn" id="saveNameBtn">حفظ الاسم</button>
+            <div class="msg" id="nameMsg"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-section">
+            <h2>تغيير كلمة المرور</h2>
+            <label class="field-label" for="currentPw">كلمة المرور الحالية</label>
+            <input type="password" id="currentPw" placeholder="كلمة المرور الحالية" />
+            <label class="field-label" for="newPw">كلمة المرور الجديدة</label>
+            <input type="password" id="newPw" placeholder="6 أحرف على الأقل" />
+            <label class="field-label" for="confirmPw">تأكيد كلمة المرور الجديدة</label>
+            <input type="password" id="confirmPw" placeholder="أعد إدخال كلمة المرور الجديدة" />
+            <button class="btn" id="savePwBtn">تغيير كلمة المرور</button>
+            <div class="msg" id="pwMsg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (!token || !currentUser) window.location.href = "/index.html";
+
+      async function api(path, options = {}) {
+        const res = await fetch("/api" + path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+            ...(options.headers || {}),
+          },
+        });
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/index.html";
+          throw new Error("unauthorized");
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data.error || "صار في خطأ بالاتصال بالسيرفر");
+        return data;
+      }
+
+      function showMsg(el, text, ok) {
+        el.textContent = text;
+        el.className = "msg show " + (ok ? "ok" : "err");
+      }
+      function hideMsg(el) {
+        el.className = "msg";
+      }
+
+      function money(n) {
+        n = Number.isFinite(n) ? n : 0;
+        return (
+          n.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }) + " د.أ"
+        );
+      }
+
+      const ROLE_MAP = { owner: "مالك", admin: "مدير", designer: "مصمم" };
+      const STATUS_MAP = { approved: "موافق", pending: "معلق", rejected: "مرفوض" };
+
+      function compressImage(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const maxDim = 800;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h / w) * maxDim);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w / h) * maxDim);
+                  h = maxDim;
+                }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL("image/jpeg", 0.7));
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function formatDate(dateStr) {
+        if (!dateStr) return "—";
+        try {
+          return new Date(dateStr).toLocaleDateString("ar-JO", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+        } catch (e) {
+          return dateStr;
+        }
+      }
+
+      function setAvatar(src) {
+        const img = document.getElementById("avatarImg");
+        const ph = document.getElementById("avatarPlaceholder");
+        const delBtn = document.getElementById("deleteAvatarBtn");
+        if (src) {
+          img.src = src;
+          img.style.display = "block";
+          ph.style.display = "none";
+          delBtn.style.display = "inline-block";
+        } else {
+          img.src = "";
+          img.style.display = "none";
+          ph.style.display = "flex";
+          delBtn.style.display = "none";
+        }
+      }
+
+      async function loadProfile() {
+        try {
+          const { user } = await api("/profile");
+          document.getElementById("infoName").textContent = user.name;
+          document.getElementById("infoEmail").textContent = user.email;
+          document.getElementById("infoRole").textContent = ROLE_MAP[user.role] || user.role;
+          document.getElementById("infoStatus").textContent = STATUS_MAP[user.status] || user.status;
+          document.getElementById("infoCreated").textContent = formatDate(user.created_at);
+          document.getElementById("statQuotes").textContent = user.quotes_count || 0;
+          document.getElementById("statValue").textContent = money(user.total_value || 0);
+          document.getElementById("nameInput").value = user.name;
+          setAvatar(user.avatar);
+        } catch (e) {
+          if (e.message !== "unauthorized") {
+            console.error(e);
+          }
+        }
+      }
+
+      document.getElementById("avatarWrap").onclick = () => {
+        document.getElementById("avatarFileInput").click();
+      };
+      document.getElementById("changeAvatarBtn").onclick = () => {
+        document.getElementById("avatarFileInput").click();
+      };
+      document.getElementById("avatarFileInput").onchange = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const dataUri = await compressImage(file);
+          const { avatar } = await api("/profile/avatar", {
+            method: "POST",
+            body: JSON.stringify({ avatar: dataUri }),
+          });
+          setAvatar(avatar);
+          currentUser.avatar = avatar;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        } catch (err) {
+          alert(err.message || "تعذر رفع الصورة");
+        }
+        e.target.value = "";
+      };
+      document.getElementById("deleteAvatarBtn").onclick = async () => {
+        try {
+          await api("/profile/avatar", { method: "DELETE" });
+          setAvatar(null);
+          delete currentUser.avatar;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        } catch (err) {
+          alert(err.message || "تعذر حذف الصورة");
+        }
+      };
+
+      document.getElementById("saveNameBtn").onclick = async () => {
+        const msgEl = document.getElementById("nameMsg");
+        hideMsg(msgEl);
+        const name = document.getElementById("nameInput").value.trim();
+        if (!name) {
+          showMsg(msgEl, "الرجاء إدخال الاسم", false);
+          return;
+        }
+        try {
+          const btn = document.getElementById("saveNameBtn");
+          btn.disabled = true;
+          const { name: updatedName } = await api("/profile/name", {
+            method: "PATCH",
+            body: JSON.stringify({ name }),
+          });
+          showMsg(msgEl, "تم تحديث الاسم بنجاح", true);
+          document.getElementById("infoName").textContent = updatedName;
+          currentUser.name = updatedName;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        } catch (err) {
+          showMsg(msgEl, err.message, false);
+        } finally {
+          document.getElementById("saveNameBtn").disabled = false;
+        }
+      };
+
+      document.getElementById("savePwBtn").onclick = async () => {
+        const msgEl = document.getElementById("pwMsg");
+        hideMsg(msgEl);
+        const currentPw = document.getElementById("currentPw").value;
+        const newPw = document.getElementById("newPw").value;
+        const confirmPw = document.getElementById("confirmPw").value;
+        if (!currentPw || !newPw || !confirmPw) {
+          showMsg(msgEl, "الرجاء تعبئة كل الحقول", false);
+          return;
+        }
+        if (newPw !== confirmPw) {
+          showMsg(msgEl, "كلمة المرور الجديدة غير متطابقة", false);
+          return;
+        }
+        if (newPw.length < 6) {
+          showMsg(msgEl, "كلمة المرور الجديدة لازم تكون 6 أحرف على الأقل", false);
+          return;
+        }
+        try {
+          const btn = document.getElementById("savePwBtn");
+          btn.disabled = true;
+          await api("/profile/password", {
+            method: "POST",
+            body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+          });
+          showMsg(msgEl, "تم تغيير كلمة المرور بنجاح", true);
+          document.getElementById("currentPw").value = "";
+          document.getElementById("newPw").value = "";
+          document.getElementById("confirmPw").value = "";
+        } catch (err) {
+          showMsg(msgEl, err.message, false);
+        } finally {
+          document.getElementById("savePwBtn").disabled = false;
+        }
+      };
+
+      loadProfile();
+    </script>
+  </body>
+</html>

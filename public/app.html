@@ -70,6 +70,29 @@
         background: var(--brass-tint);
         color: #6b4f16;
       }
+      .topbar-avatar-circle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--pine-tint);
+        border: 2px solid var(--line-strong);
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+      .topbar-avatar-circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .topbar-avatar-placeholder {
+        font-size: 16px;
+        line-height: 1;
+        opacity: 0.6;
+      }
       .topbar .links {
         display: flex;
         gap: 10px;
@@ -740,13 +763,20 @@
       <div class="wrap">
         <div class="topbar">
           <div class="who">
-            أهلاً، <b id="userName">...</b>
+            <a href="/profile" class="topbar-avatar" id="topbarAvatarLink" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+              <span class="topbar-avatar-circle" id="topbarAvatarCircle">
+                <span class="topbar-avatar-placeholder">👤</span>
+                <img id="topbarAvatarImg" src="" alt="" style="display:none" />
+              </span>
+              <b id="userName">...</b>
+            </a>
             <span class="role-badge" id="roleBadge"></span>
           </div>
           <div class="links">
             <a href="/admin" id="adminLink" style="display: none"
               >إدارة الفريق</a
             >
+            <a href="/profile">الملف الشخصي</a>
             <button id="logoutBtn">تسجيل خروج</button>
           </div>
         </div>
@@ -1307,6 +1337,11 @@
               : "مصمم";
         if (currentUser.role === "admin" || currentUser.role === "owner") {
           document.getElementById("adminLink").style.display = "inline-block";
+        }
+        if (currentUser.avatar) {
+          document.getElementById("topbarAvatarImg").src = currentUser.avatar;
+          document.getElementById("topbarAvatarImg").style.display = "block";
+          document.getElementById("topbarAvatarCircle").querySelector(".topbar-avatar-placeholder").style.display = "none";
         }
         renderAll();
         loadSavedList();
