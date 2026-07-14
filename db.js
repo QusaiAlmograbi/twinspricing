@@ -1,11 +1,17 @@
 const { Pool } = require("pg");
-const Database = require("better-sqlite3");
 const { getDatabaseConfig, resolveDatabasePath } = require("./config/database");
 
 const config = getDatabaseConfig();
 let pool = null;
 let sqliteDb = null;
 let initializationPromise = null;
+let Database = null;
+
+function loadSqlite() {
+  if (!Database) {
+    Database = require("better-sqlite3");
+  }
+}
 
 function isSqlite() {
   return config.client === "sqlite";
@@ -33,6 +39,7 @@ function getPool() {
 
 function getSqliteDb() {
   if (!sqliteDb) {
+    loadSqlite();
     sqliteDb = new Database(config.sqlitePath);
     sqliteDb.pragma("journal_mode = WAL");
     sqliteDb.pragma("foreign_keys = ON");
@@ -297,6 +304,11 @@ async function initializeDatabase() {
         "approved_at",
         "TEXT",
       );
+      await ensureColumnIfMissing(
+        "users",
+        "avatar",
+        "TEXT",
+      );
 
       if (sqliteStatusAdded) {
         await db.exec(
@@ -377,6 +389,11 @@ async function initializeDatabase() {
       "users",
       "approved_at",
       "TIMESTAMPTZ",
+    );
+    await ensureColumnIfMissing(
+      "users",
+      "avatar",
+      "TEXT",
     );
 
     if (pgStatusAdded) {

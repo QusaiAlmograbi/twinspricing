@@ -49,6 +49,11 @@ function createApp() {
     res.sendFile(path.join(__dirname, "public", "index.html")),
   );
 
+  app.use((err, req, res, next) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
   return app;
 }
 
@@ -81,6 +86,14 @@ async function startServer(
 
   return server;
 }
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
 
 if (require.main === module) {
   startServer().catch((error) => {
