@@ -1,11 +1,12 @@
 const express = require("express");
 const db = require("../db");
 const { requireAuth, requireOwner, isAdminOrOwner } = require("../middleware/auth");
+const { asyncHandler } = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", async (req, res) => {
+router.get("/", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -18,9 +19,9 @@ router.get("/", async (req, res) => {
     )
     .all();
   res.json({ users: rows });
-});
+}));
 
-router.get("/pending", async (req, res) => {
+router.get("/pending", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -33,9 +34,9 @@ router.get("/pending", async (req, res) => {
     )
     .all();
   res.json({ users: rows });
-});
+}));
 
-router.post("/:id/approve", async (req, res) => {
+router.post("/:id/approve", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -65,9 +66,9 @@ router.post("/:id/approve", async (req, res) => {
     )
     .run(req.user.id, targetId);
   res.json({ ok: true });
-});
+}));
 
-router.post("/:id/reject", async (req, res) => {
+router.post("/:id/reject", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -95,9 +96,9 @@ router.post("/:id/reject", async (req, res) => {
     .prepare("UPDATE users SET status = 'rejected' WHERE id = ?")
     .run(targetId);
   res.json({ ok: true });
-});
+}));
 
-router.patch("/:id/role", requireOwner, async (req, res) => {
+router.patch("/:id/role", requireOwner, asyncHandler(async (req, res) => {
   const { role, permissions } = req.body;
   if (!["admin", "owner", "designer"].includes(role)) {
     return res.status(400).json({ error: "صلاحية غير صحيحة" });
@@ -134,9 +135,9 @@ router.patch("/:id/role", requireOwner, async (req, res) => {
     .prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`)
     .run(...values);
   res.json({ ok: true });
-});
+}));
 
-router.delete("/:id", requireOwner, async (req, res) => {
+router.delete("/:id", requireOwner, asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
   if (targetId === req.user.id) {
     return res.status(400).json({ error: "ما تقدر تحذف حسابك بنفسك" });
@@ -157,6 +158,6 @@ router.delete("/:id", requireOwner, async (req, res) => {
   await db.prepare("DELETE FROM quotes WHERE user_id = ?").run(targetId);
   await db.prepare("DELETE FROM users WHERE id = ?").run(targetId);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

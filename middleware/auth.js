@@ -38,9 +38,15 @@ async function requireAuth(req, res, next) {
     req.user = decoded;
     next();
   } catch (e) {
+    if (e.name === "JsonWebTokenError" || e.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json({ error: "الجلسة منتهية، سجّل الدخول مرة ثانية" });
+    }
+    console.error("Auth middleware error:", e);
     return res
-      .status(401)
-      .json({ error: "الجلسة منتهية، سجّل الدخول مرة ثانية" });
+      .status(500)
+      .json({ error: "خطأ في الخادم" });
   }
 }
 

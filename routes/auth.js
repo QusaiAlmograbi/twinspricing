@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const { asyncHandler } = require("../utils/asyncHandler");
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ function parsePermissions(value) {
   }
 }
 
-router.post("/register", async (req, res) => {
+router.post("/register", asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: "الرجاء تعبئة كل الحقول" });
@@ -66,9 +67,9 @@ router.post("/register", async (req, res) => {
     pending: true,
     message: "حسابك بانتظار الموافقة من المدير",
   });
-});
+}));
 
-router.post("/login", async (req, res) => {
+router.post("/login", asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || "").toLowerCase().trim();
   const user = await db
@@ -98,7 +99,7 @@ router.post("/login", async (req, res) => {
   };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
   res.json({ token, user: payload });
-});
+}));
 
 router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });

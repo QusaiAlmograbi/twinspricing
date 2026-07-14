@@ -1,11 +1,12 @@
 const express = require("express");
 const db = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
+const { asyncHandler } = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", async (req, res) => {
+router.get("/", asyncHandler(async (req, res) => {
   let rows;
   if (isAdminOrOwner(req.user.role)) {
     rows = await db
@@ -30,9 +31,9 @@ router.get("/", async (req, res) => {
       .all(req.user.id, req.user.id);
   }
   res.json({ quotes: rows });
-});
+}));
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -47,10 +48,16 @@ router.get("/:id", async (req, res) => {
   ) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
-  res.json({ quote: { ...q, data: JSON.parse(q.data) } });
-});
+  let parsedData;
+  try {
+    parsedData = JSON.parse(q.data);
+  } catch (e) {
+    parsedData = q.data;
+  }
+  res.json({ quote: { ...q, data: parsedData } });
+}));
 
-router.post("/", async (req, res) => {
+router.post("/", asyncHandler(async (req, res) => {
   const { project_name, data, total } = req.body;
   if (!data) return res.status(400).json({ error: "بيانات العرض ناقصة" });
   const info = await db
@@ -65,9 +72,9 @@ router.post("/", async (req, res) => {
       total || 0,
     );
   res.json({ id: info.lastInsertRowid });
-});
+}));
 
-router.post("/:id/access", async (req, res) => {
+router.post("/:id/access", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -95,9 +102,9 @@ router.post("/:id/access", async (req, res) => {
     .run(quoteId, userId, req.user.id, permission || "view");
 
   res.json({ ok: true });
-});
+}));
 
-router.delete("/:id/access/:userId?", async (req, res) => {
+router.delete("/:id/access/:userId?", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -121,9 +128,9 @@ router.delete("/:id/access/:userId?", async (req, res) => {
     .prepare("DELETE FROM project_access WHERE quote_id = ? AND user_id = ?")
     .run(quoteId, userId);
   res.json({ ok: true });
-});
+}));
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -143,9 +150,9 @@ router.put("/:id", async (req, res) => {
       req.params.id,
     );
   res.json({ ok: true });
-});
+}));
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -158,6 +165,6 @@ router.delete("/:id", async (req, res) => {
     .run(req.params.id);
   await db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

@@ -44,7 +44,7 @@ function ensureDatabaseDirectory(targetPath) {
 
 function getDatabaseConfig() {
   const databaseUrl = process.env.DATABASE_URL || null;
-  const sqlitePath = ensureDatabaseDirectory(resolveDatabasePath());
+  const sqlitePath = databaseUrl ? null : ensureDatabaseDirectory(resolveDatabasePath());
 
   return {
     client: databaseUrl ? "postgres" : "sqlite",

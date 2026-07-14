@@ -2,11 +2,12 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const { asyncHandler } = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", async (req, res) => {
+router.get("/", asyncHandler(async (req, res) => {
   const user = await db
     .prepare(
       "SELECT id, name, email, role, status, avatar, created_at FROM users WHERE id = ?",
@@ -29,9 +30,9 @@ router.get("/", async (req, res) => {
       total_value: Number(quoteStats.total_value) || 0,
     },
   });
-});
+}));
 
-router.patch("/name", async (req, res) => {
+router.patch("/name", asyncHandler(async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "الرجاء إدخال الاسم" });
@@ -60,9 +61,9 @@ router.patch("/name", async (req, res) => {
 
   await db.prepare("UPDATE users SET name = ? WHERE id = ?").run(trimmed, req.user.id);
   res.json({ ok: true, name: trimmed });
-});
+}));
 
-router.post("/avatar", async (req, res) => {
+router.post("/avatar", asyncHandler(async (req, res) => {
   const { avatar } = req.body;
   if (!avatar) {
     return res.status(400).json({ error: "الرجاء إرفاق صورة" });
@@ -74,14 +75,14 @@ router.post("/avatar", async (req, res) => {
 
   await db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(avatar, req.user.id);
   res.json({ ok: true, avatar });
-});
+}));
 
-router.delete("/avatar", async (req, res) => {
+router.delete("/avatar", asyncHandler(async (req, res) => {
   await db.prepare("UPDATE users SET avatar = NULL WHERE id = ?").run(req.user.id);
   res.json({ ok: true });
-});
+}));
 
-router.post("/password", async (req, res) => {
+router.post("/password", asyncHandler(async (req, res) => {
   const { current_password, new_password } = req.body;
   if (!current_password || !new_password) {
     return res
@@ -110,6 +111,6 @@ router.post("/password", async (req, res) => {
   const hash = bcrypt.hashSync(new_password, 10);
   await db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, req.user.id);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;
