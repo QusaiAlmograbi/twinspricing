@@ -389,6 +389,7 @@ async function initializeDatabase() {
       );
 
       await seedDefaultTemplates();
+      await seedDefaultPriceList();
 
       return true;
     }
@@ -557,6 +558,7 @@ async function initializeDatabase() {
     );
 
     await seedDefaultTemplates();
+    await seedDefaultPriceList();
 
     return true;
   })();
@@ -687,6 +689,64 @@ async function seedDefaultTemplates() {
     await db.prepare(
       "INSERT INTO quote_templates (name, description, data, created_by, is_default) VALUES (?,?,?,?,1)",
     ).run(tmpl.name, tmpl.description, JSON.stringify(tmpl.data), null);
+  }
+}
+
+async function seedDefaultPriceList() {
+  const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
+  if (existing) return;
+
+  const categories = [
+    { name: "البلاط", sort_order: 0 },
+    { name: "الإضاءة", sort_order: 1 },
+    { name: "السباكة", sort_order: 2 },
+    { name: "الكهرباء", sort_order: 3 },
+    { name: "الجبس", sort_order: 4 },
+    { name: "الدهانات", sort_order: 5 },
+    { name: "الأرضيات", sort_order: 6 },
+    { name: "النجارة", sort_order: 7 },
+    { name: "المطابخ", sort_order: 8 },
+    { name: "الحمامات", sort_order: 9 },
+  ];
+
+  const items = [
+    { catIdx: 0, item_code: "TILE-001", name: "بلاط بورسلين 60x60", description: "بلاط بورسلين لامع مقاس 60x60 سم", unit: "م²", base_cost: 45, overhead_pct: 40 },
+    { catIdx: 0, item_code: "TILE-002", name: "بلاط بورسلين 80x80", description: "بلاط بورسلين لامع مقاس 80x80 سم", unit: "م²", base_cost: 65, overhead_pct: 40 },
+    { catIdx: 0, item_code: "TILE-003", name: "بلاط سيراميك 30x60", description: "بلاط سيراميك للمطابخ والحمامات", unit: "م²", base_cost: 25, overhead_pct: 40 },
+    { catIdx: 0, item_code: "TILE-004", name: "بلاط موزاييك", description: "بلاط موزاييك للحمامات", unit: "م²", base_cost: 55, overhead_pct: 40 },
+    { catIdx: 1, item_code: "LGT-001", name: "سبوت سيلينج", description: "سبوت سيلينج LED مخفي", unit: "مقطوع", base_cost: 35, overhead_pct: 40 },
+    { catIdx: 1, item_code: "LGT-002", name: "شريط LED", description: "شريط إضاءة LED خفي للجبس", unit: "متر طولي", base_cost: 15, overhead_pct: 40 },
+    { catIdx: 1, item_code: "LGT-003", name: "نجمة إضاءة", description: "نجمة إضاءة سقف مخفي", unit: "مقطوع", base_cost: 25, overhead_pct: 40 },
+    { catIdx: 1, item_code: "LGT-004", name: "كشاف حائط", description: "كشاف إضاءة حائط ديكوري", unit: "مقطوع", base_cost: 45, overhead_pct: 40 },
+    { catIdx: 2, item_code: "PLB-001", name: "حوض مغسلة", description: "حوض مغسلة سيراميك", unit: "مقطوع", base_cost: 80, overhead_pct: 40 },
+    { catIdx: 2, item_code: "PLB-002", name: "حنفيه مغسلة", description: "حنفيه مغسلة كروم", unit: "مقطوع", base_cost: 65, overhead_pct: 40 },
+    { catIdx: 3, item_code: "ELC-001", name: "لوحة كهرباء", description: "لوحة توزيع كهرباء 12 دائرة", unit: "مقطوع", base_cost: 120, overhead_pct: 40 },
+    { catIdx: 3, item_code: "ELC-002", name: "مقابس كهربائية", description: "مقابس كهربائية ستاندر", unit: "عدد", base_cost: 12, overhead_pct: 40 },
+    { catIdx: 4, item_code: "GYM-001", name: "جبس بورد سقف", description: "تركيب جبس بورد سقف مخفي", unit: "م²", base_cost: 35, overhead_pct: 40 },
+    { catIdx: 4, item_code: "GYM-002", name: "كرانيش جبس", description: "كرانيش جبس بورد ديكوري", unit: "متر طولي", base_cost: 20, overhead_pct: 40 },
+    { catIdx: 5, item_code: "PNT-001", name: "دهان جوتن", description: "طبختين دهان جوتن قابل للغسيل", unit: "م²", base_cost: 12, overhead_pct: 40 },
+    { catIdx: 5, item_code: "PNT-002", name: "دهان سقف", description: "دهان سقف جوتن أبيض", unit: "م²", base_cost: 8, overhead_pct: 40 },
+  ];
+
+  const catIdMap = {};
+  for (let i = 0; i < categories.length; i++) {
+    const cat = categories[i];
+    const info = await db.prepare(
+      "INSERT INTO price_categories (name, sort_order) VALUES (?, ?)"
+    ).run(cat.name, cat.sort_order);
+    catIdMap[i] = info.lastInsertRowid;
+  }
+
+  for (const item of items) {
+    const catId = catIdMap[item.catIdx];
+    if (!catId) continue;
+    const baseCost = Number(item.base_cost) || 0;
+    const overheadPct = Number(item.overhead_pct) || 40;
+    const sellingPrice = baseCost * (1 + overheadPct / 100);
+    await db.prepare(
+      `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(catId, item.item_code, item.name, item.description || "", item.unit || "عدد", baseCost, overheadPct, sellingPrice);
   }
 }
 
