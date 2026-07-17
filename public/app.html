@@ -41,19 +41,7 @@
         --success: #3d8b55;
         --success-tint: rgba(61, 139, 85, 0.08);
       }
-      @keyframes rise {
-        from {
-          opacity: 0;
-          transform: translateY(14px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         min-height: 100vh;
         background: var(--bg);
@@ -63,889 +51,576 @@
         margin: 0;
         -webkit-font-smoothing: antialiased;
       }
-      .app {
-        background: var(--bg);
-        min-height: 100vh;
-        padding: 20px 20px 60px;
-      }
-      .wrap {
-        max-width: 1180px;
-        margin: 0 auto;
-      }
+      .app { background: var(--bg); min-height: 100vh; padding: 16px 16px 60px; }
+      .wrap { max-width: 1300px; margin: 0 auto; }
 
+      /* Topbar */
       .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        background: var(--surface);
-        border: 1px solid var(--pewter);
-        border-radius: 14px;
-        padding: 12px 18px;
-        margin-bottom: 16px;
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 10px;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 10px 16px; margin-bottom: 14px;
       }
-      .topbar .who {
-        font-size: 13.5px;
-        color: var(--ash);
-      }
-      .topbar .who b {
-        color: var(--champagne);
-      }
+      .topbar .who { font-size: 13px; color: var(--ash); display: flex; align-items: center; gap: 8px; }
+      .topbar .who b { color: var(--champagne); }
       .topbar .role-badge {
-        display: inline-block;
-        margin-right: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 2px 9px;
-        border-radius: 999px;
-        background: var(--gold-glow-strong);
-        color: var(--gold);
+        display: inline-block; font-size: 11px; font-weight: 700;
+        padding: 2px 9px; border-radius: 999px;
+        background: var(--gold-glow-strong); color: var(--gold);
       }
       .topbar-avatar-circle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        overflow: hidden;
-        background: var(--surface-raised);
-        border: 2px solid var(--pewter);
-        flex-shrink: 0;
-        vertical-align: middle;
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px; border-radius: 50%; overflow: hidden;
+        background: var(--surface-raised); border: 2px solid var(--pewter); flex-shrink: 0;
       }
-      .topbar-avatar-circle img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .topbar-avatar-placeholder {
-        font-size: 16px;
-        line-height: 1;
-        opacity: 0.6;
-      }
-      .topbar .links {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
+      .topbar-avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+      .topbar-avatar-placeholder { font-size: 14px; opacity: 0.6; }
+      .topbar .links { display: flex; gap: 8px; align-items: center; }
       .topbar .links a {
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--ash);
-        text-decoration: none;
-        padding: 6px 14px;
-        border-radius: 8px;
-        transition: color 0.2s;
+        font-family: inherit; font-size: 12.5px; font-weight: 600;
+        color: var(--ash); text-decoration: none; padding: 5px 12px;
+        border-radius: 8px; transition: color 0.2s;
       }
-      .topbar .links a:hover {
-        color: var(--gold);
-      }
+      .topbar .links a:hover { color: var(--gold); }
       .topbar .logout-btn {
-        background: none;
-        border: 1px solid var(--pewter);
-        color: var(--ash);
-        padding: 6px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 13px;
-        transition:
-          border-color 0.2s,
-          color 0.2s;
+        background: none; border: 1px solid var(--pewter); color: var(--ash);
+        padding: 5px 12px; border-radius: 8px; cursor: pointer;
+        font-family: inherit; font-size: 12.5px; transition: 0.2s;
       }
-      .topbar .logout-btn:hover {
-        border-color: var(--gold-dim);
-        color: var(--gold);
-      }
+      .topbar .logout-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
 
-      .hero {
-        padding: 24px 32px;
-        background: var(--surface);
-        border: 1px solid var(--pewter);
-        border-radius: 16px;
-        margin-bottom: 20px;
-        position: relative;
-        overflow: hidden;
+      /* Project Header */
+      .project-header {
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px 20px; margin-bottom: 14px;
+        position: relative; overflow: hidden;
       }
-      .hero::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 4px;
-        background: var(--gold);
+      .project-header::before {
+        content: ""; position: absolute; top: 0; right: 0; bottom: 0;
+        width: 4px; background: var(--gold);
       }
-      .hero-image-wrap {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
+      .project-header .eyebrow {
+        color: var(--gold); letter-spacing: 0.1em;
+        font-size: 10.5px; font-weight: 600; margin-bottom: 4px;
       }
-      .hero-image-wrap img {
-        max-width: 100%;
-        height: auto;
-        width: min(420px, 100%);
-        object-fit: contain;
-        display: block;
-      }
-      .hero .eyebrow {
-        color: var(--gold);
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 11px;
-        font-weight: 600;
-        margin: 6px 0 6px;
-      }
-      .hero h1 {
+      .project-header h1 {
         font-family: "Cormorant Garamond", "Cairo", serif;
-        font-size: 28px;
-        font-weight: 600;
-        color: var(--champagne);
-        margin: 0 0 8px;
+        font-size: 22px; font-weight: 600; color: var(--champagne);
+        margin: 0 0 12px;
       }
-      .hero p {
-        color: var(--ash);
-        font-size: 13px;
-        line-height: 1.7;
-        margin: 0 0 18px;
-        max-width: 640px;
-      }
-      .project-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .project-row label {
-        font-size: 13.5px;
-        color: var(--ash);
-        font-weight: 600;
-      }
-      .project-row input {
-        font-family: inherit;
-        font-size: 15px;
-        padding: 9px 14px;
-        border: 1px solid var(--pewter);
-        border-radius: 8px;
-        background: var(--surface-raised);
-        min-width: 240px;
-        color: var(--champagne);
-      }
-      .new-quote-btn {
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--bg);
-        background: var(--gold);
-        border: none;
-        padding: 9px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .new-quote-btn:hover {
-        background: var(--gold-dim);
-      }
-
-      .swatch-board {
-        display: flex;
+      .project-fields {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 10px;
-        overflow-x: auto;
-        padding: 4px 2px 14px;
-        margin-bottom: 6px;
       }
-      .swatch {
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 14px 9px 10px;
-        border-radius: 999px;
-        cursor: pointer;
-        background: var(--surface);
-        border: 1px solid var(--pewter);
-        color: var(--ash);
-        font-size: 13.5px;
-        font-weight: 600;
-        white-space: nowrap;
-        transition: 0.15s;
+      .project-fields label {
+        font-size: 11.5px; color: var(--ash); font-weight: 600;
+        display: flex; flex-direction: column; gap: 4px;
       }
-      .swatch .chip {
-        width: 16px;
-        height: 16px;
-        border-radius: 5px;
-        flex: 0 0 auto;
-      }
-      .swatch.active {
-        background: var(--champagne);
-        color: var(--bg);
-        border-color: var(--champagne);
-      }
-      .swatch .count {
-        font-size: 11.5px;
-        opacity: 0.75;
+      .project-fields input {
+        font-family: inherit; font-size: 13.5px; padding: 7px 10px;
+        border: 1px solid var(--pewter); border-radius: 7px;
+        background: var(--surface-raised); color: var(--champagne);
       }
 
-      .layout {
-        display: flex;
-        gap: 20px;
-        align-items: flex-start;
+      /* Sections Nav */
+      .sections-nav {
+        display: flex; gap: 8px; overflow-x: auto;
+        padding: 4px 2px 12px; margin-bottom: 4px;
       }
-      .main {
-        flex: 1 1 auto;
-        min-width: 0;
+      .section-tab {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 999px; cursor: pointer;
+        background: var(--surface); border: 1px solid var(--pewter);
+        color: var(--ash); font-size: 13px; font-weight: 600;
+        white-space: nowrap; transition: 0.15s;
       }
+      .section-tab.active {
+        background: var(--champagne); color: var(--bg); border-color: var(--champagne);
+      }
+      .section-tab .count { font-size: 11px; opacity: 0.7; }
+      .add-section-btn {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+        padding: 8px 14px; border-radius: 999px; cursor: pointer;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-size: 13px; font-weight: 700;
+        font-family: inherit; white-space: nowrap; transition: 0.15s;
+      }
+      .add-section-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+      /* Layout */
+      .layout { display: flex; gap: 16px; align-items: flex-start; }
+      .main { flex: 1 1 auto; min-width: 0; }
       .sidebar {
-        flex: 0 0 340px;
-        position: sticky;
-        top: 16px;
-        background: var(--surface);
-        border: 1px solid var(--pewter);
-        border-radius: 16px;
-        padding: 22px;
-        max-height: calc(100vh - 32px);
+        flex: 0 0 320px; position: sticky; top: 16px;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px; max-height: calc(100vh - 32px);
         overflow-y: auto;
       }
 
-      .cat-panel {
-        background: var(--surface);
-        border: 1px solid var(--pewter);
-        border-radius: 16px;
-        padding: 22px 24px;
-        margin-bottom: 16px;
+      /* Section Panel */
+      .section-panel {
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px 20px; margin-bottom: 14px;
       }
-      .cat-panel h2 {
+      .section-panel h2 {
         font-family: "Cormorant Garamond", "Cairo", serif;
-        font-size: 24px;
-        margin: 0 0 3px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--champagne);
+        font-size: 20px; margin: 0 0 4px; color: var(--champagne);
+        display: flex; align-items: center; gap: 8px;
       }
-      .cat-panel h2 .chip-big {
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
+      .section-panel h2 .sec-code {
+        background: var(--gold-glow-strong); color: var(--gold);
+        padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: 700;
       }
-      .cat-sub {
-        color: var(--ash);
-        font-size: 13px;
-        margin: 0 0 16px;
+      .section-sub { color: var(--ash); font-size: 12.5px; margin: 0 0 12px; }
+      .section-actions { display: flex; gap: 6px; margin-bottom: 12px; }
+      .section-actions button {
+        font-family: inherit; font-size: 11.5px; font-weight: 600;
+        padding: 5px 10px; border-radius: 6px; cursor: pointer; border: none;
       }
+      .btn-rename { background: var(--surface-raised); border: 1px solid var(--pewter) !important; color: var(--ash); }
+      .btn-rename:hover { border-color: var(--gold-dim) !important; color: var(--gold); }
+      .btn-delete-sec { background: var(--danger-tint); color: var(--danger); }
+      .btn-delete-sec:hover { opacity: 0.8; }
 
-      table.items {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-      }
+      /* Items Table */
+      table.items { width: 100%; border-collapse: collapse; font-size: 13px; }
       table.items th {
-        text-align: right;
-        font-weight: 600;
-        color: var(--ash);
-        font-size: 12.5px;
-        border-bottom: 1px solid var(--pewter);
-        padding: 0 6px 8px;
+        text-align: right; font-weight: 600; color: var(--ash);
+        font-size: 11.5px; border-bottom: 1px solid var(--pewter); padding: 0 4px 6px;
       }
       table.items td {
-        padding: 6px;
-        border-bottom: 1px solid var(--pewter);
-        vertical-align: middle;
+        padding: 4px; border-bottom: 1px solid var(--pewter); vertical-align: middle;
       }
-      table.items input,
-      table.items select {
-        width: 100%;
-        font-family: inherit;
-        font-size: 14px;
-        padding: 7px 8px;
-        border: 1px solid var(--pewter);
-        border-radius: 7px;
-        background: var(--surface-raised);
-        color: var(--champagne);
+      table.items input, table.items select {
+        width: 100%; font-family: inherit; font-size: 13px;
+        padding: 6px 7px; border: 1px solid var(--pewter); border-radius: 6px;
+        background: var(--surface-raised); color: var(--champagne);
       }
-      table.items input[type="number"] {
-        text-align: center;
-      }
-      .col-name {
-        width: 28%;
-      }
-      .col-unit {
-        width: 14%;
-      }
-      .col-qty {
-        width: 12%;
-      }
-      .col-price {
-        width: 16%;
-      }
-      .col-total {
-        width: 16%;
-        font-weight: 700;
-        text-align: left;
-        padding-left: 4px;
-        white-space: nowrap;
-        color: var(--champagne);
-      }
-      .col-del {
-        width: 34px;
-        text-align: center;
-      }
+      table.items input[type="number"] { text-align: center; }
+      .col-code { width: 5%; text-align: center; font-weight: 600; color: var(--gold); font-size: 12px; }
+      .col-name { width: 18%; }
+      .col-desc { width: 16%; }
+      .col-img { width: 40px; text-align: center; }
+      .col-unit { width: 8%; }
+      .col-qty { width: 7%; }
+      .col-price { width: 10%; }
+      .col-total { width: 10%; font-weight: 700; text-align: left; padding-left: 4px; white-space: nowrap; color: var(--champagne); }
+      .col-notes { width: 12%; }
+      .col-del { width: 30px; text-align: center; }
       .del-btn {
-        border: none;
-        background: var(--danger);
-        color: #fff;
-        cursor: pointer;
-        font-size: 16px;
-        line-height: 1;
-        padding: 4px 8px;
-        border-radius: 6px;
+        border: none; background: var(--danger); color: #fff;
+        cursor: pointer; font-size: 14px; line-height: 1;
+        padding: 3px 7px; border-radius: 5px;
       }
-      .del-btn:hover {
-        opacity: 0.85;
+      .del-btn:hover { opacity: 0.85; }
+
+      /* Cost fields (admin/owner only) */
+      .cost-fields { display: flex; gap: 6px; align-items: center; }
+      .cost-fields input { width: 70px; text-align: center; }
+      .cost-fields .pct-badge {
+        font-size: 10px; color: var(--gold); font-weight: 700;
+        background: var(--gold-glow); padding: 2px 5px; border-radius: 4px;
       }
 
-      .add-row {
-        margin-top: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: transparent;
-        border: 1px dashed var(--pewter);
-        color: var(--gold-dim);
-        font-family: inherit;
-        font-weight: 700;
-        font-size: 13.5px;
-        padding: 9px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        width: 100%;
-        justify-content: center;
-        transition:
-          border-color 0.2s,
-          color 0.2s;
+      .add-item-btn {
+        margin-top: 10px; display: flex; align-items: center; gap: 6px;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-family: inherit; font-weight: 700;
+        font-size: 13px; padding: 8px 14px; border-radius: 8px;
+        cursor: pointer; width: 100%; justify-content: center; transition: 0.2s;
       }
-      .add-row:hover {
-        border-color: var(--gold-dim);
-        color: var(--gold);
-      }
-      .cat-empty {
-        color: var(--ash);
-        font-size: 13.5px;
-        padding: 10px 0 4px;
+      .add-item-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .section-subtotal {
+        margin-top: 10px; text-align: left; font-size: 13px;
+        font-weight: 700; color: var(--gold); padding-top: 8px;
+        border-top: 1px solid var(--pewter);
       }
 
+      /* Sidebar */
       .sidebar h2 {
         font-family: "Cormorant Garamond", "Cairo", serif;
-        font-size: 22px;
-        margin: 0 0 14px;
-        color: var(--champagne);
+        font-size: 20px; margin: 0 0 12px; color: var(--champagne);
       }
-      .cat-totals {
-        font-size: 13px;
-        margin-bottom: 14px;
+      .sidebar-sections { margin-bottom: 14px; }
+      .sidebar-sec-row {
+        display: flex; justify-content: space-between; padding: 5px 0;
+        border-bottom: 1px dotted var(--pewter); font-size: 12.5px; color: var(--ash);
       }
-      .cat-totals-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-        border-bottom: 1px dotted var(--pewter);
-        color: var(--ash);
-      }
-      .cat-totals-row .n {
-        color: var(--champagne);
-        font-weight: 600;
-      }
+      .sidebar-sec-row .n { color: var(--champagne); font-weight: 600; }
 
-      .settings {
-        margin: 14px 0;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+      .settings { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
       .settings label {
-        font-size: 12.5px;
-        color: var(--ash);
-        font-weight: 600;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
+        font-size: 12px; color: var(--ash); font-weight: 600;
+        display: flex; flex-direction: column; gap: 4px;
       }
-      .settings input,
-      .settings select {
-        font-family: inherit;
-        font-size: 14px;
-        padding: 8px 10px;
-        border: 1px solid var(--pewter);
-        border-radius: 7px;
-        background: var(--surface-raised);
-        color: var(--champagne);
+      .settings input, .settings select {
+        font-family: inherit; font-size: 13px; padding: 7px 9px;
+        border: 1px solid var(--pewter); border-radius: 6px;
+        background: var(--surface-raised); color: var(--champagne);
       }
-      .discount-row {
-        display: flex;
-        gap: 6px;
-      }
-      .discount-row input {
-        flex: 1;
-      }
-      .discount-row select {
-        width: 70px;
-      }
+      .discount-row { display: flex; gap: 5px; }
+      .discount-row input { flex: 1; }
+      .discount-row select { width: 65px; }
 
-      .totals-breakdown {
-        margin-top: 14px;
-        border-top: 1px solid var(--pewter);
-        padding-top: 12px;
-        font-size: 13.5px;
-      }
-      .tb-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 5px 0;
-        color: var(--ash);
-      }
-      .tb-row .n {
-        color: var(--champagne);
-        font-weight: 600;
-      }
+      .totals-breakdown { margin-top: 12px; border-top: 1px solid var(--pewter); padding-top: 10px; font-size: 13px; }
+      .tb-row { display: flex; justify-content: space-between; padding: 4px 0; color: var(--ash); }
+      .tb-row .n { color: var(--champagne); font-weight: 600; }
+      .tb-row.highlight { color: var(--gold); font-weight: 700; }
 
       .grand-total {
-        margin-top: 12px;
-        background: var(--gold);
-        color: var(--bg);
-        border-radius: 12px;
-        padding: 16px 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
+        margin-top: 10px; background: var(--gold); color: var(--bg);
+        border-radius: 10px; padding: 14px 16px;
+        display: flex; justify-content: space-between; align-items: baseline;
       }
-      .grand-total .label {
-        font-size: 13px;
-        opacity: 0.85;
-        font-weight: 600;
+      .grand-total .label { font-size: 12.5px; opacity: 0.85; font-weight: 600; }
+      .grand-total .value { font-size: 22px; font-weight: 700; }
+
+      /* Payment Terms */
+      .payment-section { margin-top: 14px; border-top: 1px solid var(--pewter); padding-top: 12px; }
+      .payment-section h3 { font-size: 13px; color: var(--ash); margin: 0 0 8px; font-weight: 700; }
+      .payment-row {
+        display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
+        font-size: 12px;
       }
-      .grand-total .value {
-        font-family: "DM Sans", "Cairo", "Tahoma", sans-serif;
-        font-size: 26px;
-        font-weight: 700;
+      .payment-row input {
+        font-family: inherit; font-size: 12px; padding: 5px 7px;
+        border: 1px solid var(--pewter); border-radius: 5px;
+        background: var(--surface-raised); color: var(--champagne);
+      }
+      .payment-row .pct-input { width: 45px; text-align: center; }
+      .payment-row .desc-input { flex: 1; }
+      .payment-row .amt { font-weight: 700; color: var(--champagne); white-space: nowrap; font-size: 11px; }
+
+      .meta-row { display: flex; gap: 8px; margin-top: 8px; }
+      .meta-row label { font-size: 11.5px; color: var(--ash); font-weight: 600; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+      .meta-row input {
+        font-family: inherit; font-size: 12px; padding: 5px 7px;
+        border: 1px solid var(--pewter); border-radius: 5px;
+        background: var(--surface-raised); color: var(--champagne);
       }
 
-      .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 14px;
-      }
+      /* Actions */
+      .actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
       .actions button {
-        flex: 1;
-        font-family: inherit;
-        font-weight: 700;
-        font-size: 13.5px;
-        padding: 10px 8px;
-        border-radius: 8px;
-        cursor: pointer;
-        border: none;
+        flex: 1; font-family: inherit; font-weight: 700; font-size: 12.5px;
+        padding: 9px 6px; border-radius: 8px; cursor: pointer; border: none;
+        min-width: 80px;
       }
-      #saveQuoteBtn {
-        background: var(--gold);
-        color: var(--bg);
-        border: none;
-      }
-      #saveQuoteBtn:hover {
-        background: var(--gold-dim);
-      }
-      #saveQuoteBtn:disabled {
-        opacity: 0.6;
-        cursor: default;
-      }
-      #printBtn {
-        background: none;
-        border: 1px solid var(--pewter);
-        color: var(--ash);
-      }
-      #printBtn:hover {
-        border-color: var(--gold-dim);
-        color: var(--gold);
-      }
+      .btn-save { background: var(--gold); color: var(--bg); }
+      .btn-save:hover { background: var(--gold-dim); }
+      .btn-save:disabled { opacity: 0.6; cursor: default; }
+      .btn-secondary { background: none; border: 1px solid var(--pewter) !important; color: var(--ash); }
+      .btn-secondary:hover { border-color: var(--gold-dim) !important; color: var(--gold); }
 
-      .saved-quotes {
-        margin-top: 18px;
-        border-top: 1px solid var(--pewter);
-        padding-top: 14px;
-      }
-      .saved-quotes h3 {
-        font-size: 13px;
-        color: var(--ash);
-        margin: 0 0 10px;
-        font-weight: 700;
-      }
+      /* Saved Quotes */
+      .saved-quotes { margin-top: 16px; border-top: 1px solid var(--pewter); padding-top: 12px; }
+      .saved-quotes h3 { font-size: 12.5px; color: var(--ash); margin: 0 0 8px; font-weight: 700; }
       .saved-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 0;
-        border-bottom: 1px dotted var(--pewter);
-        font-size: 13px;
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 6px; padding: 7px 0; border-bottom: 1px dotted var(--pewter); font-size: 12.5px;
       }
-      .saved-item .info {
-        min-width: 0;
-      }
-      .saved-item .name {
-        font-weight: 600;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--champagne);
-      }
-      .saved-item .meta {
-        color: var(--ash);
-        font-size: 11.5px;
-      }
-      .saved-item .btns {
-        display: flex;
-        gap: 4px;
-        flex: 0 0 auto;
-      }
+      .saved-item .info { min-width: 0; }
+      .saved-item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--champagne); }
+      .saved-item .meta { color: var(--ash); font-size: 11px; }
+      .saved-item .btns { display: flex; gap: 3px; flex: 0 0 auto; }
       .saved-item .btns button {
-        border: 1px solid var(--pewter);
-        background: var(--surface);
-        border-radius: 6px;
-        padding: 4px 8px;
-        font-family: inherit;
-        font-size: 11.5px;
-        cursor: pointer;
-        color: var(--ash);
-        transition:
-          border-color 0.2s,
-          color 0.2s;
+        border: 1px solid var(--pewter); background: var(--surface);
+        border-radius: 5px; padding: 3px 7px; font-family: inherit;
+        font-size: 11px; cursor: pointer; color: var(--ash); transition: 0.2s;
       }
-      .saved-item .btns button:hover {
-        color: var(--gold);
-        border-color: var(--gold-dim);
-      }
-      .empty-note {
-        color: var(--ash);
-        font-size: 12.5px;
-      }
+      .saved-item .btns button:hover { color: var(--gold); border-color: var(--gold-dim); }
+      .empty-note { color: var(--ash); font-size: 12px; }
 
-      .col-img {
-        width: 48px;
-        text-align: center;
-      }
+      /* Image */
       .item-img-btn {
-        width: 36px;
-        height: 36px;
-        border: 1px dashed var(--pewter);
-        border-radius: 7px;
-        background: transparent;
-        color: var(--ash);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        line-height: 1;
-        padding: 0;
-        transition: 0.15s;
+        width: 32px; height: 32px; border: 1px dashed var(--pewter);
+        border-radius: 6px; background: transparent; color: var(--ash);
+        cursor: pointer; display: inline-flex; align-items: center;
+        justify-content: center; font-size: 16px; padding: 0; transition: 0.15s;
       }
-      .item-img-btn:hover {
-        background: var(--gold-glow);
-        color: var(--gold);
-        border-color: var(--gold-dim);
-      }
+      .item-img-btn:hover { background: var(--gold-glow); color: var(--gold); border-color: var(--gold-dim); }
       .item-thumb-wrap {
-        position: relative;
-        display: inline-block;
-        width: 36px;
-        height: 36px;
-        border-radius: 7px;
-        overflow: hidden;
-        cursor: pointer;
-        border: 1px solid var(--pewter);
+        position: relative; display: inline-block; width: 32px; height: 32px;
+        border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid var(--pewter);
       }
-      .item-thumb-wrap img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
+      .item-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .item-thumb-rm {
-        position: absolute;
-        top: 1px;
-        left: 1px;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: var(--danger);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        font-size: 10px;
-        line-height: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        opacity: 0;
-        transition: opacity 0.15s;
+        position: absolute; top: 1px; left: 1px; width: 14px; height: 14px;
+        border-radius: 50%; background: var(--danger); color: #fff;
+        border: none; cursor: pointer; font-size: 9px; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0; opacity: 0; transition: opacity 0.15s;
       }
-      .item-thumb-wrap:hover .item-thumb-rm {
-        opacity: 1;
-      }
+      .item-thumb-wrap:hover .item-thumb-rm { opacity: 1; }
+      .item-img-input { display: none; }
+
       .lightbox-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s;
+        position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+        z-index: 1000; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s;
       }
-      .lightbox-overlay.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
+      .lightbox-overlay.open { opacity: 1; pointer-events: auto; }
       .lightbox-overlay img {
-        max-width: 90vw;
-        max-height: 90vh;
-        border-radius: 10px;
-        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
-        cursor: default;
+        max-width: 90vw; max-height: 90vh; border-radius: 10px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5); cursor: default;
       }
       .lightbox-close {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.15);
-        color: var(--champagne);
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: absolute; top: 20px; left: 20px; width: 36px; height: 36px;
+        border-radius: 50%; background: rgba(255,255,255,0.15);
+        color: var(--champagne); border: none; font-size: 20px;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
       }
-      .lightbox-close:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-      .item-img-input {
-        display: none;
-      }
+      .lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
       .save-toast {
-        position: fixed;
-        bottom: 22px;
-        left: 50%;
+        position: fixed; bottom: 20px; left: 50%;
         transform: translateX(-50%) translateY(20px);
-        background: var(--gold);
-        color: var(--bg);
-        padding: 10px 20px;
-        border-radius: 999px;
-        font-size: 13.5px;
-        font-weight: 600;
-        opacity: 0;
-        pointer-events: none;
-        transition: all 0.25s;
-        z-index: 50;
+        background: var(--gold); color: var(--bg);
+        padding: 9px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+        opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 50;
       }
-      .save-toast.show {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
+      .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
       .theme-toggle {
-        position: fixed;
-        top: 16px;
-        left: 16px;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: 1px solid var(--pewter);
-        background: var(--surface);
-        color: var(--ash);
-        font-size: 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition:
-          color 0.2s,
-          border-color 0.2s;
-        z-index: 100;
+        position: fixed; top: 14px; left: 14px; width: 34px; height: 34px;
+        border-radius: 50%; border: 1px solid var(--pewter); background: var(--surface);
+        color: var(--ash); font-size: 15px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; z-index: 100;
       }
-      .theme-toggle:hover {
-        color: var(--gold);
-        border-color: var(--gold-dim);
+      .theme-toggle:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        z-index: 1000; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      }
+      .modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .modal {
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 22px; width: 90%; max-width: 480px;
+        max-height: 80vh; overflow-y: auto;
+      }
+      .modal h3 { margin: 0 0 14px; font-family: "Cormorant Garamond", "Cairo", serif; font-size: 18px; color: var(--champagne); }
+      .modal label { font-size: 12.5px; color: var(--ash); font-weight: 600; display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+      .modal input, .modal select, .modal textarea {
+        font-family: inherit; font-size: 13px; padding: 7px 10px;
+        border: 1px solid var(--pewter); border-radius: 7px;
+        background: var(--surface-raised); color: var(--champagne); width: 100%;
+      }
+      .modal textarea { min-height: 60px; resize: vertical; }
+      .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+      .modal-actions button {
+        flex: 1; font-family: inherit; font-weight: 700; font-size: 13px;
+        padding: 9px; border-radius: 8px; cursor: pointer; border: none;
       }
 
+      /* Catalog Picker */
+      .picker-modal {
+        max-width: 600px;
+      }
+      .picker-categories {
+        display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+      }
+      .picker-cat-btn {
+        font-family: inherit; font-size: 12px; font-weight: 600;
+        padding: 6px 12px; border-radius: 999px; cursor: pointer;
+        background: var(--surface-raised); border: 1px solid var(--pewter);
+        color: var(--ash); transition: 0.15s;
+      }
+      .picker-cat-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .picker-cat-btn.active {
+        background: var(--gold-glow-strong); border-color: var(--gold); color: var(--gold);
+      }
+      .picker-search {
+        font-family: inherit; font-size: 13px; padding: 8px 12px;
+        border: 1px solid var(--pewter); border-radius: 8px;
+        background: var(--surface-raised); color: var(--champagne);
+        width: 100%; margin-bottom: 10px;
+      }
+      .picker-results {
+        max-height: 300px; overflow-y: auto;
+      }
+      .picker-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 12px; border-radius: 8px; cursor: pointer;
+        border: 1px solid transparent; transition: 0.12s;
+      }
+      .picker-item:hover { background: var(--gold-glow); border-color: var(--gold-dim); }
+      .picker-item .pi-info { min-width: 0; }
+      .picker-item .pi-code { font-size: 11px; color: var(--gold); font-weight: 600; }
+      .picker-item .pi-name { font-size: 13px; font-weight: 600; color: var(--champagne); }
+      .picker-item .pi-desc { font-size: 11.5px; color: var(--ash); }
+      .picker-item .pi-meta { font-size: 11px; color: var(--ash); white-space: nowrap; margin-right: 10px; }
+      .picker-item .pi-price { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+      .picker-empty { text-align: center; color: var(--ash); font-size: 12.5px; padding: 30px 0; }
+
+      /* Pick from Catalog button */
+      .pick-catalog-btn {
+        margin-top: 10px; display: flex; align-items: center; gap: 6px;
+        background: var(--gold-glow); border: 1px solid var(--gold-dim);
+        color: var(--gold); font-family: inherit; font-weight: 700;
+        font-size: 13px; padding: 8px 14px; border-radius: 8px;
+        cursor: pointer; width: 100%; justify-content: center; transition: 0.2s;
+      }
+      .pick-catalog-btn:hover { background: var(--gold-glow-strong); border-color: var(--gold); }
+
+      /* Quick-add Category Buttons */
+      .quick-add-cats {
+        display: flex; gap: 6px; flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .quick-add-cats-label {
+        font-size: 11.5px; font-weight: 600; color: var(--ash);
+        display: flex; align-items: center; gap: 4px;
+        white-space: nowrap; user-select: none;
+      }
+      .quick-add-cat-btn {
+        flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+        padding: 5px 12px; border-radius: 999px; cursor: pointer;
+        background: var(--surface-raised); border: 1px solid var(--pewter);
+        color: var(--ash); font-family: inherit; font-size: 12px; font-weight: 600;
+        white-space: nowrap; transition: 0.15s;
+      }
+      .quick-add-cat-btn:hover {
+        border-color: var(--gold-dim); color: var(--gold); background: var(--gold-glow);
+      }
+
+      /* Category Sub-tabs */
+      .category-tabs {
+        display: flex; gap: 6px; flex-wrap: wrap;
+        margin-bottom: 12px; padding-bottom: 10px;
+        border-bottom: 1px solid var(--pewter);
+      }
+      .category-tab {
+        flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+        padding: 6px 14px; border-radius: 999px; cursor: pointer;
+        background: var(--surface-raised); border: 1px solid var(--pewter);
+        color: var(--ash); font-family: inherit; font-size: 12.5px; font-weight: 600;
+        white-space: nowrap; transition: 0.15s;
+      }
+      .category-tab:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .category-tab.active {
+        background: var(--gold-glow-strong); border-color: var(--gold); color: var(--gold);
+      }
+      .category-tab .cat-count {
+        font-size: 10px; opacity: 0.7; background: var(--pewter);
+        padding: 1px 6px; border-radius: 999px;
+      }
+      .category-tab.active .cat-count { background: rgba(201,168,76,0.25); }
+
+      .cat-search-row {
+        display: flex; gap: 6px; margin-bottom: 10px;
+      }
+      .cat-search-input {
+        flex: 1; font-family: inherit; font-size: 13px; padding: 8px 12px;
+        border: 1px solid var(--pewter); border-radius: 8px;
+        background: var(--surface-raised); color: var(--champagne);
+      }
+      .cat-search-input::placeholder { color: var(--ash); opacity: 0.6; }
+
+      .cat-search-results {
+        position: absolute; top: 100%; right: 0; left: 0;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 10px; max-height: 260px; overflow-y: auto;
+        z-index: 50; display: none;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      }
+      .cat-search-results.open { display: block; }
+      .cat-search-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px; cursor: pointer; transition: 0.1s;
+        border-bottom: 1px solid var(--pewter);
+      }
+      .cat-search-item:last-child { border-bottom: none; }
+      .cat-search-item:hover { background: var(--gold-glow); }
+      .cat-search-item .csi-name { font-size: 13px; font-weight: 600; color: var(--champagne); }
+      .cat-search-item .csi-code { font-size: 11px; color: var(--gold); }
+      .cat-search-item .csi-desc { font-size: 11px; color: var(--ash); }
+      .cat-search-item .csi-price { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; margin-right: 12px; }
+      .cat-search-item .csi-unit { font-size: 11px; color: var(--ash); margin-right: 8px; }
+      .cat-search-empty { text-align: center; color: var(--ash); font-size: 12px; padding: 20px; }
+
       @media (max-width: 860px) {
-        .layout {
-          flex-direction: column;
-        }
-        .sidebar {
-          position: static;
-          width: 100%;
-          flex-basis: auto;
-          max-height: none;
-        }
-        .hero h1 {
-          font-size: 22px;
-        }
+        .layout { flex-direction: column; }
+        .sidebar { position: static; width: 100%; flex-basis: auto; max-height: none; }
+        .project-header h1 { font-size: 18px; }
+        .project-fields { grid-template-columns: 1fr 1fr; }
       }
       @media print {
-        body {
-          background: #fff;
-          color: #1a1a1a;
-        }
-        .app {
-          background: #fff;
-          padding: 0;
-          color: #1a1a1a;
-        }
-        .topbar,
-        .save-btn-row,
-        .print-btn,
-        .new-quote-btn,
-        .cat-header button,
-        .saved-section,
-        .toast-container,
-        .lightbox-overlay {
-          display: none !important;
-        }
-        .hero h1,
-        .sidebar h2,
-        .cat-panel h2 {
-          color: #1a1a1a;
-        }
-        .hero .eyebrow {
-          color: #666;
-        }
-        table.items input,
-        table.items select,
-        .project-row input,
-        .settings input,
-        .settings select {
-          background: #fff;
-          color: #1a1a1a;
-          border-color: #ccc;
-        }
-        .sidebar {
-          position: static;
-        }
-        .layout {
-          flex-direction: column;
-        }
-        .item-thumb-wrap {
-          width: 44px;
-          height: 44px;
+        body { background: #fff; color: #1a1a1a; }
+        .app { background: #fff; padding: 0; color: #1a1a1a; }
+        .topbar, .actions, .saved-quotes, .section-actions, .add-item-btn, .pick-catalog-btn,
+        .add-section-btn, .theme-toggle, .save-toast, .lightbox-overlay,
+        .modal-overlay, .btn-delete-sec, .btn-rename, .quick-add-cats,
+        .category-tabs, .cat-search-row { display: none !important; }
+        .sidebar { position: static; }
+        .layout { flex-direction: column; }
+        table.items input, table.items select, .project-fields input,
+        .settings input, .settings select {
+          background: #fff; color: #1a1a1a; border-color: #ccc;
         }
       }
     </style>
   </head>
   <body>
-    <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">
-      ☀
-    </button>
+    <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">☀</button>
     <div class="app">
       <div class="wrap">
         <div class="topbar">
           <div class="who">
-            <a
-              href="/profile"
-              class="topbar-avatar"
-              id="topbarAvatarLink"
-              style="
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-              "
-            >
+            <a href="/profile" id="topbarAvatarLink" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
               <span class="topbar-avatar-circle" id="topbarAvatarCircle">
                 <span class="topbar-avatar-placeholder">👤</span>
-                <img id="topbarAvatarImg" src="" alt="" style="display: none" />
+                <img id="topbarAvatarImg" src="" alt="" style="display:none" />
               </span>
               <b id="userName">...</b>
             </a>
             <span class="role-badge" id="roleBadge"></span>
           </div>
           <div class="links">
-            <a href="/admin" id="adminLink" style="display: none"
-              >إدارة الفريق</a
-            >
+            <a href="/price-list">قائمة الأسعار</a>
+            <a href="/admin" id="adminLink" style="display:none">إدارة الفريق</a>
             <a href="/profile">الملف الشخصي</a>
             <button id="logoutBtn" class="logout-btn">تسجيل خروج</button>
           </div>
         </div>
 
-        <header class="hero">
-          <div class="eyebrow">TWiNS Interior Design · أداة تسعير مشتركة</div>
-          <div class="hero-image-wrap">
-            <img src="/logo.svg" alt="TWiNS Interior Design" />
-          </div>
-          <h1>لوحة تسعير التصميم الداخلي</h1>
-          <p class="tagline">
-            جهّز عرض السعر بندًا ببند، واحفظه — بيصير مرئي لباقي الفريق والمدير
-            مباشرة.
-          </p>
-          <div class="project-row">
-            <label for="projectName">اسم المشروع</label>
-            <input
-              id="projectName"
-              type="text"
-              placeholder="مثال: فيلا الشميساني"
-            />
-            <button class="new-quote-btn" id="newQuoteBtn">+ عرض جديد</button>
+        <header class="project-header">
+          <div class="eyebrow">TWiNS Interior Design · أداة تسعير احترافية</div>
+          <h1 id="pageTitle">عرض سعر جديد</h1>
+          <div class="project-fields">
+            <label>رقم المرجع
+              <input id="referenceNo" type="text" placeholder="JOF-26-0045-R01" />
+            </label>
+            <label>اسم العميل
+              <input id="clientName" type="text" placeholder="مثال: الأستاذ أحمد" />
+            </label>
+            <label>موقع المشروع
+              <input id="siteLocation" type="text" placeholder="عمّان، الأردن" />
+            </label>
+            <label>اسم المشروع
+              <input id="projectName" type="text" placeholder="مثال: فيلا الشميساني" />
+            </label>
           </div>
         </header>
 
-        <nav class="swatch-board" id="swatchBoard"></nav>
+        <nav class="sections-nav" id="sectionsNav"></nav>
 
         <div class="layout">
-          <main class="main">
-            <section class="cat-panel" id="catPanel"></section>
-          </main>
+          <main class="main" id="mainPanel"></main>
 
           <aside class="sidebar">
             <h2>ملخص العرض</h2>
-            <div class="cat-totals" id="catTotals"></div>
+            <div class="sidebar-sections" id="sidebarSections"></div>
 
             <div class="settings">
-              <label
-                >نسبة الإدارة والربح (%)<input
-                  id="markupPct"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="20"
-              /></label>
-              <label
-                >الضريبة العامة على المبيعات (%)<input
-                  id="taxPct"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="16"
-              /></label>
-              <label
-                >خصم
+              <label>الضريبة (%)
+                <input id="taxPct" type="number" min="0" step="1" value="16" />
+              </label>
+              <label>الخصم
                 <div class="discount-row">
-                  <input
-                    id="discountVal"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                  />
+                  <input id="discountVal" type="number" min="0" step="0.1" value="0" />
                   <select id="discountType">
                     <option value="fixed">د.أ</option>
                     <option value="pct">%</option>
@@ -956,29 +631,83 @@
 
             <div class="totals-breakdown" id="totalsBreakdown"></div>
             <div class="grand-total">
-              <span class="label">الإجمالي النهائي</span
-              ><span class="value" id="grandTotalVal">0.00 د.أ</span>
+              <span class="label">الإجمالي النهائي</span>
+              <span class="value" id="grandTotalVal">0.00 د.أ</span>
+            </div>
+
+            <div class="payment-section">
+              <h3>شروط الدفع</h3>
+              <div id="paymentTerms"></div>
+              <div class="meta-row">
+                <label>مدة التنفيذ (يوم)
+                  <input id="executionDays" type="number" min="1" value="45" />
+                </label>
+                <label>صلاحية العرض (يوم)
+                  <input id="validityDays" type="number" min="1" value="30" />
+                </label>
+              </div>
             </div>
 
             <div class="actions">
-              <button id="saveQuoteBtn">حفظ العرض</button>
-              <button id="printBtn">طباعة / PDF</button>
+              <button id="saveQuoteBtn" class="btn-save">حفظ العرض</button>
+              <button id="printBtn" class="btn-secondary">طباعة</button>
+              <button id="exportPdfBtn" class="btn-secondary">PDF</button>
+            </div>
+            <div class="actions">
+              <button id="saveTemplateBtn" class="btn-secondary">حفظ كقالب</button>
+              <button id="loadTemplateBtn" class="btn-secondary">تحميل قالب</button>
             </div>
 
             <div class="saved-quotes">
               <h3 id="savedListTitle">عروض محفوظة</h3>
-              <div id="savedList">
-                <p class="empty-note">جاري التحميل...</p>
-              </div>
+              <div id="savedList"><p class="empty-note">جاري التحميل...</p></div>
             </div>
           </aside>
         </div>
       </div>
     </div>
+
     <div class="save-toast" id="saveToast">تم الحفظ</div>
     <div class="lightbox-overlay" id="lightbox">
       <button class="lightbox-close">✕</button>
       <img id="lightboxImg" src="" alt="صورة البند" />
+    </div>
+
+    <!-- Section Modal -->
+    <div class="modal-overlay" id="sectionModal">
+      <div class="modal">
+        <h3 id="sectionModalTitle">إضافة قسم جديد</h3>
+        <label>كود القسم
+          <input id="secModalCode" type="text" placeholder="مثال: A" maxlength="5" />
+        </label>
+        <label>اسم القسم
+          <input id="secModalName" type="text" placeholder="مثال: غرفة النوم الرئيسية" />
+        </label>
+        <div class="modal-actions">
+          <button id="secModalCancel" class="btn-secondary" style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);">إلغاء</button>
+          <button id="secModalSave" class="btn-save">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Modal -->
+    <div class="modal-overlay" id="templateModal">
+      <div class="modal">
+        <h3 id="templateModalTitle">حفظ كقالب</h3>
+        <div id="templateModalBody"></div>
+      </div>
+    </div>
+
+    <!-- Catalog Picker Modal -->
+    <div class="modal-overlay" id="pickerModal">
+      <div class="modal picker-modal">
+        <h3>اختيار بند من الكتالوج</h3>
+        <div class="picker-categories" id="pickerCats"></div>
+        <input class="picker-search" id="pickerSearch" type="text" placeholder="بحث بالاسم أو الكود..." />
+        <div class="picker-results" id="pickerResults">
+          <div class="picker-empty">اختر قسم أولاً للبحث عن بنود</div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -988,26 +717,16 @@
       const themeBtn = document.getElementById("themeToggle");
       themeBtn.textContent = savedTheme === "dark" ? "☀" : "☾";
       themeBtn.onclick = () => {
-        const current = document.documentElement.getAttribute("data-theme");
-        const next = current === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        localStorage.setItem("theme", next);
-        themeBtn.textContent = next === "dark" ? "☀" : "☾";
+        const c = document.documentElement.getAttribute("data-theme");
+        const n = c === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", n);
+        localStorage.setItem("theme", n);
+        themeBtn.textContent = n === "dark" ? "☀" : "☾";
       };
 
-      const CATEGORIES = [
-        { id: "furniture", name: "أثاث", color: "#8B5E3C" },
-        { id: "paint", name: "دهان", color: "#C97B63" },
-        { id: "lighting", name: "إضاءة", color: "#D4A017" },
-        { id: "flooring", name: "أرضيات", color: "#6B4A2E" },
-        { id: "ceiling", name: "جبس وأسقف", color: "#9B9488" },
-        { id: "textile", name: "ستائر وتنجيد", color: "#4C6B63" },
-        { id: "labor", name: "تنفيذ وعمالة", color: "#55606B" },
-        { id: "design", name: "أتعاب التصميم", color: "#8A6512" },
-      ];
-      const UNITS = ["م²", "متر طولي", "عدد", "مقطوع", "ساعة"];
+      const UNITS = ["عدد", "م²", "متر طولي", "مقطوع", "ساعة"];
+      const SECTION_COLORS = ["#8B5E3C","#C97B63","#D4A017","#6B4A2E","#9B9488","#4C6B63","#55606B","#8A6512"];
 
-      // ---------- حماية الصفحة: لازم تسجيل دخول ----------
       const token = localStorage.getItem("token");
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
       if (!token || !currentUser) window.location.href = "/index.html";
@@ -1015,11 +734,7 @@
       async function api(path, options = {}) {
         const res = await fetch("/api" + path, {
           ...options,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
-            ...(options.headers || {}),
-          },
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, ...(options.headers || {}) },
         });
         if (res.status === 401) {
           localStorage.removeItem("token");
@@ -1028,60 +743,42 @@
           throw new Error("unauthorized");
         }
         const data = await res.json().catch(() => ({}));
-        if (!res.ok)
-          throw new Error(data.error || "صار في خطأ بالاتصال بالسيرفر");
+        if (!res.ok) throw new Error(data.error || "صار في خطأ");
         return data;
       }
 
       let state = {
         projectName: "",
-        markupPct: 20,
+        referenceNo: "",
+        clientName: "",
+        siteLocation: "",
         taxPct: 16,
         discountVal: 0,
         discountType: "fixed",
-        items: {},
+        executionDays: 45,
+        validityDays: 30,
+        paymentTerms: [
+          { percentage: 60, trigger_description: "عند توقيع العقد" },
+          { percentage: 30, trigger_description: "عند إنجاز 70%" },
+          { percentage: 10, trigger_description: "عند التسليم النهائي" },
+        ],
       };
-      CATEGORIES.forEach((c) => (state.items[c.id] = []));
-      let activeCat = CATEGORIES[0].id;
+      let sections = [];
+      let activeSectionIdx = 0;
       let currentQuoteId = null;
-      let uidCounter = 1;
-      const uid = () => "it" + uidCounter++;
+      let isOwnerOrAdmin = currentUser.role === "owner" || currentUser.role === "admin";
+      let allPickerCategories = [];
+      let activeCategoryTab = null;
 
       function money(n) {
         n = Number.isFinite(n) ? n : 0;
-        return (
-          n.toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }) + " د.أ"
-        );
+        return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " د.أ";
       }
-      function catSubtotal(catId) {
-        return (state.items[catId] || []).reduce(
-          (s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0),
-          0,
-        );
-      }
-      function itemsSubtotal() {
-        return CATEGORIES.reduce((s, c) => s + catSubtotal(c.id), 0);
-      }
-      function computeTotals() {
-        const base = itemsSubtotal();
-        const markup = (base * (Number(state.markupPct) || 0)) / 100;
-        const afterMarkup = base + markup;
-        let discount =
-          state.discountType === "pct"
-            ? (afterMarkup * (Number(state.discountVal) || 0)) / 100
-            : Number(state.discountVal) || 0;
-        const afterDiscount = Math.max(afterMarkup - discount, 0);
-        const tax = (afterDiscount * (Number(state.taxPct) || 0)) / 100;
-        return { base, markup, discount, tax, grand: afterDiscount + tax };
+      function moneyShort(n) {
+        return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
       function escapeAttr(s) {
-        return (s || "")
-          .replace(/&/g, "&amp;")
-          .replace(/"/g, "&quot;")
-          .replace(/</g, "&lt;");
+        return (s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       }
 
       function compressImage(file) {
@@ -1091,20 +788,13 @@
             const img = new Image();
             img.onload = () => {
               const canvas = document.createElement("canvas");
-              const maxDim = 800;
-              let w = img.width;
-              let h = img.height;
+              const maxDim = 600;
+              let w = img.width, h = img.height;
               if (w > maxDim || h > maxDim) {
-                if (w > h) {
-                  h = Math.round((h / w) * maxDim);
-                  w = maxDim;
-                } else {
-                  w = Math.round((w / h) * maxDim);
-                  h = maxDim;
-                }
+                if (w > h) { h = Math.round((h / w) * maxDim); w = maxDim; }
+                else { w = Math.round((w / h) * maxDim); h = maxDim; }
               }
-              canvas.width = w;
-              canvas.height = h;
+              canvas.width = w; canvas.height = h;
               canvas.getContext("2d").drawImage(img, 0, 0, w, h);
               resolve(canvas.toDataURL("image/jpeg", 0.7));
             };
@@ -1125,106 +815,367 @@
         document.getElementById("lightboxImg").src = "";
       }
       document.getElementById("lightbox").onclick = (e) => {
-        if (
-          e.target === e.currentTarget ||
-          e.target.classList.contains("lightbox-close")
-        ) {
-          closeLightbox();
-        }
+        if (e.target === e.currentTarget || e.target.classList.contains("lightbox-close")) closeLightbox();
       };
 
-      function renderSwatchBoard() {
-        const el = document.getElementById("swatchBoard");
-        el.innerHTML = "";
-        CATEGORIES.forEach((c) => {
-          const btn = document.createElement("div");
-          btn.className = "swatch" + (c.id === activeCat ? " active" : "");
-          const count = (state.items[c.id] || []).length;
-          btn.innerHTML = `<span class="chip" style="background:${c.color}"></span>${c.name}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
-          btn.onclick = () => {
-            activeCat = c.id;
-            renderAll();
-          };
-          el.appendChild(btn);
-        });
+      function nextSectionCode() {
+        const used = sections.map(s => s.code);
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (const l of letters) {
+          if (!used.includes(l)) return l;
+        }
+        return String(used.length + 1);
       }
 
-      function renderCatPanel() {
-        const cat = CATEGORIES.find((c) => c.id === activeCat);
-        const panel = document.getElementById("catPanel");
-        const items = state.items[cat.id] || [];
-        let rows = "";
-        items.forEach((it) => {
-          const total = (Number(it.qty) || 0) * (Number(it.price) || 0);
-          const imgCell = it.image
-            ? `<td class="col-img"><div class="item-thumb-wrap" data-action="view-img"><img src="${it.image}" alt=""><button class="item-thumb-rm" data-action="rm-img" title="إزالة الصورة">✕</button></div></td>`
-            : `<td class="col-img"><button class="item-img-btn" data-action="add-img" title="إرفاق صورة">📷</button></td>`;
-          rows += `<tr data-id="${it.id}">
-      <td class="col-name"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند"></td>
-      ${imgCell}
-      <td class="col-unit"><select class="f-unit">${UNITS.map((u) => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
-      <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
-      <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${it.price}"></td>
-      <td class="col-total">${money(total)}</td>
-      <td class="col-del"><button class="del-btn" title="حذف البند">✕</button></td>
-    </tr>`;
+      // ---- Render Functions ----
+      function renderSectionsNav() {
+        const nav = document.getElementById("sectionsNav");
+        nav.innerHTML = "";
+        sections.forEach((sec, idx) => {
+          const btn = document.createElement("div");
+          btn.className = "section-tab" + (idx === activeSectionIdx ? " active" : "");
+          const count = (sec.items || []).length;
+          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
+          btn.onclick = () => { activeSectionIdx = idx; activeCategoryTab = null; renderAll(); };
+          nav.appendChild(btn);
         });
-        panel.innerHTML = `
-    <h2><span class="chip-big" style="background:${cat.color}"></span>${cat.name}</h2>
-    <p class="cat-sub">أضف بنود هالفئة، وحدد الوحدة والكمية وسعر الوحدة — والإجمالي بيحسب حاله.</p>
-    ${
-      items.length
-        ? `<table class="items"><thead><tr>
-        <th class="col-name">البند</th><th class="col-img"></th><th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
-        <th class="col-price">سعر الوحدة</th><th class="col-total">الإجمالي</th><th class="col-del"></th>
-      </tr></thead><tbody>${rows}</tbody></table>`
-        : `<p class="cat-empty">ما في بنود لسا بهالفئة. ابدأ بإضافة أول بند.</p>`
-    }
-    <button class="add-row" id="addItemBtn">+ إضافة بند إلى ${cat.name}</button>`;
+        const addBtn = document.createElement("button");
+        addBtn.className = "add-section-btn";
+        addBtn.textContent = "+ قسم جديد";
+        addBtn.onclick = () => openSectionModal();
+        nav.appendChild(addBtn);
+      }
 
-        document.getElementById("addItemBtn").onclick = () => {
-          state.items[cat.id].push({
-            id: uid(),
-            name: "",
-            unit: UNITS[0],
-            qty: 1,
-            price: 0,
+      function renderMainPanel() {
+        const panel = document.getElementById("mainPanel");
+        if (sections.length === 0) {
+          panel.innerHTML = `<div class="section-panel"><p class="empty-note" style="text-align:center;padding:40px 0;font-size:14px;">اضغط "+ قسم جديد" لبدء إضافة الأقسام والبنود</p></div>`;
+          return;
+        }
+        const sec = sections[activeSectionIdx];
+        if (!sec) return;
+        const allItems = sec.items || [];
+
+        // Always show all categories as tabs
+        const catsInSection = [];
+        const catCounts = {};
+        allItems.forEach(it => {
+          const cid = it.category_id || null;
+          if (!catCounts[cid]) catCounts[cid] = 0;
+          catCounts[cid]++;
+        });
+        allPickerCategories.forEach(cat => {
+          catsInSection.push({ id: cat.id, name: cat.name, count: catCounts[cat.id] || 0 });
+        });
+
+        // Show unclassified if items exist without category_id
+        const unclassCount = catCounts[null] || 0;
+
+        // Filter items by active tab
+        let items;
+        if (activeCategoryTab === null) {
+          items = allItems;
+        } else if (activeCategoryTab === "__unclassified__") {
+          items = allItems.filter(it => !it.category_id);
+        } else {
+          items = allItems.filter(it => it.category_id === activeCategoryTab);
+        }
+
+        // Category tabs HTML
+        let catTabsHtml = '';
+        const totalClassified = catsInSection.reduce((s, c) => s + c.count, 0);
+        const totalAll = allItems.length;
+        if (allPickerCategories.length > 0 || unclassCount > 0) {
+          catTabsHtml = `<div class="category-tabs" id="categoryTabs">
+            <button class="category-tab${activeCategoryTab === null ? ' active' : ''}" data-cat="all">
+              الكل<span class="cat-count">${totalAll}</span>
+            </button>`;
+          catsInSection.forEach(cat => {
+            catTabsHtml += `<button class="category-tab${activeCategoryTab === cat.id ? ' active' : ''}" data-cat="${cat.id}">
+              ${escapeAttr(cat.name)}<span class="cat-count">${cat.count}</span>
+            </button>`;
           });
+          if (unclassCount > 0) {
+            catTabsHtml += `<button class="category-tab${activeCategoryTab === '__unclassified__' ? ' active' : ''}" data-cat="__unclassified__">
+              غير مصنف<span class="cat-count">${unclassCount}</span>
+            </button>`;
+          }
+          catTabsHtml += `</div>`;
+        }
+
+        // Search row (only when a category tab is active)
+        let searchHtml = '';
+        if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
+          searchHtml = `<div class="cat-search-row" style="position:relative;">
+            <input class="cat-search-input" id="catSearchInput" type="text" placeholder="بحث في ${escapeAttr(allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '')} أو إضافة بند جديد..." />
+            <div class="cat-search-results" id="catSearchResults"></div>
+          </div>`;
+        }
+
+        let rows = "";
+        items.forEach((it, itemIdx) => {
+          const origIdx = allItems.indexOf(it);
+          const total = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+          const imgCell = it.image
+            ? `<td class="col-img"><div class="item-thumb-wrap" data-action="view-img"><img src="${it.image}" alt=""><button class="item-thumb-rm" data-action="rm-img" title="إزالة">✕</button></div></td>`
+            : `<td class="col-img"><button class="item-img-btn" data-action="add-img" title="إرفاق صورة">📷</button></td>`;
+
+          const costCell = isOwnerOrAdmin
+            ? `<td style="min-width:160px"><div class="cost-fields">
+                <input type="number" min="0" step="0.1" class="f-basecost" value="${it.base_cost || 0}" title="التكلفة الأساسية" />
+                <span class="pct-badge">%</span>
+                <input type="number" min="0" max="100" step="1" class="f-overhead" value="${it.overhead_pct || 40}" title="نسبة هامش الربح" />
+              </div></td>`
+            : "";
+
+          rows += `<tr data-idx="${origIdx}">
+            <td class="col-code">${escapeAttr(it.item_code)}</td>
+            <td class="col-name"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند"></td>
+            <td class="col-desc"><input type="text" class="f-desc" value="${escapeAttr(it.description)}" placeholder="وصف تفصيلي"></td>
+            ${imgCell}
+            <td class="col-unit"><select class="f-unit">${UNITS.map(u => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
+            <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
+            <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${moneyShort(it.selling_price)}" ${isOwnerOrAdmin ? 'readonly style="background:var(--surface);color:var(--gold);font-weight:700;"' : ''}></td>
+            ${costCell}
+            <td class="col-total">${money(total)}</td>
+            <td class="col-notes"><input type="text" class="f-notes" value="${escapeAttr(it.notes)}" placeholder="ملاحظات"></td>
+            <td class="col-del"><button class="del-btn" title="حذف">✕</button></td>
+          </tr>`;
+        });
+
+        const costHeader = isOwnerOrAdmin ? '<th style="min-width:160px">التكلفة + الهامش</th>' : '';
+
+        panel.innerHTML = `<div class="section-panel">
+          <h2><span class="sec-code">${escapeAttr(sec.code)}</span>${escapeAttr(sec.name)}</h2>
+          <p class="section-sub">أضف بنود هذا القسم — التكلفة والهامش يظهر فقط للمدير/المالك.</p>
+          <div class="section-actions">
+            <button class="btn-rename" id="renameSecBtn">تعديل الاسم</button>
+            <button class="btn-delete-sec" id="deleteSecBtn">حذف القسم</button>
+          </div>
+          ${catTabsHtml}
+          ${searchHtml}
+          ${items.length
+            ? `<table class="items"><thead><tr>
+                <th class="col-code">#</th><th class="col-name">البند</th><th class="col-desc">الوصف</th><th class="col-img"></th>
+                <th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
+                <th class="col-price">سعر البيع</th>${costHeader}
+                <th class="col-total">الإجمالي</th><th class="col-notes">ملاحظات</th><th class="col-del"></th>
+              </tr></thead><tbody>${rows}</tbody></table>`
+            : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? 'ما في بنود لهالقسم. ابدأ بإضافة أول بند.' : 'ما في بنود لسا. ابدأ بإضافة أول بند.'}</p>`
+          }
+          <button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>
+          ${isOwnerOrAdmin ? '<button class="pick-catalog-btn" id="pickCatalogBtn">📂 اختيار من كتالوج الأسعار</button>' : ''}
+          <div class="section-subtotal" id="secSubtotal"></div>
+        </div>`;
+
+        // Section subtotal
+        const secSub = allItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
+        document.getElementById("secSubtotal").textContent = `► إجمالي القسم: ${money(secSub)}`;
+
+        // Category tab click events
+        document.querySelectorAll("#categoryTabs .category-tab").forEach(tab => {
+          tab.onclick = () => {
+            const val = tab.dataset.cat;
+            if (val === 'all') activeCategoryTab = null;
+            else if (val === '__unclassified__') activeCategoryTab = '__unclassified__';
+            else activeCategoryTab = Number(val);
+            renderAll();
+          };
+        });
+
+        // Catalog search for active category
+        const catSearchInput = document.getElementById("catSearchInput");
+        const catSearchResults = document.getElementById("catSearchResults");
+        let catSearchTimeout = null;
+        if (catSearchInput && catSearchResults) {
+          catSearchInput.oninput = () => {
+            clearTimeout(catSearchTimeout);
+            catSearchTimeout = setTimeout(async () => {
+              const q = catSearchInput.value.trim();
+              if (!q || q.length < 1) {
+                catSearchResults.classList.remove("open");
+                catSearchResults.innerHTML = "";
+                return;
+              }
+              if (!activeCategoryTab || activeCategoryTab === '__unclassified__') {
+                catSearchResults.classList.remove("open");
+                return;
+              }
+              try {
+                const data = await api(`/price-list/${activeCategoryTab}/items?q=${encodeURIComponent(q)}`);
+                const pItems = data.items || [];
+                if (pItems.length === 0) {
+                  catSearchResults.innerHTML = `<div class="cat-search-empty">ما في نتائج. اضغط Enter لإضافة "${escapeAttr(q)}" كبن�� جديد.</div>`;
+                  catSearchResults.classList.add("open");
+                } else {
+                  catSearchResults.innerHTML = pItems.map(it => `
+                    <div class="cat-search-item" data-id="${it.id}">
+                      <div>
+                        ${it.item_code ? `<div class="csi-code">${escapeAttr(it.item_code)}</div>` : ''}
+                        <div class="csi-name">${escapeAttr(it.name)}</div>
+                        ${it.description ? `<div class="csi-desc">${escapeAttr(it.description)}</div>` : ''}
+                      </div>
+                      <div style="display:flex;align-items:center;">
+                        <span class="csi-unit">${escapeAttr(it.unit)}</span>
+                        <span class="csi-price">${money(it.selling_price)}</span>
+                      </div>
+                    </div>
+                  `).join("");
+                  catSearchResults.classList.add("open");
+                  catSearchResults.querySelectorAll(".cat-search-item").forEach(el => {
+                    el.onclick = async () => {
+                      const pid = Number(el.dataset.id);
+                      const pItem = pItems.find(i => i.id === pid);
+                      if (pItem) await addItemFromCatalog(pItem);
+                      catSearchInput.value = "";
+                      catSearchResults.classList.remove("open");
+                    };
+                  });
+                }
+              } catch {
+                catSearchResults.innerHTML = '<div class="cat-search-empty">صار في خطأ بالبحث</div>';
+                catSearchResults.classList.add("open");
+              }
+            }, 300);
+          };
+
+          catSearchInput.onkeydown = async (e) => {
+            if (e.key === 'Enter') {
+              const q = catSearchInput.value.trim();
+              if (q) {
+                await addItemManual(q);
+                catSearchInput.value = "";
+                catSearchResults.classList.remove("open");
+              }
+            }
+          };
+
+          catSearchInput.onfocus = () => {
+            if (catSearchInput.value.trim()) catSearchInput.dispatchEvent(new Event('input'));
+          };
+
+          document.addEventListener('click', (e) => {
+            if (catSearchResults && !catSearchInput.contains(e.target) && !catSearchResults.contains(e.target)) {
+              catSearchResults.classList.remove("open");
+            }
+          });
+        }
+
+        // Event: rename/delete for custom sections
+        const renameBtn = document.getElementById("renameSecBtn");
+        if (renameBtn) renameBtn.onclick = () => openSectionModal(activeSectionIdx);
+        const deleteBtn = document.getElementById("deleteSecBtn");
+        if (deleteBtn) deleteBtn.onclick = async () => {
+          if (!confirm(`هل أنت متأكد من حذف قسم "${sec.name}"؟`)) return;
+          try {
+            if (currentQuoteId && sec.id) {
+              await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, { method: "DELETE" });
+            }
+            sections.splice(activeSectionIdx, 1);
+            if (activeSectionIdx >= sections.length) activeSectionIdx = Math.max(0, sections.length - 1);
+            activeCategoryTab = null;
+            renderAll();
+            showToast("تم حذف القسم");
+          } catch (e) { showToast(e.message); }
+        };
+
+        // Event: add item (empty)
+        document.getElementById("addItemBtn").onclick = async () => {
+          const newItem = {
+            item_code: `${sec.code}.${allItems.length + 1}`,
+            name: "", description: "", unit: "عدد", qty: 1,
+            base_cost: 0, overhead_pct: 40, selling_price: 0, notes: "", image: null,
+            category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+          };
+          if (currentQuoteId && sec.id) {
+            const res = await api(`/sections/${sec.id}/items`, {
+              method: "POST", body: JSON.stringify(newItem),
+            });
+            newItem.id = res.id;
+            newItem.selling_price = res.selling_price;
+          }
+          allItems.push(newItem);
           renderAll();
         };
-        panel.querySelectorAll("tr[data-id]").forEach((tr) => {
-          const id = tr.getAttribute("data-id");
-          const item = items.find((i) => i.id === id);
-          tr.querySelector(".f-name").oninput = (e) => {
-            item.name = e.target.value;
+
+        // Event: pick from catalog
+        const pickBtn = document.getElementById("pickCatalogBtn");
+        if (pickBtn) {
+          pickBtn.onclick = async () => {
+            const newItem = {
+              item_code: `${sec.code}.${allItems.length + 1}`,
+              name: "", description: "", unit: "عدد", qty: 1,
+              base_cost: 0, overhead_pct: 40, selling_price: 0, notes: "", image: null,
+              category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+            };
+            if (currentQuoteId && sec.id) {
+              const res = await api(`/sections/${sec.id}/items`, {
+                method: "POST", body: JSON.stringify(newItem),
+              });
+              newItem.id = res.id;
+              newItem.selling_price = res.selling_price;
+            }
+            allItems.push(newItem);
+            renderAll();
+            const preCat = (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null;
+            openPicker(allItems.length - 1, preCat);
           };
-          tr.querySelector(".f-unit").onchange = (e) => {
-            item.unit = e.target.value;
-          };
+        }
+
+        // Item row events
+        panel.querySelectorAll("tr[data-idx]").forEach((tr) => {
+          const idx = Number(tr.getAttribute("data-idx"));
+          const item = allItems[idx];
+
+          tr.querySelector(".f-name").oninput = (e) => { item.name = e.target.value; };
+          tr.querySelector(".f-desc").oninput = (e) => { item.description = e.target.value; };
+          tr.querySelector(".f-unit").onchange = (e) => { item.unit = e.target.value; };
+          tr.querySelector(".f-notes").oninput = (e) => { item.notes = e.target.value; };
+
           tr.querySelector(".f-qty").oninput = (e) => {
-            item.qty = e.target.value;
-            renderTotalsOnly();
+            item.qty = Number(e.target.value) || 0;
+            recalcItem(item);
+            renderTotals();
           };
-          tr.querySelector(".f-price").oninput = (e) => {
-            item.price = e.target.value;
-            renderTotalsOnly();
-          };
-          tr.querySelector(".del-btn").onclick = () => {
-            state.items[cat.id] = state.items[cat.id].filter(
-              (i) => i.id !== id,
-            );
+
+          const priceInput = tr.querySelector(".f-price");
+          if (!isOwnerOrAdmin) {
+            priceInput.oninput = (e) => {
+              item.selling_price = Number(e.target.value) || 0;
+              renderTotals();
+            };
+          }
+
+          if (isOwnerOrAdmin) {
+            const baseCostInput = tr.querySelector(".f-basecost");
+            const overheadInput = tr.querySelector(".f-overhead");
+            if (baseCostInput) baseCostInput.oninput = (e) => {
+              item.base_cost = Number(e.target.value) || 0;
+              recalcItem(item);
+              renderTotals();
+            };
+            if (overheadInput) overheadInput.oninput = (e) => {
+              item.overhead_pct = Number(e.target.value) || 0;
+              recalcItem(item);
+              renderTotals();
+            };
+          }
+
+          tr.querySelector(".del-btn").onclick = async () => {
+            if (currentQuoteId && item.id) {
+              await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" });
+            }
+            allItems.splice(idx, 1);
             renderAll();
           };
 
+          // Image
           const imgBtn = tr.querySelector("[data-action='add-img']");
           const thumbWrap = tr.querySelector("[data-action='view-img']");
           const rmBtn = tr.querySelector("[data-action='rm-img']");
-
           if (imgBtn) {
             const fileInput = document.createElement("input");
-            fileInput.type = "file";
-            fileInput.accept = "image/*";
-            fileInput.className = "item-img-input";
+            fileInput.type = "file"; fileInput.accept = "image/*"; fileInput.className = "item-img-input";
             tr.querySelector(".col-img").appendChild(fileInput);
             imgBtn.onclick = () => fileInput.click();
             fileInput.onchange = async (e) => {
@@ -1234,241 +1185,616 @@
               renderAll();
             };
           }
-
           if (thumbWrap) {
             thumbWrap.onclick = (e) => {
               if (e.target.classList.contains("item-thumb-rm")) return;
               openLightbox(item.image);
             };
           }
-
           if (rmBtn) {
             rmBtn.onclick = (e) => {
               e.stopPropagation();
-              delete item.image;
+              item.image = null;
               renderAll();
             };
           }
         });
       }
 
-      function renderTotalsOnly() {
-        const cat = CATEGORIES.find((c) => c.id === activeCat);
-        const items = state.items[cat.id] || [];
-        document.querySelectorAll("#catPanel tr[data-id]").forEach((tr) => {
-          const item = items.find((i) => i.id === tr.getAttribute("data-id"));
-          if (item)
-            tr.querySelector(".col-total").textContent = money(
-              (Number(item.qty) || 0) * (Number(item.price) || 0),
-            );
-        });
-        renderSidebarTotals();
-        renderSwatchCounts();
-      }
-      function renderSwatchCounts() {
-        document.querySelectorAll(".swatch").forEach((el, i) => {
-          const c = CATEGORIES[i];
-          const count = (state.items[c.id] || []).length;
-          const countEl = el.querySelector(".count");
-          if (countEl) countEl.textContent = count > 0 ? "· " + count : "";
-        });
-      }
-      function renderSidebarTotals() {
-        const catTotalsEl = document.getElementById("catTotals");
-        catTotalsEl.innerHTML =
-          CATEGORIES.map((c) => {
-            const sub = catSubtotal(c.id);
-            if (sub === 0 && (state.items[c.id] || []).length === 0) return "";
-            return `<div class="cat-totals-row"><span>${c.name}</span><span class="n">${money(sub)}</span></div>`;
-          }).join("") ||
-          '<p class="empty-note">ابدأ بإضافة بنود لعرض الملخص.</p>';
-        const t = computeTotals();
-        document.getElementById("totalsBreakdown").innerHTML = `
-    <div class="tb-row"><span>مجموع البنود</span><span class="n">${money(t.base)}</span></div>
-    <div class="tb-row"><span>الإدارة والربح (${state.markupPct || 0}%)</span><span class="n">+ ${money(t.markup)}</span></div>
-    ${t.discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${money(t.discount)}</span></div>` : ""}
-    <div class="tb-row"><span>الضريبة (${state.taxPct || 0}%)</span><span class="n">+ ${money(t.tax)}</span></div>`;
-        document.getElementById("grandTotalVal").textContent = money(t.grand);
-      }
-      function renderAll() {
-        renderSwatchBoard();
-        renderCatPanel();
-        renderSidebarTotals();
-      }
-
-      document.getElementById("projectName").oninput = (e) => {
-        state.projectName = e.target.value;
-      };
-      document.getElementById("markupPct").oninput = (e) => {
-        state.markupPct = e.target.value;
-        renderSidebarTotals();
-      };
-      document.getElementById("taxPct").oninput = (e) => {
-        state.taxPct = e.target.value;
-        renderSidebarTotals();
-      };
-      document.getElementById("discountVal").oninput = (e) => {
-        state.discountVal = e.target.value;
-        renderSidebarTotals();
-      };
-      document.getElementById("discountType").onchange = (e) => {
-        state.discountType = e.target.value;
-        renderSidebarTotals();
-      };
-      document.getElementById("printBtn").onclick = () => window.print();
-      document.getElementById("logoutBtn").onclick = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/index.html";
-      };
-      document.getElementById("newQuoteBtn").onclick = () => {
-        currentQuoteId = null;
-        state = {
-          projectName: "",
-          markupPct: 20,
-          taxPct: 16,
-          discountVal: 0,
-          discountType: "fixed",
-          items: {},
+      async function addItemFromCatalog(catItem) {
+        const sec = sections[activeSectionIdx];
+        if (!sec) return;
+        const allItems = sec.items || [];
+        const newItem = {
+          item_code: catItem.item_code || `${sec.code}.${allItems.length + 1}`,
+          name: catItem.name || "",
+          description: catItem.description || "",
+          unit: catItem.unit || "عدد",
+          qty: 1,
+          base_cost: Number(catItem.base_cost) || 0,
+          overhead_pct: Number(catItem.overhead_pct) || 40,
+          selling_price: Number(catItem.selling_price) || 0,
+          notes: "",
+          image: null,
+          category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
         };
-        CATEGORIES.forEach((c) => (state.items[c.id] = []));
-        activeCat = CATEGORIES[0].id;
-        document.getElementById("projectName").value = "";
-        document.getElementById("markupPct").value = 20;
-        document.getElementById("taxPct").value = 16;
-        document.getElementById("discountVal").value = 0;
-        document.getElementById("discountType").value = "fixed";
+        if (currentQuoteId && sec.id) {
+          const res = await api(`/sections/${sec.id}/items`, {
+            method: "POST", body: JSON.stringify(newItem),
+          });
+          newItem.id = res.id;
+          newItem.selling_price = res.selling_price;
+        }
+        allItems.push(newItem);
         renderAll();
-        showToast("عرض جديد — جاهز تبدأ فيه");
-      };
-
-      function showToast(msg) {
-        const t = document.getElementById("saveToast");
-        t.textContent = msg;
-        t.classList.add("show");
-        setTimeout(() => t.classList.remove("show"), 1800);
+        showToast("تمت إضافة البند من الكتالوج");
       }
 
-      document.getElementById("saveQuoteBtn").onclick = async () => {
-        const btn = document.getElementById("saveQuoteBtn");
-        btn.disabled = true;
-        btn.textContent = "جاري الحفظ...";
-        try {
-          const t = computeTotals();
-          const body = {
-            project_name: state.projectName || " مشروع بدون اسم",
-            data: state,
-            total: t.grand,
+      async function addItemManual(nameText) {
+        const sec = sections[activeSectionIdx];
+        if (!sec) return;
+        const allItems = sec.items || [];
+        const newItem = {
+          item_code: `${sec.code}.${allItems.length + 1}`,
+          name: nameText,
+          description: "",
+          unit: "عدد",
+          qty: 1,
+          base_cost: 0,
+          overhead_pct: 40,
+          selling_price: 0,
+          notes: "",
+          image: null,
+          category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+        };
+        if (currentQuoteId && sec.id) {
+          const res = await api(`/sections/${sec.id}/items`, {
+            method: "POST", body: JSON.stringify(newItem),
+          });
+          newItem.id = res.id;
+          newItem.selling_price = res.selling_price;
+        }
+        allItems.push(newItem);
+        renderAll();
+        showToast("تمت إضافة البند يدوياً");
+      }
+
+      function recalcItem(item) {
+        const base = Number(item.base_cost) || 0;
+        const pct = Number(item.overhead_pct) || 0;
+        item.selling_price = base * (1 + pct / 100);
+      }
+
+      function renderTotals() {
+        // Sidebar sections
+        const secEl = document.getElementById("sidebarSections");
+        secEl.innerHTML = sections.map((sec) => {
+          const sub = (sec.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
+          return `<div class="sidebar-sec-row"><span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}</span><span class="n">${money(sub)}</span></div>`;
+        }).join("") || '<p class="empty-note">ابدأ بإضافة أقسام.</p>';
+
+        // Compute totals
+        let subtotal = 0, estimatedCost = 0;
+        sections.forEach(sec => {
+          (sec.items || []).forEach(it => {
+            subtotal += (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+            estimatedCost += (Number(it.qty) || 0) * (Number(it.base_cost) || 0);
+          });
+        });
+
+        const discountType = state.discountType;
+        const discountVal = Number(state.discountVal) || 0;
+        const taxPct = Number(state.taxPct) || 16;
+        let discount = discountType === "pct" ? (subtotal * discountVal / 100) : discountVal;
+        const afterDiscount = Math.max(subtotal - discount, 0);
+        const vat = afterDiscount * taxPct / 100;
+        const grandTotal = afterDiscount + vat;
+        const profitMargin = estimatedCost > 0 ? ((grandTotal / estimatedCost - 1) * 100).toFixed(1) : 0;
+
+        document.getElementById("totalsBreakdown").innerHTML = `
+          <div class="tb-row"><span>مجموع البنود</span><span class="n">${money(subtotal)}</span></div>
+          ${discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${money(discount)}</span></div>` : ""}
+          <div class="tb-row"><span>بعد الخصم</span><span class="n">${money(afterDiscount)}</span></div>
+          <div class="tb-row"><span>الضريبة (${taxPct}%)</span><span class="n">+ ${money(vat)}</span></div>
+          <div class="tb-row highlight"><span>التكلفة المقدرة</span><span class="n">${money(estimatedCost)}</span></div>
+          <div class="tb-row highlight"><span>هامش الربح</span><span class="n">${profitMargin}%</span></div>`;
+
+        document.getElementById("grandTotalVal").textContent = money(grandTotal);
+
+        // Payment terms
+        renderPaymentTerms(grandTotal);
+
+        // Update item totals in main panel
+        document.querySelectorAll("#mainPanel tr[data-idx]").forEach((tr) => {
+          const idx = Number(tr.getAttribute("data-idx"));
+          const sec = sections[activeSectionIdx];
+          if (sec && sec.items[idx]) {
+            const it = sec.items[idx];
+            const lt = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+            tr.querySelector(".col-total").textContent = money(lt);
+            if (isOwnerOrAdmin) {
+              const priceInput = tr.querySelector(".f-price");
+              if (priceInput) priceInput.value = moneyShort(it.selling_price);
+            }
+          }
+        });
+
+        // Section subtotal
+        if (sections[activeSectionIdx]) {
+          const secSub = (sections[activeSectionIdx].items || []).reduce(
+            (s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0
+          );
+          const el = document.getElementById("secSubtotal");
+          if (el) el.textContent = `► إجمالي القسم: ${money(secSub)}`;
+        }
+
+      }
+
+      function renderPaymentTerms(grandTotal) {
+        const el = document.getElementById("paymentTerms");
+        el.innerHTML = state.paymentTerms.map((term, i) => {
+          const amt = (grandTotal * (term.percentage || 0)) / 100;
+          return `<div class="payment-row">
+            <input type="number" min="0" max="100" class="pct-input" value="${term.percentage}" data-idx="${i}" data-field="percentage" />
+            <input type="text" class="desc-input" value="${escapeAttr(term.trigger_description)}" data-idx="${i}" data-field="trigger_description" placeholder="الوصف" />
+            <span class="amt">${moneyShort(amt)} د.أ</span>
+          </div>`;
+        }).join("");
+        el.querySelectorAll("input").forEach(inp => {
+          inp.oninput = (e) => {
+            const idx = Number(e.target.dataset.idx);
+            const field = e.target.dataset.field;
+            if (field === "percentage") state.paymentTerms[idx].percentage = Number(e.target.value) || 0;
+            else state.paymentTerms[idx].trigger_description = e.target.value;
+            renderPaymentTerms(grandTotal);
           };
+        });
+      }
+
+      function renderAll() {
+        renderSectionsNav();
+        renderMainPanel();
+        renderTotals();
+      }
+
+      // ---- Modals ----
+      let editingSectionIdx = null;
+      function openSectionModal(idx) {
+        editingSectionIdx = idx !== undefined ? idx : null;
+        const modal = document.getElementById("sectionModal");
+        document.getElementById("sectionModalTitle").textContent = editingSectionIdx !== null ? "تعديل القسم" : "إضافة قسم جديد";
+        document.getElementById("secModalCode").value = editingSectionIdx !== null ? sections[editingSectionIdx].code : nextSectionCode();
+        document.getElementById("secModalName").value = editingSectionIdx !== null ? sections[editingSectionIdx].name : "";
+        modal.classList.add("open");
+        document.getElementById("secModalName").focus();
+      }
+      function closeSectionModal() {
+        document.getElementById("sectionModal").classList.remove("open");
+      }
+      document.getElementById("secModalCancel").onclick = closeSectionModal;
+      document.getElementById("sectionModal").onclick = (e) => { if (e.target === e.currentTarget) closeSectionModal(); };
+      document.getElementById("secModalSave").onclick = async () => {
+        const code = document.getElementById("secModalCode").value.trim();
+        const name = document.getElementById("secModalName").value.trim();
+        if (!code || !name) { showToast("الكود والاسم مطلوبين"); return; }
+
+        if (editingSectionIdx !== null) {
+          const sec = sections[editingSectionIdx];
+          sec.code = code; sec.name = name;
+          if (currentQuoteId && sec.id) {
+            await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+              method: "PUT", body: JSON.stringify({ code, name }),
+            });
+          }
+        } else {
+          const newSec = { code, name, items: [], sort_order: sections.length };
           if (currentQuoteId) {
-            await api("/quotes/" + currentQuoteId, {
-              method: "PUT",
-              body: JSON.stringify(body),
+            const res = await api(`/quotes/${currentQuoteId}/sections`, {
+              method: "POST", body: JSON.stringify({ code, name, sort_order: sections.length }),
             });
+            newSec.id = res.id;
+          }
+          sections.push(newSec);
+          activeSectionIdx = sections.length - 1;
+        }
+        closeSectionModal();
+        renderAll();
+        showToast(editingSectionIdx !== null ? "تم تعديل القسم" : "تمت إضافة القسم");
+      };
+
+      function openTemplateModal(mode) {
+        const modal = document.getElementById("templateModal");
+        const body = document.getElementById("templateModalBody");
+        document.getElementById("templateModalTitle").textContent = mode === "save" ? "حفظ كقالب" : "تحميل قالب";
+        if (mode === "save") {
+          body.innerHTML = `
+            <label>اسم القالب<input id="tmplName" type="text" placeholder="مثال: قالب غرف النوم" /></label>
+            <label>الوصف<textarea id="tmplDesc" placeholder="وصف مختصر للقالب"></textarea></label>
+            <div class="modal-actions">
+              <button id="tmplCancel" class="btn-secondary" style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);">إلغاء</button>
+              <button id="tmplSaveBtn" class="btn-save">حفظ</button>
+            </div>`;
+          document.getElementById("tmplCancel").onclick = closeTemplateModal;
+          document.getElementById("tmplSaveBtn").onclick = async () => {
+            const name = document.getElementById("tmplName").value.trim();
+            if (!name) { showToast("الاسم مطلوب"); return; }
+            const data = { ...state, sections: sections.map(s => ({ ...s, items: s.items })) };
+            await api("/templates", { method: "POST", body: JSON.stringify({ name, description: document.getElementById("tmplDesc").value, data }) });
+            closeTemplateModal();
+            showToast("تم حفظ القالب");
+          };
+        } else {
+          body.innerHTML = '<p class="empty-note">جاري تحميل القوالب...</p>';
+          modal.classList.add("open");
+          api("/templates").then(({ templates }) => {
+            if (templates.length === 0) {
+              body.innerHTML = '<p class="empty-note">ما في قوالب محفوظة.</p>';
+              return;
+            }
+            body.innerHTML = templates.map(t => `
+              <div class="saved-item">
+                <div class="info">
+                  <div class="name">${escapeAttr(t.name)}</div>
+                  <div class="meta">${escapeAttr(t.description || "")}</div>
+                </div>
+                <div class="btns">
+                  <button class="tmpl-load-btn" data-id="${t.id}">تحميل</button>
+                  <button class="tmpl-del-btn" data-id="${t.id}">حذف</button>
+                </div>
+              </div>
+            `).join("");
+            body.querySelectorAll(".tmpl-load-btn").forEach(btn => {
+              btn.onclick = async () => {
+                const res = await api(`/templates/${btn.dataset.id}/clone`, { method: "POST" });
+                currentQuoteId = res.id;
+                await loadQuote(currentQuoteId);
+                closeTemplateModal();
+                showToast("تم تحميل القالب");
+              };
+            });
+            body.querySelectorAll(".tmpl-del-btn").forEach(btn => {
+              btn.onclick = async () => {
+                await api(`/templates/${btn.dataset.id}`, { method: "DELETE" });
+                btn.closest(".saved-item").remove();
+              };
+            });
+          });
+        }
+      }
+      function closeTemplateModal() {
+        document.getElementById("templateModal").classList.remove("open");
+      }
+      document.getElementById("templateModal").onclick = (e) => { if (e.target === e.currentTarget) closeTemplateModal(); };
+
+      // ---- Catalog Picker ----
+      let pickerActiveCatId = null;
+      let pickerCurrentItemIdx = null; // which item row is being filled
+
+      function openPicker(itemIdx, preselectedCategoryId) {
+        pickerCurrentItemIdx = itemIdx;
+        pickerActiveCatId = null;
+        document.getElementById("pickerSearch").value = "";
+        document.getElementById("pickerResults").innerHTML = '<div class="picker-empty">اختر قسم أولاً للبحث عن بنود</div>';
+        loadPickerCategories(preselectedCategoryId);
+        document.getElementById("pickerModal").classList.add("open");
+      }
+      function closePicker() {
+        document.getElementById("pickerModal").classList.remove("open");
+        pickerCurrentItemIdx = null;
+      }
+      document.getElementById("pickerModal").onclick = (e) => { if (e.target === e.currentTarget) closePicker(); };
+
+      async function loadPickerCategories(preselectedCategoryId) {
+        try {
+          if (allPickerCategories.length === 0) {
+            const data = await api("/price-list");
+            allPickerCategories = data.categories || [];
+          }
+          renderPickerCategories();
+          if (preselectedCategoryId) {
+            pickerActiveCatId = preselectedCategoryId;
+            renderPickerCategories();
+            loadPickerItems();
+          }
+        } catch {
+          document.getElementById("pickerCats").innerHTML = '<span style="color:var(--ash);font-size:12px;">تعذر تحميل الأقسام</span>';
+        }
+      }
+
+      function renderPickerCategories() {
+        const el = document.getElementById("pickerCats");
+        if (allPickerCategories.length === 0) {
+          el.innerHTML = '<span style="color:var(--ash);font-size:12px;">ما في أقسام بعد. <a href="/price-list" style="color:var(--gold);">أنشئ أقساماً أولاً</a></span>';
+          return;
+        }
+        el.innerHTML = allPickerCategories.map(cat => `
+          <button class="picker-cat-btn${cat.id === pickerActiveCatId ? ' active' : ''}" data-id="${cat.id}">${escapeAttr(cat.name)} (${cat.item_count})</button>
+        `).join("");
+        el.querySelectorAll(".picker-cat-btn").forEach(btn => {
+          btn.onclick = () => {
+            pickerActiveCatId = Number(btn.dataset.id);
+            renderPickerCategories();
+            document.getElementById("pickerSearch").value = "";
+            loadPickerItems();
+          };
+        });
+      }
+
+      let pickerSearchTimeout;
+      document.getElementById("pickerSearch").oninput = () => {
+        clearTimeout(pickerSearchTimeout);
+        pickerSearchTimeout = setTimeout(() => loadPickerItems(), 300);
+      };
+
+      async function loadPickerItems() {
+        if (!pickerActiveCatId) return;
+        const q = document.getElementById("pickerSearch").value.trim();
+        const queryStr = q ? `?q=${encodeURIComponent(q)}` : "";
+        const resultsEl = document.getElementById("pickerResults");
+        try {
+          const data = await api(`/price-list/${pickerActiveCatId}/items${queryStr}`);
+          const items = data.items || [];
+          if (items.length === 0) {
+            resultsEl.innerHTML = '<div class="picker-empty">ما في نتائج</div>';
+            return;
+          }
+          resultsEl.innerHTML = items.map(it => `
+            <div class="picker-item" data-id="${it.id}">
+              <div class="pi-info">
+                ${it.item_code ? `<div class="pi-code">${escapeAttr(it.item_code)}</div>` : ''}
+                <div class="pi-name">${escapeAttr(it.name)}</div>
+                ${it.description ? `<div class="pi-desc">${escapeAttr(it.description)}</div>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;">
+                <div class="pi-meta">${escapeAttr(it.unit)}</div>
+                <div class="pi-price">${money(it.selling_price)}</div>
+              </div>
+            </div>
+          `).join("");
+          resultsEl.querySelectorAll(".picker-item").forEach(el => {
+            el.onclick = () => {
+              const id = Number(el.dataset.id);
+              const item = items.find(i => i.id === id);
+              if (item && pickerCurrentItemIdx !== null) fillItemFromCatalog(pickerCurrentItemIdx, item);
+              closePicker();
+            };
+          });
+        } catch {
+          resultsEl.innerHTML = '<div class="picker-empty">صار في خطأ</div>';
+        }
+      }
+
+      function fillItemFromCatalog(idx, catItem) {
+        if (!sections[activeSectionIdx]) return;
+        const sec = sections[activeSectionIdx];
+        const item = sec.items[idx];
+        if (!item) return;
+        item.item_code = catItem.item_code || item.item_code;
+        item.name = catItem.name || item.name;
+        item.description = catItem.description || item.description;
+        item.unit = catItem.unit || item.unit;
+        item.base_cost = Number(catItem.base_cost) || 0;
+        item.overhead_pct = Number(catItem.overhead_pct) || 40;
+        item.selling_price = Number(catItem.selling_price) || (item.base_cost * (1 + item.overhead_pct / 100));
+        if (!item.category_id && pickerActiveCatId) {
+          item.category_id = pickerActiveCatId;
+        }
+        renderAll();
+        showToast("تم تعبئة البند من الكتالوج");
+      }
+
+      // ---- Data Binding ----
+      document.getElementById("projectName").oninput = (e) => { state.projectName = e.target.value; };
+      document.getElementById("referenceNo").oninput = (e) => { state.referenceNo = e.target.value; };
+      document.getElementById("clientName").oninput = (e) => { state.clientName = e.target.value; };
+      document.getElementById("siteLocation").oninput = (e) => { state.siteLocation = e.target.value; };
+      document.getElementById("taxPct").oninput = (e) => { state.taxPct = e.target.value; renderTotals(); };
+      document.getElementById("discountVal").oninput = (e) => { state.discountVal = e.target.value; renderTotals(); };
+      document.getElementById("discountType").onchange = (e) => { state.discountType = e.target.value; renderTotals(); };
+      document.getElementById("executionDays").oninput = (e) => { state.executionDays = Number(e.target.value); };
+      document.getElementById("validityDays").oninput = (e) => { state.validityDays = Number(e.target.value); };
+
+      // ---- Save / Load ----
+      async function saveQuote() {
+        const btn = document.getElementById("saveQuoteBtn");
+        btn.disabled = true; btn.textContent = "جاري الحفظ...";
+        try {
+          let subtotal = 0;
+          sections.forEach(sec => {
+            (sec.items || []).forEach(it => {
+              subtotal += (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+            });
+          });
+          let discount = state.discountType === "pct" ? (subtotal * Number(state.discountVal) / 100) : Number(state.discountVal);
+          const afterDiscount = Math.max(subtotal - discount, 0);
+          const vat = afterDiscount * Number(state.taxPct) / 100;
+          const grandTotal = afterDiscount + vat;
+
+          const body = {
+            project_name: state.projectName || "مشروع بدون اسم",
+            data: state,
+            total: grandTotal,
+            reference_no: state.referenceNo,
+            client_name: state.clientName,
+            site_location: state.siteLocation,
+            discount_val: state.discountVal,
+            discount_type: state.discountType,
+            tax_pct: state.taxPct,
+            execution_days: state.executionDays,
+            validity_days: state.validityDays,
+            payment_terms: state.paymentTerms,
+          };
+
+          if (currentQuoteId) {
+            await api("/quotes/" + currentQuoteId, { method: "PUT", body: JSON.stringify(body) });
           } else {
-            const res = await api("/quotes", {
-              method: "POST",
-              body: JSON.stringify(body),
-            });
+            const res = await api("/quotes", { method: "POST", body: JSON.stringify(body) });
             currentQuoteId = res.id;
           }
+
+          // Save sections & items
+          for (const sec of sections) {
+            if (!sec.id && currentQuoteId) {
+              const res = await api(`/quotes/${currentQuoteId}/sections`, {
+                method: "POST", body: JSON.stringify({ code: sec.code, name: sec.name, sort_order: sec.sort_order }),
+              });
+              sec.id = res.id;
+            }
+            for (const item of sec.items) {
+              const itemPayload = { ...item, category_id: item.category_id || null };
+              if (!item.id && sec.id) {
+                const res = await api(`/sections/${sec.id}/items`, {
+                  method: "POST", body: JSON.stringify(itemPayload),
+                });
+                item.id = res.id;
+              } else if (item.id && sec.id) {
+                await api(`/sections/${sec.id}/items/${item.id}`, {
+                  method: "PUT", body: JSON.stringify(itemPayload),
+                });
+              }
+            }
+          }
+
+          document.getElementById("pageTitle").textContent = state.projectName || "عرض سعر";
           showToast("تم حفظ العرض");
           loadSavedList();
         } catch (e) {
           showToast(e.message || "تعذر الحفظ");
         } finally {
-          btn.disabled = false;
-          btn.textContent = "حفظ العرض";
+          btn.disabled = false; btn.textContent = "حفظ العرض";
         }
-      };
+      }
+
+      async function loadQuote(id) {
+        const { quote } = await api("/quotes/" + id);
+        currentQuoteId = quote.id;
+        state.projectName = quote.project_name || "";
+        state.referenceNo = quote.reference_no || "";
+        state.clientName = quote.client_name || "";
+        state.siteLocation = quote.site_location || "";
+        state.taxPct = quote.tax_pct || 16;
+        state.discountVal = quote.discount_val || 0;
+        state.discountType = quote.discount_type || "fixed";
+        state.executionDays = quote.execution_days || 45;
+        state.validityDays = quote.validity_days || 30;
+        try { state.paymentTerms = JSON.parse(quote.payment_terms || "[]"); } catch { state.paymentTerms = []; }
+
+        sections = (quote.sections || []).map(s => ({
+          ...s,
+          items: (s.items || []).map(it => ({ ...it, qty: Number(it.qty) || 1, category_id: it.category_id || null })),
+        }));
+        activeSectionIdx = 0;
+        activeCategoryTab = null;
+
+        document.getElementById("projectName").value = state.projectName;
+        document.getElementById("referenceNo").value = state.referenceNo;
+        document.getElementById("clientName").value = state.clientName;
+        document.getElementById("siteLocation").value = state.siteLocation;
+        document.getElementById("taxPct").value = state.taxPct;
+        document.getElementById("discountVal").value = state.discountVal;
+        document.getElementById("discountType").value = state.discountType;
+        document.getElementById("executionDays").value = state.executionDays;
+        document.getElementById("validityDays").value = state.validityDays;
+        document.getElementById("pageTitle").textContent = state.projectName || "عرض سعر";
+
+        renderAll();
+      }
 
       async function loadSavedList() {
         const el = document.getElementById("savedList");
-        document.getElementById("savedListTitle").textContent =
-          currentUser.role === "admin" || currentUser.role === "owner"
-            ? "كل عروض الفريق"
-            : "عروضي المحفوظة";
+        document.getElementById("savedListTitle").textContent = isOwnerOrAdmin ? "كل عروض الفريق" : "عروضي المحفوظة";
         try {
           const { quotes } = await api("/quotes");
           if (!quotes.length) {
             el.innerHTML = '<p class="empty-note">ما في عروض محفوظة بعد.</p>';
             return;
           }
-          el.innerHTML = quotes
-            .map(
-              (q) => `
-      <div class="saved-item" data-id="${q.id}">
-        <div class="info">
-          <div class="name">${escapeAttr(q.project_name)}${q.designer_name ? ' · <span style="color:var(--ash); font-weight:400;">' + escapeAttr(q.designer_name) + "</span>" : ""}</div>
-          <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${money(q.total)}</div>
-        </div>
-        <div class="btns"><button class="load-btn">فتح</button><button class="del-q-btn">حذف</button></div>
-      </div>`,
-            )
-            .join("");
-
-          el.querySelectorAll(".saved-item").forEach((row) => {
+          el.innerHTML = quotes.map(q => `
+            <div class="saved-item" data-id="${q.id}">
+              <div class="info">
+                <div class="name">${escapeAttr(q.project_name)}${q.reference_no ? ' · <span style="color:var(--gold);font-weight:400;">' + escapeAttr(q.reference_no) + '</span>' : ''}${q.designer_name ? ' · <span style="color:var(--ash);font-weight:400;">' + escapeAttr(q.designer_name) + '</span>' : ''}</div>
+                <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${money(q.total)}</div>
+              </div>
+              <div class="btns"><button class="load-btn">فتح</button><button class="del-q-btn">حذف</button></div>
+            </div>
+          `).join("");
+          el.querySelectorAll(".saved-item").forEach(row => {
             const id = row.getAttribute("data-id");
-            row.querySelector(".load-btn").onclick = async () => {
-              try {
-                const { quote } = await api("/quotes/" + id);
-                currentQuoteId = quote.id;
-                state = quote.data;
-                CATEGORIES.forEach((c) => {
-                  if (!state.items[c.id]) state.items[c.id] = [];
-                });
-                activeCat = CATEGORIES[0].id;
-                document.getElementById("projectName").value =
-                  state.projectName || "";
-                document.getElementById("markupPct").value = state.markupPct;
-                document.getElementById("taxPct").value = state.taxPct;
-                document.getElementById("discountVal").value =
-                  state.discountVal;
-                document.getElementById("discountType").value =
-                  state.discountType;
-                renderAll();
-                showToast("تم فتح العرض");
-              } catch (e) {
-                showToast(e.message || "تعذر فتح هذا العرض");
-              }
-            };
+            row.querySelector(".load-btn").onclick = () => loadQuote(id).then(() => showToast("تم فتح العرض")).catch(e => showToast(e.message));
             row.querySelector(".del-q-btn").onclick = async () => {
               try {
                 await api("/quotes/" + id, { method: "DELETE" });
                 loadSavedList();
-                if (currentQuoteId == id)
-                  document.getElementById("newQuoteBtn").click();
-              } catch (e) {
-                showToast(e.message || "تعذر الحذف");
-              }
+                if (currentQuoteId == id) document.getElementById("newQuoteBtn")?.click() || resetQuote();
+              } catch (e) { showToast(e.message); }
             };
           });
-        } catch (e) {
-          el.innerHTML =
-            '<p class="empty-note">تعذر تحميل العروض المحفوظة.</p>';
-        }
+        } catch { el.innerHTML = '<p class="empty-note">تعذر تحميل العروض.</p>'; }
       }
 
+      function resetQuote() {
+        currentQuoteId = null;
+        state = {
+          projectName: "", referenceNo: "", clientName: "", siteLocation: "",
+          taxPct: 16, discountVal: 0, discountType: "fixed",
+          executionDays: 45, validityDays: 30,
+          paymentTerms: [
+            { percentage: 60, trigger_description: "عند توقيع العقد" },
+            { percentage: 30, trigger_description: "عند إنجاز 70%" },
+            { percentage: 10, trigger_description: "عند التسليم النهائي" },
+          ],
+        };
+        sections = [];
+        activeSectionIdx = 0;
+        activeCategoryTab = null;
+        document.getElementById("projectName").value = "";
+        document.getElementById("referenceNo").value = "";
+        document.getElementById("clientName").value = "";
+        document.getElementById("siteLocation").value = "";
+        document.getElementById("taxPct").value = 16;
+        document.getElementById("discountVal").value = 0;
+        document.getElementById("discountType").value = "fixed";
+        document.getElementById("executionDays").value = 45;
+        document.getElementById("validityDays").value = 30;
+        document.getElementById("pageTitle").textContent = "عرض سعر جديد";
+        renderAll();
+        showToast("عرض جديد — جاهز تبدأ فيه");
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("saveToast");
+        t.textContent = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1800);
+      }
+
+      // ---- Button Events ----
+      document.getElementById("saveQuoteBtn").onclick = saveQuote;
+      document.getElementById("printBtn").onclick = () => window.print();
+      document.getElementById("exportPdfBtn").onclick = () => {
+        if (!currentQuoteId) { showToast("لازم تحفظ العرض أولاً"); return; }
+        window.open(`/api/quotes/${currentQuoteId}/pdf?token=${token}`, "_blank");
+      };
+      document.getElementById("saveTemplateBtn").onclick = () => openTemplateModal("save");
+      document.getElementById("loadTemplateBtn").onclick = () => openTemplateModal("load");
+      document.getElementById("logoutBtn").onclick = () => {
+        localStorage.removeItem("token"); localStorage.removeItem("user");
+        window.location.href = "/index.html";
+      };
+
+      // ---- Init ----
       (async function init() {
         document.getElementById("userName").textContent = currentUser.name;
         document.getElementById("roleBadge").textContent =
-          currentUser.role === "admin"
-            ? "مدير"
-            : currentUser.role === "owner"
-              ? "مالك"
-              : "مصمم";
-        if (currentUser.role === "admin" || currentUser.role === "owner") {
-          document.getElementById("adminLink").style.display = "inline-block";
-        }
+          currentUser.role === "admin" ? "مدير" : currentUser.role === "owner" ? "مالك" : "مصمم";
+        if (isOwnerOrAdmin) document.getElementById("adminLink").style.display = "inline-block";
         if (currentUser.avatar) {
           document.getElementById("topbarAvatarImg").src = currentUser.avatar;
           document.getElementById("topbarAvatarImg").style.display = "block";
-          document
-            .getElementById("topbarAvatarCircle")
-            .querySelector(".topbar-avatar-placeholder").style.display = "none";
+          document.getElementById("topbarAvatarCircle").querySelector(".topbar-avatar-placeholder").style.display = "none";
         }
         renderAll();
         loadSavedList();
+        loadPickerCategories();
       })();
     </script>
   </body>

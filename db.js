@@ -316,6 +316,80 @@ async function initializeDatabase() {
         );
       }
 
+      // --- New tables for pricing system ---
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          quote_id INTEGER NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+          code TEXT NOT NULL,
+          name TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+          item_code TEXT NOT NULL,
+          name TEXT NOT NULL DEFAULT '',
+          description TEXT NOT NULL DEFAULT '',
+          unit TEXT NOT NULL DEFAULT 'عدد',
+          qty REAL NOT NULL DEFAULT 1,
+          image TEXT,
+          base_cost REAL NOT NULL DEFAULT 0,
+          overhead_pct REAL NOT NULL DEFAULT 40,
+          selling_price REAL NOT NULL DEFAULT 0,
+          notes TEXT NOT NULL DEFAULT '',
+          sort_order INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS quote_templates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          data TEXT NOT NULL,
+          created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          is_default INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS price_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS price_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category_id INTEGER NOT NULL REFERENCES price_categories(id) ON DELETE CASCADE,
+          item_code TEXT NOT NULL DEFAULT '',
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          unit TEXT NOT NULL DEFAULT 'عدد',
+          base_cost REAL NOT NULL DEFAULT 0,
+          overhead_pct REAL NOT NULL DEFAULT 40,
+          selling_price REAL NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      // Add new columns to quotes table
+      await ensureColumnIfMissing("quotes", "reference_no", "TEXT");
+      await ensureColumnIfMissing("quotes", "client_name", "TEXT");
+      await ensureColumnIfMissing("quotes", "site_location", "TEXT");
+      await ensureColumnIfMissing("quotes", "discount_val", "REAL NOT NULL DEFAULT 0");
+      await ensureColumnIfMissing("quotes", "discount_type", "TEXT NOT NULL DEFAULT 'fixed'");
+      await ensureColumnIfMissing("quotes", "tax_pct", "REAL NOT NULL DEFAULT 16");
+      await ensureColumnIfMissing("quotes", "execution_days", "INTEGER NOT NULL DEFAULT 45");
+      await ensureColumnIfMissing("quotes", "validity_days", "INTEGER NOT NULL DEFAULT 30");
+      await ensureColumnIfMissing("quotes", "payment_terms", "TEXT NOT NULL DEFAULT '[]'");
+
+      await ensureColumnIfMissing(
+        "items",
+        "category_id",
+        "INTEGER REFERENCES price_categories(id) ON DELETE SET NULL",
+      );
+
+      await seedDefaultTemplates();
+
       return true;
     }
 
@@ -410,10 +484,210 @@ async function initializeDatabase() {
       UPDATE project_access SET permission = COALESCE(NULLIF(TRIM(permission), ''), 'view') WHERE permission IS NULL OR TRIM(COALESCE(permission, '')) = '';
     `);
 
+    // --- New tables for pricing system ---
+    await exec(`
+      CREATE TABLE IF NOT EXISTS sections (
+        id BIGSERIAL PRIMARY KEY,
+        quote_id BIGINT NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+        code TEXT NOT NULL,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS items (
+        id BIGSERIAL PRIMARY KEY,
+        section_id BIGINT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+        item_code TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        unit TEXT NOT NULL DEFAULT 'عدد',
+        qty DOUBLE PRECISION NOT NULL DEFAULT 1,
+        image TEXT,
+        base_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 40,
+        selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+        notes TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS quote_templates (
+        id BIGSERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        data TEXT NOT NULL,
+        created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        is_default INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS price_categories (
+        id BIGSERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS price_items (
+        id BIGSERIAL PRIMARY KEY,
+        category_id BIGINT NOT NULL REFERENCES price_categories(id) ON DELETE CASCADE,
+        item_code TEXT NOT NULL DEFAULT '',
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        unit TEXT NOT NULL DEFAULT 'عدد',
+        base_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 40,
+        selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Add new columns to quotes table
+    await ensureColumnIfMissing("quotes", "reference_no", "TEXT");
+    await ensureColumnIfMissing("quotes", "client_name", "TEXT");
+    await ensureColumnIfMissing("quotes", "site_location", "TEXT");
+    await ensureColumnIfMissing("quotes", "discount_val", "DOUBLE PRECISION NOT NULL DEFAULT 0");
+    await ensureColumnIfMissing("quotes", "discount_type", "TEXT NOT NULL DEFAULT 'fixed'");
+    await ensureColumnIfMissing("quotes", "tax_pct", "DOUBLE PRECISION NOT NULL DEFAULT 16");
+    await ensureColumnIfMissing("quotes", "execution_days", "INTEGER NOT NULL DEFAULT 45");
+    await ensureColumnIfMissing("quotes", "validity_days", "INTEGER NOT NULL DEFAULT 30");
+    await ensureColumnIfMissing("quotes", "payment_terms", "TEXT NOT NULL DEFAULT '[]'");
+
+    await ensureColumnIfMissing(
+      "items",
+      "category_id",
+      "BIGINT REFERENCES price_categories(id) ON DELETE SET NULL",
+    );
+
+    await seedDefaultTemplates();
+
     return true;
   })();
 
   return initializationPromise;
+}
+
+async function seedDefaultTemplates() {
+  const existing = await db.prepare("SELECT id FROM quote_templates WHERE is_default = 1 LIMIT 1").get();
+  if (existing) return;
+
+  const defaultPaymentTerms = [
+    { percentage: 60, trigger_description: "Upon contract signing" },
+    { percentage: 30, trigger_description: "At 70% completion" },
+    { percentage: 10, trigger_description: "Upon final handover" },
+  ];
+
+  const templates = [
+    {
+      name: "Bedrooms Template",
+      description: "Default template for bedroom projects: wardrobe, TV unit, vanity, bed",
+      data: {
+        sections: [
+          {
+            code: "A", name: "Master Bedroom", sort_order: 0,
+            items: [
+              { item_code: "A.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3500, overhead_pct: 40, notes: "" },
+              { item_code: "A.2", name: "TV Unit", description: "Wall-mounted TV unit with storage and LED backlight", unit: "مقطوع", qty: 1, base_cost: 1800, overhead_pct: 40, notes: "" },
+              { item_code: "A.3", name: "Vanity Desk", description: "Vanity desk with mirror and LED lighting", unit: "مقطوع", qty: 1, base_cost: 1200, overhead_pct: 40, notes: "" },
+            ],
+          },
+          {
+            code: "B", name: "Kids Bedroom", sort_order: 1,
+            items: [
+              { item_code: "B.1", name: "Wardrobe", description: "Two-door wardrobe with internal organizer", unit: "مقطوع", qty: 1, base_cost: 2200, overhead_pct: 40, notes: "" },
+              { item_code: "B.2", name: "Study Desk", description: "Built-in study desk with overhead shelves", unit: "مقطوع", qty: 1, base_cost: 900, overhead_pct: 40, notes: "" },
+            ],
+          },
+        ],
+        payment_terms: defaultPaymentTerms,
+        tax_pct: 16, discount_val: 0, discount_type: "fixed",
+        execution_days: 45, validity_days: 30,
+      },
+    },
+    {
+      name: "Kitchen Template",
+      description: "Default template for kitchen projects: upper cabinets, lower cabinets, countertop, lighting",
+      data: {
+        sections: [
+          {
+            code: "A", name: "Kitchen", sort_order: 0,
+            items: [
+              { item_code: "A.1", name: "Upper Cabinets", description: "Upper kitchen cabinets with soft-close hinges, matte finish", unit: "مقطوع", qty: 1, base_cost: 4000, overhead_pct: 40, notes: "" },
+              { item_code: "A.2", name: "Lower Cabinets", description: "Lower kitchen cabinets with drawers, pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5000, overhead_pct: 40, notes: "" },
+              { item_code: "A.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 600, overhead_pct: 40, notes: "" },
+              { item_code: "A.4", name: "Kitchen Lighting", description: "LED strip under-cabinet lighting + pendant lights", unit: "مقطوع", qty: 1, base_cost: 500, overhead_pct: 40, notes: "" },
+            ],
+          },
+        ],
+        payment_terms: defaultPaymentTerms,
+        tax_pct: 16, discount_val: 0, discount_type: "fixed",
+        execution_days: 30, validity_days: 30,
+      },
+    },
+    {
+      name: "Painting Template",
+      description: "Default template for painting projects: surface prep, Jotun paint, lighting",
+      data: {
+        sections: [
+          {
+            code: "A", name: "Interior Painting", sort_order: 0,
+            items: [
+              { item_code: "A.1", name: "Surface Preparation", description: "Wall cleaning, crack filling, sanding, primer coat", unit: "م²", qty: 120, base_cost: 5, overhead_pct: 40, notes: "" },
+              { item_code: "A.2", name: "Jotun Paint", description: "Two coats of Jotun washable matt paint", unit: "م²", qty: 120, base_cost: 8, overhead_pct: 40, notes: "" },
+              { item_code: "A.3", name: "Ceiling Paint", description: "Jotun ceiling white paint, two coats", unit: "م²", qty: 80, base_cost: 6, overhead_pct: 40, notes: "" },
+            ],
+          },
+        ],
+        payment_terms: defaultPaymentTerms,
+        tax_pct: 16, discount_val: 0, discount_type: "fixed",
+        execution_days: 14, validity_days: 30,
+      },
+    },
+    {
+      name: "Full Apartment Template",
+      description: "Complete apartment template with all sections: living room, bedrooms, kitchen, painting",
+      data: {
+        sections: [
+          {
+            code: "A", name: "Living Room", sort_order: 0,
+            items: [
+              { item_code: "A.1", name: "Entertainment Unit", description: "Custom entertainment unit with TV mount, storage, and LED backlight", unit: "مقطوع", qty: 1, base_cost: 3000, overhead_pct: 40, notes: "" },
+              { item_code: "A.2", name: "Wall Paneling", description: "Decorative wall paneling with hidden LED strips", unit: "م²", qty: 8, base_cost: 200, overhead_pct: 40, notes: "" },
+              { item_code: "A.3", name: "Ceiling Design", description: " gypsum ceiling with LED cove lighting", unit: "م²", qty: 30, base_cost: 45, overhead_pct: 40, notes: "" },
+            ],
+          },
+          {
+            code: "B", name: "Master Bedroom", sort_order: 1,
+            items: [
+              { item_code: "B.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3500, overhead_pct: 40, notes: "" },
+              { item_code: "B.2", name: "TV Unit", description: "Wall-mounted TV unit with storage", unit: "مقطوع", qty: 1, base_cost: 1800, overhead_pct: 40, notes: "" },
+            ],
+          },
+          {
+            code: "C", name: "Kitchen", sort_order: 2,
+            items: [
+              { item_code: "C.1", name: "Upper Cabinets", description: "Upper kitchen cabinets, soft-close hinges", unit: "مقطوع", qty: 1, base_cost: 4000, overhead_pct: 40, notes: "" },
+              { item_code: "C.2", name: "Lower Cabinets", description: "Lower cabinets with pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5000, overhead_pct: 40, notes: "" },
+              { item_code: "C.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 600, overhead_pct: 40, notes: "" },
+            ],
+          },
+          {
+            code: "D", name: "Painting", sort_order: 3,
+            items: [
+              { item_code: "D.1", name: "Wall Painting", description: "Surface prep + two coats Jotun washable matt", unit: "م²", qty: 200, base_cost: 13, overhead_pct: 40, notes: "" },
+              { item_code: "D.2", name: "Ceiling Painting", description: "Jotun ceiling white, two coats", unit: "م²", qty: 120, base_cost: 6, overhead_pct: 40, notes: "" },
+            ],
+          },
+        ],
+        payment_terms: defaultPaymentTerms,
+        tax_pct: 16, discount_val: 0, discount_type: "fixed",
+        execution_days: 60, validity_days: 30,
+      },
+    },
+  ];
+
+  for (const tmpl of templates) {
+    await db.prepare(
+      "INSERT INTO quote_templates (name, description, data, created_by, is_default) VALUES (?,?,?,?,1)",
+    ).run(tmpl.name, tmpl.description, JSON.stringify(tmpl.data), null);
+  }
 }
 
 async function tableColumns(tableName) {
