@@ -6,8 +6,13 @@ const path = require("path");
 const db = require("./db");
 const authRoutes = require("./routes/auth");
 const quotesRoutes = require("./routes/quotes");
+const sectionsRoutes = require("./routes/sections");
+const itemsRoutes = require("./routes/items");
+const templatesRoutes = require("./routes/templates");
+const pdfRoutes = require("./routes/pdf");
 const usersRoutes = require("./routes/users");
 const profileRoutes = require("./routes/profile");
+const priceListRoutes = require("./routes/price-list");
 
 if (!process.env.JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
@@ -29,9 +34,14 @@ function createApp() {
   app.use(express.json({ limit: "10mb" }));
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/quotes", pdfRoutes);
   app.use("/api/quotes", quotesRoutes);
+  app.use("/api/quotes", sectionsRoutes);
+  app.use("/api/sections", itemsRoutes);
+  app.use("/api/templates", templatesRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/profile", profileRoutes);
+  app.use("/api/price-list", priceListRoutes);
 
   app.use(express.static(path.join(__dirname, "public")));
 
@@ -44,6 +54,9 @@ function createApp() {
   );
   app.get("/profile", (req, res) =>
     res.sendFile(path.join(__dirname, "public", "profile.html")),
+  );
+  app.get("/price-list", (req, res) =>
+    res.sendFile(path.join(__dirname, "public", "price-list.html")),
   );
   app.get("/", (req, res) =>
     res.sendFile(path.join(__dirname, "public", "index.html")),

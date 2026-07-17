@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>قائمة الأسعار — كتالوج البنود</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&display=swap");
+
+      :root {
+        --bg: #0c0c0c;
+        --surface: #161616;
+        --surface-raised: #1e1e1e;
+        --champagne: #e8dcc8;
+        --ash: #7a756e;
+        --pewter: #2c2c2c;
+        --gold: #c9a84c;
+        --gold-dim: #a88a3a;
+        --gold-glow: rgba(201, 168, 76, 0.1);
+        --gold-glow-strong: rgba(201, 168, 76, 0.18);
+        --danger: #d4605a;
+        --danger-tint: rgba(212, 96, 90, 0.1);
+        --success: #5a9e6f;
+        --success-tint: rgba(90, 158, 111, 0.1);
+        --radius: 12px;
+      }
+      [data-theme="light"] {
+        --bg: #f5f2ed;
+        --surface: #ffffff;
+        --surface-raised: #f0ede8;
+        --champagne: #1c1a17;
+        --ash: #7a756e;
+        --pewter: #ddd8d0;
+        --gold: #9a7b2f;
+        --gold-dim: #7a6125;
+        --gold-glow: rgba(154, 123, 47, 0.1);
+        --gold-glow-strong: rgba(154, 123, 47, 0.18);
+        --danger: #c0453e;
+        --danger-tint: rgba(192, 69, 62, 0.08);
+        --success: #3d8b55;
+        --success-tint: rgba(61, 139, 85, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        background: var(--bg);
+        font-family: "DM Sans", "Cairo", "Tahoma", sans-serif;
+        color: var(--champagne);
+        padding: 0;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      .app { background: var(--bg); min-height: 100vh; padding: 16px 16px 60px; }
+      .wrap { max-width: 1300px; margin: 0 auto; }
+
+      .topbar {
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 10px;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 10px 16px; margin-bottom: 14px;
+      }
+      .topbar .who { font-size: 13px; color: var(--ash); display: flex; align-items: center; gap: 8px; }
+      .topbar .who b { color: var(--champagne); }
+      .topbar .role-badge {
+        display: inline-block; font-size: 11px; font-weight: 700;
+        padding: 2px 9px; border-radius: 999px;
+        background: var(--gold-glow-strong); color: var(--gold);
+      }
+      .topbar .links { display: flex; gap: 8px; align-items: center; }
+      .topbar .links a {
+        font-family: inherit; font-size: 12.5px; font-weight: 600;
+        color: var(--ash); text-decoration: none; padding: 5px 12px;
+        border-radius: 8px; transition: color 0.2s;
+      }
+      .topbar .links a:hover { color: var(--gold); }
+      .topbar .logout-btn {
+        background: none; border: 1px solid var(--pewter); color: var(--ash);
+        padding: 5px 12px; border-radius: 8px; cursor: pointer;
+        font-family: inherit; font-size: 12.5px; transition: 0.2s;
+      }
+      .topbar .logout-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+      .page-header {
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px 20px; margin-bottom: 14px;
+        position: relative; overflow: hidden;
+      }
+      .page-header::before {
+        content: ""; position: absolute; top: 0; right: 0; bottom: 0;
+        width: 4px; background: var(--gold);
+      }
+      .page-header .eyebrow {
+        color: var(--gold); letter-spacing: 0.1em;
+        font-size: 10.5px; font-weight: 600; margin-bottom: 4px;
+      }
+      .page-header h1 {
+        font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 22px; font-weight: 600; color: var(--champagne);
+        margin: 0 0 8px;
+      }
+      .page-header p { margin: 0; color: var(--ash); font-size: 13px; }
+
+      .layout { display: flex; gap: 16px; align-items: flex-start; }
+
+      /* Sidebar — Categories */
+      .cat-sidebar {
+        flex: 0 0 280px; position: sticky; top: 16px;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px; max-height: calc(100vh - 32px);
+        overflow-y: auto;
+      }
+      .cat-sidebar h2 {
+        font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 17px; margin: 0 0 12px; color: var(--champagne);
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .cat-list { display: flex; flex-direction: column; gap: 6px; }
+      .cat-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 12px; border-radius: 8px; cursor: pointer;
+        background: var(--surface-raised); border: 1px solid var(--pewter);
+        transition: 0.15s;
+      }
+      .cat-row:hover { border-color: var(--gold-dim); }
+      .cat-row.active { background: var(--gold-glow-strong); border-color: var(--gold); }
+      .cat-row .cat-name { font-size: 13.5px; font-weight: 600; color: var(--champagne); }
+      .cat-row .cat-count {
+        font-size: 11px; color: var(--ash); background: var(--surface);
+        padding: 2px 8px; border-radius: 999px;
+      }
+      .cat-row.active .cat-count { background: var(--gold-glow); color: var(--gold); }
+      .cat-row .cat-actions {
+        display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s;
+      }
+      .cat-row:hover .cat-actions { opacity: 1; }
+      .cat-actions button {
+        border: none; background: transparent; color: var(--ash);
+        cursor: pointer; font-size: 12px; padding: 2px 5px; border-radius: 4px;
+      }
+      .cat-actions button:hover { color: var(--gold); background: var(--gold-glow); }
+      .cat-actions button.del:hover { color: var(--danger); background: var(--danger-tint); }
+
+      .add-cat-btn {
+        margin-top: 10px; width: 100%; display: flex; align-items: center;
+        justify-content: center; gap: 4px; padding: 9px; border-radius: 8px;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-family: inherit; font-weight: 700;
+        font-size: 13px; cursor: pointer; transition: 0.2s;
+      }
+      .add-cat-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+      /* Main — Items */
+      .main-panel {
+        flex: 1 1 auto; min-width: 0;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 18px 20px;
+      }
+      .main-panel h2 {
+        font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 18px; margin: 0 0 4px; color: var(--champagne);
+      }
+      .main-sub { color: var(--ash); font-size: 12.5px; margin: 0 0 14px; }
+
+      .search-row {
+        display: flex; gap: 8px; margin-bottom: 14px;
+      }
+      .search-row input {
+        flex: 1; font-family: inherit; font-size: 13px; padding: 8px 12px;
+        border: 1px solid var(--pewter); border-radius: 8px;
+        background: var(--surface-raised); color: var(--champagne);
+      }
+
+      table.items { width: 100%; border-collapse: collapse; font-size: 13px; }
+      table.items th {
+        text-align: right; font-weight: 600; color: var(--ash);
+        font-size: 11.5px; border-bottom: 1px solid var(--pewter); padding: 6px 4px;
+      }
+      table.items td {
+        padding: 5px 4px; border-bottom: 1px solid var(--pewter); vertical-align: middle;
+      }
+      table.items input, table.items select {
+        width: 100%; font-family: inherit; font-size: 13px;
+        padding: 6px 7px; border: 1px solid var(--pewter); border-radius: 6px;
+        background: var(--surface-raised); color: var(--champagne);
+      }
+      .col-code { width: 10%; font-weight: 600; color: var(--gold); font-size: 12px; }
+      .col-name { width: 18%; }
+      .col-desc { width: 18%; }
+      .col-unit { width: 9%; }
+      .col-cost { width: 10%; }
+      .col-price { width: 10%; font-weight: 700; color: var(--gold); }
+      .col-actions { width: 60px; text-align: center; }
+
+      .del-btn {
+        border: none; background: var(--danger); color: #fff;
+        cursor: pointer; font-size: 13px; line-height: 1;
+        padding: 3px 7px; border-radius: 5px;
+      }
+      .del-btn:hover { opacity: 0.85; }
+
+      .add-item-btn {
+        margin-top: 10px; display: flex; align-items: center; gap: 6px;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-family: inherit; font-weight: 700;
+        font-size: 13px; padding: 8px 14px; border-radius: 8px;
+        cursor: pointer; width: 100%; justify-content: center; transition: 0.2s;
+      }
+      .add-item-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+      .empty-note { color: var(--ash); font-size: 12.5px; text-align: center; padding: 40px 0; }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        z-index: 1000; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      }
+      .modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .modal {
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 14px; padding: 22px; width: 90%; max-width: 500px;
+        max-height: 80vh; overflow-y: auto;
+      }
+      .modal h3 {
+        margin: 0 0 14px; font-family: "Cormorant Garamond", "Cairo", serif;
+        font-size: 18px; color: var(--champagne);
+      }
+      .modal label {
+        font-size: 12.5px; color: var(--ash); font-weight: 600;
+        display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;
+      }
+      .modal input, .modal select, .modal textarea {
+        font-family: inherit; font-size: 13px; padding: 7px 10px;
+        border: 1px solid var(--pewter); border-radius: 7px;
+        background: var(--surface-raised); color: var(--champagne); width: 100%;
+      }
+      .modal textarea { min-height: 60px; resize: vertical; }
+      .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+      .modal-actions button {
+        flex: 1; font-family: inherit; font-weight: 700; font-size: 13px;
+        padding: 9px; border-radius: 8px; cursor: pointer; border: none;
+      }
+      .btn-save { background: var(--gold); color: var(--bg); }
+      .btn-save:hover { background: var(--gold-dim); }
+      .btn-secondary {
+        background: none; border: 1px solid var(--pewter) !important; color: var(--ash);
+      }
+      .btn-secondary:hover { border-color: var(--gold-dim) !important; color: var(--gold); }
+
+      .modal-row { display: flex; gap: 8px; }
+      .modal-row label { flex: 1; }
+
+      .save-toast {
+        position: fixed; bottom: 20px; left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--gold); color: var(--bg);
+        padding: 9px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+        opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 50;
+      }
+      .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      .theme-toggle {
+        position: fixed; top: 14px; left: 14px; width: 34px; height: 34px;
+        border-radius: 50%; border: 1px solid var(--pewter); background: var(--surface);
+        color: var(--ash); font-size: 15px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; z-index: 100;
+      }
+      .theme-toggle:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+      @media (max-width: 860px) {
+        .layout { flex-direction: column; }
+        .cat-sidebar { position: static; width: 100%; flex-basis: auto; max-height: none; }
+      }
+      @media print {
+        body { background: #fff; color: #1a1a1a; }
+        .app { background: #fff; padding: 0; color: #1a1a1a; }
+        .topbar, .theme-toggle, .save-toast, .modal-overlay,
+        .add-item-btn, .add-cat-btn, .cat-actions, .col-actions { display: none !important; }
+        .cat-sidebar { position: static; }
+        .layout { flex-direction: column; }
+        table.items input, table.items select {
+          background: #fff; color: #1a1a1a; border-color: #ccc;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">☀</button>
+    <div class="app">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="who">
+            <a href="/profile" id="topbarAvatarLink" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+              <b id="userName">...</b>
+            </a>
+            <span class="role-badge" id="roleBadge"></span>
+          </div>
+          <div class="links">
+            <a href="/app">التسعير</a>
+            <a href="/admin" id="adminLink" style="display:none">إدارة الفريق</a>
+            <a href="/profile">الملف الشخصي</a>
+            <button id="logoutBtn" class="logout-btn">تسجيل خروج</button>
+          </div>
+        </div>
+
+        <header class="page-header">
+          <div class="eyebrow">TWiNS Interior Design · قائمة الأسعار</div>
+          <h1>كتالوج بنود التسعير</h1>
+          <p>إدارة أقسام وبنود قائمة الأسعار المرجعية — البنود المضافة هنا يمكن استخدامها في عروض الأسعار مباشرة.</p>
+        </header>
+
+        <div class="layout">
+          <aside class="cat-sidebar">
+            <h2>الأقسام <span id="catCount" style="font-size:12px;color:var(--ash);font-weight:400;"></span></h2>
+            <div class="cat-list" id="catList"></div>
+            <button class="add-cat-btn" id="addCatBtn">+ قسم جديد</button>
+          </aside>
+          <main class="main-panel" id="mainPanel">
+            <div class="empty-note">اختر قسم من القائمة لعرض البنود</div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <div class="save-toast" id="saveToast">تم الحفظ</div>
+
+    <!-- Category Modal -->
+    <div class="modal-overlay" id="catModal">
+      <div class="modal">
+        <h3 id="catModalTitle">إضافة قسم جديد</h3>
+        <label>اسم القسم
+          <input id="catModalName" type="text" placeholder="مثال: البلاط، الإضاءة، السباكة" />
+        </label>
+        <div class="modal-actions">
+          <button id="catModalCancel" class="btn-secondary">إلغاء</button>
+          <button id="catModalSave" class="btn-save">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item Modal -->
+    <div class="modal-overlay" id="itemModal">
+      <div class="modal">
+        <h3 id="itemModalTitle">إضافة بند جديد</h3>
+        <label>كود البند
+          <input id="itemModalCode" type="text" placeholder="مثال: TILE-001" />
+        </label>
+        <label>اسم البند
+          <input id="itemModalName" type="text" placeholder="مثال: بلاط بورسلين 60x60" />
+        </label>
+        <label>الوصف
+          <textarea id="itemModalDesc" placeholder="وصف اختياري للبند"></textarea>
+        </label>
+        <div class="modal-row">
+          <label>الوحدة
+            <select id="itemModalUnit">
+              <option value="عدد">عدد</option>
+              <option value="م²">م²</option>
+              <option value="متر طولي">متر طولي</option>
+              <option value="مقطوع">مقطوع</option>
+              <option value="ساعة">ساعة</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>التكلفة الأساسية
+            <input id="itemModalCost" type="number" min="0" step="0.1" value="0" />
+          </label>
+          <label>هامش الربح (%)
+            <input id="itemModalOverhead" type="number" min="0" max="100" step="1" value="40" />
+          </label>
+        </div>
+        <div style="margin-top:4px;font-size:12px;color:var(--gold);">سعر البيع: <strong id="itemModalPrice">0.00</strong> د.أ</div>
+        <div class="modal-actions">
+          <button id="itemModalCancel" class="btn-secondary">إلغاء</button>
+          <button id="itemModalSave" class="btn-save">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Theme toggle
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      const themeBtn = document.getElementById("themeToggle");
+      themeBtn.textContent = savedTheme === "dark" ? "☀" : "☾";
+      themeBtn.onclick = () => {
+        const c = document.documentElement.getAttribute("data-theme");
+        const n = c === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", n);
+        localStorage.setItem("theme", n);
+        themeBtn.textContent = n === "dark" ? "☀" : "☾";
+      };
+
+      const token = localStorage.getItem("token");
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (!token || !currentUser) window.location.href = "/index.html";
+      const isOwnerOrAdmin = currentUser.role === "owner" || currentUser.role === "admin";
+
+      async function api(path, options = {}) {
+        const res = await fetch("/api" + path, {
+          ...options,
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, ...(options.headers || {}) },
+        });
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/index.html";
+          throw new Error("unauthorized");
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "صار في خطأ");
+        return data;
+      }
+
+      function escapeHtml(s) {
+        return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+      function money(n) {
+        n = Number.isFinite(n) ? n : 0;
+        return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " د.أ";
+      }
+      function showToast(msg) {
+        const t = document.getElementById("saveToast");
+        t.textContent = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1800);
+      }
+
+      let categories = [];
+      let activeCategoryId = null;
+      let items = [];
+      let editingCategoryId = null;
+      let editingItemId = null;
+
+      // ---- Render Categories ----
+      async function loadCategories() {
+        const data = await api("/price-list");
+        categories = data.categories || [];
+        renderCategories();
+      }
+
+      function renderCategories() {
+        const el = document.getElementById("catList");
+        document.getElementById("catCount").textContent = `(${categories.length})`;
+        if (categories.length === 0) {
+          el.innerHTML = '<p class="empty-note" style="padding:20px 0;">ما في أقسام لسا</p>';
+          return;
+        }
+        el.innerHTML = categories.map(cat => `
+          <div class="cat-row${cat.id === activeCategoryId ? ' active' : ''}" data-id="${cat.id}">
+            <span class="cat-name">${escapeHtml(cat.name)}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="cat-count">${cat.item_count} بند</span>
+              ${isOwnerOrAdmin ? `
+              <div class="cat-actions">
+                <button data-action="edit" title="تعديل">✎</button>
+                <button class="del" data-action="delete" title="حذف">✕</button>
+              </div>` : ''}
+            </div>
+          </div>
+        `).join("");
+
+        el.querySelectorAll(".cat-row").forEach(row => {
+          const id = Number(row.dataset.id);
+          row.addEventListener("click", (e) => {
+            if (e.target.closest("[data-action]")) return;
+            selectCategory(id);
+          });
+          const editBtn = row.querySelector("[data-action='edit']");
+          const delBtn = row.querySelector("[data-action='delete']");
+          if (editBtn) editBtn.onclick = (e) => { e.stopPropagation(); openCatModal(id); };
+          if (delBtn) delBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const cat = categories.find(c => c.id === id);
+            if (!confirm(`هل أنت متأكد من حذف قسم "${cat.name}" وجميع بنوده؟`)) return;
+            await api(`/price-list/${id}`, { method: "DELETE" });
+            if (activeCategoryId === id) { activeCategoryId = null; items = []; renderMain(); }
+            await loadCategories();
+            showToast("تم حذف القسم");
+          };
+        });
+      }
+
+      async function selectCategory(id) {
+        activeCategoryId = id;
+        renderCategories();
+        await loadItems();
+      }
+
+      async function loadItems() {
+        const searchVal = (document.getElementById("searchInput") || {}).value || "";
+        const q = searchVal ? `?q=${encodeURIComponent(searchVal)}` : "";
+        const data = await api(`/price-list/${activeCategoryId}/items${q}`);
+        items = data.items || [];
+        renderMain();
+      }
+
+      function renderMain() {
+        const panel = document.getElementById("mainPanel");
+        if (!activeCategoryId) {
+          panel.innerHTML = '<div class="empty-note">اختر قسم من القائمة لعرض البنود</div>';
+          return;
+        }
+        const cat = categories.find(c => c.id === activeCategoryId);
+        const catName = cat ? cat.name : "";
+        const searchVal = (document.getElementById("searchInput") || {}).value || "";
+
+        let rows = "";
+        if (items.length === 0) {
+          rows = `<tr><td colspan="7" class="empty-note">${searchVal ? "ما في نتائج بحث" : "ما في بنود في هذا القسم"}</td></tr>`;
+        } else {
+          rows = items.map((it, idx) => `
+            <tr data-idx="${idx}">
+              <td class="col-code">${escapeHtml(it.item_code)}</td>
+              <td class="col-name">${escapeHtml(it.name)}</td>
+              <td class="col-desc">${escapeHtml(it.description || "")}</td>
+              <td class="col-unit">${escapeHtml(it.unit)}</td>
+              <td class="col-cost" style="text-align:center;">${money(it.base_cost)}</td>
+              <td class="col-price" style="text-align:center;">${money(it.selling_price)}</td>
+              ${isOwnerOrAdmin ? `
+              <td class="col-actions">
+                <button class="del-btn" data-action="edit" title="تعديل" style="background:var(--gold-glow-strong);color:var(--gold);margin-left:3px;">✎</button>
+                <button class="del-btn" data-action="delete" title="حذف">✕</button>
+              </td>` : '<td class="col-actions"></td>'}
+            </tr>
+          `).join("");
+        }
+
+        panel.innerHTML = `
+          <h2>${escapeHtml(catName)}</h2>
+          <p class="main-sub">${items.length} بند${searchVal ? ' — نتائج بحث: "' + escapeHtml(searchVal) + '"' : ''}</p>
+          <div class="search-row">
+            <input id="searchInput" type="text" placeholder="بحث بالاسم أو الكود..." value="${escapeHtml(searchVal)}" />
+          </div>
+          <table class="items">
+            <thead><tr>
+              <th class="col-code">الكود</th>
+              <th class="col-name">البند</th>
+              <th class="col-desc">الوصف</th>
+              <th class="col-unit">الوحدة</th>
+              <th class="col-cost" style="text-align:center;">التكلفة</th>
+              <th class="col-price" style="text-align:center;">سعر البيع</th>
+              <th class="col-actions"></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          ${isOwnerOrAdmin ? '<button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>' : ''}
+        `;
+
+        // Search
+        const searchInput = document.getElementById("searchInput");
+        let searchTimeout;
+        searchInput.oninput = () => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => loadItems(), 300);
+        };
+
+        // Add item
+        const addBtn = document.getElementById("addItemBtn");
+        if (addBtn) addBtn.onclick = () => openItemModal();
+
+        // Row actions
+        panel.querySelectorAll("tr[data-idx]").forEach(tr => {
+          const idx = Number(tr.dataset.idx);
+          const it = items[idx];
+          const editBtn = tr.querySelector("[data-action='edit']");
+          const delBtn = tr.querySelector("[data-action='delete']");
+          if (editBtn) editBtn.onclick = () => openItemModal(it);
+          if (delBtn) delBtn.onclick = async () => {
+            if (!confirm(`هل أنت متأكد من حذف بند "${it.name}"؟`)) return;
+            await api(`/price-list/items/${it.id}`, { method: "DELETE" });
+            await loadItems();
+            await loadCategories();
+            showToast("تم حذف البند");
+          };
+        });
+      }
+
+      // ---- Category Modal ----
+      function openCatModal(editId) {
+        editingCategoryId = editId || null;
+        const modal = document.getElementById("catModal");
+        document.getElementById("catModalTitle").textContent = editingCategoryId !== null ? "تعديل القسم" : "إضافة قسم جديد";
+        if (editingCategoryId !== null) {
+          const cat = categories.find(c => c.id === editingCategoryId);
+          document.getElementById("catModalName").value = cat ? cat.name : "";
+        } else {
+          document.getElementById("catModalName").value = "";
+        }
+        modal.classList.add("open");
+        document.getElementById("catModalName").focus();
+      }
+      function closeCatModal() { document.getElementById("catModal").classList.remove("open"); }
+      document.getElementById("catModalCancel").onclick = closeCatModal;
+      document.getElementById("catModal").onclick = (e) => { if (e.target === e.currentTarget) closeCatModal(); };
+      document.getElementById("catModalSave").onclick = async () => {
+        const name = document.getElementById("catModalName").value.trim();
+        if (!name) { showToast("الاسم مطلوب"); return; }
+        if (editingCategoryId !== null) {
+          await api(`/price-list/${editingCategoryId}`, { method: "PUT", body: JSON.stringify({ name }) });
+          showToast("تم تعديل القسم");
+        } else {
+          await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
+          showToast("تمت إضافة القسم");
+        }
+        closeCatModal();
+        await loadCategories();
+      };
+
+      // ---- Item Modal ----
+      function openItemModal(item) {
+        editingItemId = item ? item.id : null;
+        const modal = document.getElementById("itemModal");
+        document.getElementById("itemModalTitle").textContent = editingItemId !== null ? "تعديل البند" : "إضافة بند جديد";
+        document.getElementById("itemModalCode").value = item ? (item.item_code || "") : "";
+        document.getElementById("itemModalName").value = item ? item.name : "";
+        document.getElementById("itemModalDesc").value = item ? (item.description || "") : "";
+        document.getElementById("itemModalUnit").value = item ? (item.unit || "عدد") : "عدد";
+        document.getElementById("itemModalCost").value = item ? (item.base_cost || 0) : 0;
+        document.getElementById("itemModalOverhead").value = item ? (item.overhead_pct || 40) : 40;
+        updateItemPrice();
+        modal.classList.add("open");
+        document.getElementById("itemModalName").focus();
+      }
+      function closeItemModal() { document.getElementById("itemModal").classList.remove("open"); }
+
+      function updateItemPrice() {
+        const cost = Number(document.getElementById("itemModalCost").value) || 0;
+        const pct = Number(document.getElementById("itemModalOverhead").value) || 0;
+        const price = cost * (1 + pct / 100);
+        document.getElementById("itemModalPrice").textContent = price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      document.getElementById("itemModalCost").oninput = updateItemPrice;
+      document.getElementById("itemModalOverhead").oninput = updateItemPrice;
+
+      document.getElementById("itemModalCancel").onclick = closeItemModal;
+      document.getElementById("itemModal").onclick = (e) => { if (e.target === e.currentTarget) closeItemModal(); };
+      document.getElementById("itemModalSave").onclick = async () => {
+        const body = {
+          item_code: document.getElementById("itemModalCode").value.trim(),
+          name: document.getElementById("itemModalName").value.trim(),
+          description: document.getElementById("itemModalDesc").value.trim(),
+          unit: document.getElementById("itemModalUnit").value,
+          base_cost: Number(document.getElementById("itemModalCost").value) || 0,
+          overhead_pct: Number(document.getElementById("itemModalOverhead").value) || 40,
+        };
+        if (!body.name) { showToast("اسم البند مطلوب"); return; }
+        if (editingItemId !== null) {
+          await api(`/price-list/items/${editingItemId}`, { method: "PUT", body: JSON.stringify(body) });
+          showToast("تم تعديل البند");
+        } else {
+          await api(`/price-list/${activeCategoryId}/items`, { method: "POST", body: JSON.stringify(body) });
+          showToast("تمت إضافة البند");
+        }
+        closeItemModal();
+        await loadItems();
+        await loadCategories();
+      };
+
+      document.getElementById("addCatBtn").onclick = () => openCatModal();
+
+      // ---- Init ----
+      (async function init() {
+        document.getElementById("userName").textContent = currentUser.name;
+        document.getElementById("roleBadge").textContent =
+          currentUser.role === "admin" ? "مدير" : currentUser.role === "owner" ? "مالك" : "مصمم";
+        if (isOwnerOrAdmin) document.getElementById("adminLink").style.display = "inline-block";
+        document.getElementById("logoutBtn").onclick = () => {
+          localStorage.removeItem("token"); localStorage.removeItem("user");
+          window.location.href = "/index.html";
+        };
+        await loadCategories();
+      })();
+    </script>
+  </body>
+</html>
