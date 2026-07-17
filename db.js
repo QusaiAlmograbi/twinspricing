@@ -697,35 +697,106 @@ async function seedDefaultPriceList() {
   if (existing) return;
 
   const categories = [
-    { name: "البلاط", sort_order: 0 },
-    { name: "الإضاءة", sort_order: 1 },
-    { name: "السباكة", sort_order: 2 },
-    { name: "الكهرباء", sort_order: 3 },
-    { name: "الجبس", sort_order: 4 },
-    { name: "الدهانات", sort_order: 5 },
-    { name: "الأرضيات", sort_order: 6 },
-    { name: "النجارة", sort_order: 7 },
-    { name: "المطابخ", sort_order: 8 },
-    { name: "الحمامات", sort_order: 9 },
+    { name: "أعمال الجبسيومبورد", sort_order: 0 },
+    { name: "أعمال الدهان", sort_order: 1 },
+    { name: "أعمال القصارة", sort_order: 2 },
+    { name: "أعمال البلاط والرخام", sort_order: 3 },
+    { name: "أعمال التدفئة", sort_order: 4 },
+    { name: "أعمال الصحي", sort_order: 5 },
+    { name: "أعمال خزان المياه والبركة", sort_order: 6 },
+    { name: "أعمال المجاري", sort_order: 7 },
+    { name: "أعمال الحدائق", sort_order: 8 },
   ];
 
   const items = [
-    { catIdx: 0, item_code: "TILE-001", name: "بلاط بورسلين 60x60", description: "بلاط بورسلين لامع مقاس 60x60 سم", unit: "م²", base_cost: 45, overhead_pct: 40 },
-    { catIdx: 0, item_code: "TILE-002", name: "بلاط بورسلين 80x80", description: "بلاط بورسلين لامع مقاس 80x80 سم", unit: "م²", base_cost: 65, overhead_pct: 40 },
-    { catIdx: 0, item_code: "TILE-003", name: "بلاط سيراميك 30x60", description: "بلاط سيراميك للمطابخ والحمامات", unit: "م²", base_cost: 25, overhead_pct: 40 },
-    { catIdx: 0, item_code: "TILE-004", name: "بلاط موزاييك", description: "بلاط موزاييك للحمامات", unit: "م²", base_cost: 55, overhead_pct: 40 },
-    { catIdx: 1, item_code: "LGT-001", name: "سبوت سيلينج", description: "سبوت سيلينج LED مخفي", unit: "مقطوع", base_cost: 35, overhead_pct: 40 },
-    { catIdx: 1, item_code: "LGT-002", name: "شريط LED", description: "شريط إضاءة LED خفي للجبس", unit: "متر طولي", base_cost: 15, overhead_pct: 40 },
-    { catIdx: 1, item_code: "LGT-003", name: "نجمة إضاءة", description: "نجمة إضاءة سقف مخفي", unit: "مقطوع", base_cost: 25, overhead_pct: 40 },
-    { catIdx: 1, item_code: "LGT-004", name: "كشاف حائط", description: "كشاف إضاءة حائط ديكوري", unit: "مقطوع", base_cost: 45, overhead_pct: 40 },
-    { catIdx: 2, item_code: "PLB-001", name: "حوض مغسلة", description: "حوض مغسلة سيراميك", unit: "مقطوع", base_cost: 80, overhead_pct: 40 },
-    { catIdx: 2, item_code: "PLB-002", name: "حنفيه مغسلة", description: "حنفيه مغسلة كروم", unit: "مقطوع", base_cost: 65, overhead_pct: 40 },
-    { catIdx: 3, item_code: "ELC-001", name: "لوحة كهرباء", description: "لوحة توزيع كهرباء 12 دائرة", unit: "مقطوع", base_cost: 120, overhead_pct: 40 },
-    { catIdx: 3, item_code: "ELC-002", name: "مقابس كهربائية", description: "مقابس كهربائية ستاندر", unit: "عدد", base_cost: 12, overhead_pct: 40 },
-    { catIdx: 4, item_code: "GYM-001", name: "جبس بورد سقف", description: "تركيب جبس بورد سقف مخفي", unit: "م²", base_cost: 35, overhead_pct: 40 },
-    { catIdx: 4, item_code: "GYM-002", name: "كرانيش جبس", description: "كرانيش جبس بورد ديكوري", unit: "متر طولي", base_cost: 20, overhead_pct: 40 },
-    { catIdx: 5, item_code: "PNT-001", name: "دهان جوتن", description: "طبختين دهان جوتن قابل للغسيل", unit: "م²", base_cost: 12, overhead_pct: 40 },
-    { catIdx: 5, item_code: "PNT-002", name: "دهان سقف", description: "دهان سقف جوتن أبيض", unit: "م²", base_cost: 8, overhead_pct: 40 },
+    // --- أعمال الجبسيومبورد (0) ---
+    { catIdx: 0, code: "GYM-001", name: "اعمال الاسقف جبسيوم بورد", unit: "م²", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-002", name: "اعمال شراشف", unit: "م ط", selling_price: 2.7 },
+    { catIdx: 0, code: "GYM-003", name: "اعمال شراشف انارة", unit: "م ط", selling_price: 4.725 },
+    { catIdx: 0, code: "GYM-004", name: "اعمال قواطع جبسيوم بورد", unit: "م²", selling_price: 16.2 },
+    { catIdx: 0, code: "GYM-005", name: "اعمال كرنيشة انارة (سم جبص 40)", unit: "م ط", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-006", name: "اعمال كرنيشة سقف (سم جبص 10)", unit: "م ط", selling_price: 5.4 },
+    { catIdx: 0, code: "GYM-007", name: "اعمال كرنيشة جدار (سم جبص 25)", unit: "م ط", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-008", name: "اعمال كرنيشة شبك (سم جبص 50)", unit: "م ط", selling_price: 13.5 },
+    { catIdx: 0, code: "GYM-009", name: "اعمال براويز جبص فريمات بالجدران", unit: "م ط", selling_price: 9.45 },
+    { catIdx: 0, code: "GYM-010", name: "اعمال كرنيشة في البراويز", unit: "وحدة", selling_price: 20.25 },
+    { catIdx: 0, code: "GYM-011", name: "اعمال زخرفة تاج", unit: "وحدة", selling_price: 27 },
+    { catIdx: 0, code: "GYM-012", name: "اعمال براويز جبص حول الشبابيك", unit: "م ط", selling_price: 9.45 },
+    { catIdx: 0, code: "GYM-013", name: "اعمال بحرة جبص زخرفة", unit: "وحدة", selling_price: 67.5 },
+    { catIdx: 0, code: "GYM-014", name: "اعمال جبص نحت", unit: "وحدة", selling_price: 675 },
+    { catIdx: 0, code: "GYM-015", name: "فتحات صيانة", unit: "وحدة", selling_price: 27 },
+
+    // --- أعمال الدهان (1) ---
+    { catIdx: 1, code: "PNT-001", name: "اعمال دهان الاسقف", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-002", name: "اعمال دهان قواطع الجدران سادة / الوان 2+", unit: "م²", selling_price: 3.375 },
+    { catIdx: 1, code: "PNT-003", name: "اعمال دهان الكرانيش", unit: "م ط", selling_price: 2.025 },
+    { catIdx: 1, code: "PNT-004", name: "اعمال دهان الجدران", unit: "م²", selling_price: 3.375 },
+    { catIdx: 1, code: "PNT-005", name: "اعمال زخرفة تاج", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-006", name: "اعمال بحرة جبص زخرفة", unit: "م²", selling_price: 6.75 },
+    { catIdx: 1, code: "PNT-007", name: "اعمال كرنيشة في البراويز", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-008", name: "اعمال دهان البراويز", unit: "م ط", selling_price: 1.35 },
+
+    // --- أعمال القصارة (2) ---
+    { catIdx: 2, code: "PLS-001", name: "قصارة جدران", unit: "م²", selling_price: 9.45 },
+    { catIdx: 2, code: "PLS-002", name: "قصارة مسطح", unit: "م²", selling_price: 4.05 },
+
+    // --- أعمال البلاط والرخام (3) ---
+    { catIdx: 3, code: "TLR-001", name: "اعمال بلاط ارضيات رخام", unit: "م²", selling_price: 54 },
+    { catIdx: 3, code: "TLR-002", name: "اعمال بلاط ارضيات بورسلان", unit: "م²", selling_price: 27 },
+    { catIdx: 3, code: "TLR-003", name: "جدران الحمامات بورسلان", unit: "م²", selling_price: 27 },
+    { catIdx: 3, code: "TLR-004", name: "اعمال بانيل رخام", unit: "م ط", selling_price: 20.25 },
+    { catIdx: 3, code: "TLR-005", name: "اعمال بورد رخام", unit: "م ط", selling_price: 13.5 },
+    { catIdx: 3, code: "TLR-006", name: "رخام الدرج الداخلي", unit: "وحدة", selling_price: 54 },
+    { catIdx: 3, code: "TLR-007", name: "رخام درج الخدمات", unit: "وحدة", selling_price: 27 },
+    { catIdx: 3, code: "TLR-008", name: "بسطة الدرج رخام", unit: "وحدة", selling_price: 27 },
+    { catIdx: 3, code: "TLR-009", name: "رسمة المدخل ووترجت", unit: "وحدة", selling_price: 5400 },
+    { catIdx: 3, code: "TLR-010", name: "البراطيش", unit: "م²", selling_price: 13.5 },
+    { catIdx: 3, code: "TLR-011", name: "المصارف", unit: "وحدة", selling_price: 20.25 },
+
+    // --- أعمال التدفئة (4) ---
+    { catIdx: 4, code: "HTR-001", name: "تركيب خزانة التدفئة تحت البلاط", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 4, code: "HTR-002", name: "تركيب شبكات انابيب التدفئة تحت البلاط", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 4, code: "HTR-003", name: "نقطة فرعية: بويلر غاز", unit: "مقطوع", selling_price: 472.5 },
+    { catIdx: 4, code: "HTR-004", name: "نقطة فرعية: بويلر ديزل", unit: "مقطوع", selling_price: 675 },
+    { catIdx: 4, code: "HTR-005", name: "نقطة فرعية: بويلر سلندر ماء", unit: "مقطوع", selling_price: 607.5 },
+    { catIdx: 4, code: "HTR-006", name: "تركيب مدخنة بويلر عمودية", unit: "مقطوع", selling_price: 13.5 },
+    { catIdx: 4, code: "HTR-007", name: "تمديد خطوط رئيسية داخل المنور", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 4, code: "HTR-008", name: "تركيب طفايات حريق لغرفة البويلر", unit: "مقطوع", selling_price: 20.25 },
+    { catIdx: 4, code: "HTR-009", name: "تمديد روديتر تدفئة", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 4, code: "HTR-010", name: "تركيب خزان ديزل 2 م²", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 4, code: "HTR-011", name: "تمديد خطوط تعبئة خزان الديزل", unit: "مقطوع", selling_price: 337.5 },
+
+    // --- أعمال الصحي (5) ---
+    { catIdx: 5, code: "PLB-001", name: "حمام معلق مكون من اربع قطع", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 5, code: "PLB-002", name: "حمام عادي معلق مكون من اربع قطع", unit: "مقطوع", selling_price: 303.75 },
+    { catIdx: 5, code: "PLB-003", name: "انش2 خط + خط بارد + مطبخ خط ساخن", unit: "مقطوع", selling_price: 236.25 },
+    { catIdx: 5, code: "PLB-004", name: "تركيب خزانة الصحي المياه", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 5, code: "PLB-005", name: "تاسيس خطوط غاز من غرفة الغاز الى المطابخ", unit: "مقطوع", selling_price: 3375 },
+    { catIdx: 5, code: "PLB-006", name: "انش4 غرفة غسيل تمديد خط مجاري", unit: "مقطوع", selling_price: 236.25 },
+    { catIdx: 5, code: "PLB-007", name: "حمام ضيوف او خادمة مكون من ثلاث قطع", unit: "مقطوع", selling_price: 270 },
+    { catIdx: 5, code: "PLB-008", name: "تاسيس خطوط مكيفات وتوصيلها مع الفلترايات", unit: "مقطوع", selling_price: 33.75 },
+
+    // --- أعمال خزان المياه والبركة (6) ---
+    { catIdx: 6, code: "TKN-001", name: "رفع خزان ماء 2 م وشبكه مع شبكة المياه", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 6, code: "TKN-002", name: "اعمال البركة حسب المخطط", unit: "مقطوع", selling_price: 810 },
+    { catIdx: 6, code: "TKN-003", name: "تاسيس خطوط سوفتنر للمسبح", unit: "مقطوع", selling_price: 202.5 },
+    { catIdx: 6, code: "TKN-004", name: "تاسيس وتركيب نظام شمسي solar system", unit: "مقطوع", selling_price: 607.5 },
+
+    // --- أعمال المجاري (7) ---
+    { catIdx: 7, code: "SWR-001", name: "انش4 خطوط تصريف مجاري", unit: "مقطوع", selling_price: 5.4 },
+    { catIdx: 7, code: "SWR-002", name: "حمام الحارس وتركيب", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 7, code: "SWR-003", name: "تمديد خطوط حدائق نصف انش", unit: "مقطوع", selling_price: 472.5 },
+    { catIdx: 7, code: "SWR-004", name: "منهل عمق 90 سم", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 7, code: "SWR-005", name: "منهل عمق 160-90 سم", unit: "مقطوع", selling_price: 101.25 },
+    { catIdx: 7, code: "SWR-006", name: "منهل عمق 200-160 سم", unit: "مقطوع", selling_price: 270 },
+    { catIdx: 7, code: "SWR-007", name: "منهل عمق 300-200 سم", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 7, code: "SWR-008", name: "انش6 خط مجاري", unit: "مقطوع", selling_price: 8.1 },
+    { catIdx: 7, code: "SWR-009", name: "انش4 خط مجاري", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 7, code: "SWR-010", name: "انش3 خط مجاري", unit: "مقطوع", selling_price: 4.05 },
+    { catIdx: 7, code: "SWR-011", name: "انش2 خط مجاري", unit: "مقطوع", selling_price: 4.05 },
+
+    // --- أعمال الحدائق (8) ---
+    { catIdx: 8, code: "GRD-001", name: "تمديد خطوط حدائق وتركيب الحنفيات", unit: "مقطوع", selling_price: 472.5 },
   ];
 
   const catIdMap = {};
@@ -740,13 +811,13 @@ async function seedDefaultPriceList() {
   for (const item of items) {
     const catId = catIdMap[item.catIdx];
     if (!catId) continue;
-    const baseCost = Number(item.base_cost) || 0;
-    const overheadPct = Number(item.overhead_pct) || 40;
-    const sellingPrice = baseCost * (1 + overheadPct / 100);
+    const sp = Number(item.selling_price) || 0;
+    const overheadPct = 40;
+    const baseCost = sp / (1 + overheadPct / 100);
     await db.prepare(
       `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(catId, item.item_code, item.name, item.description || "", item.unit || "عدد", baseCost, overheadPct, sellingPrice);
+    ).run(catId, item.code, item.name, "", item.unit || "مقطوع", Math.round(baseCost * 1000) / 1000, overheadPct, sp);
   }
 }
 
