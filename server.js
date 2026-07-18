@@ -43,7 +43,11 @@ function createApp() {
   app.use("/api/profile", profileRoutes);
   app.use("/api/price-list", priceListRoutes);
 
-  app.use(express.static(path.join(__dirname, "public")));
+  app.use(express.static(path.join(__dirname, "public"), {
+    maxAge: 0,
+    etag: false,
+    lastModified: false,
+  }));
 
   app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
   app.get("/app", (req, res) =>
