@@ -509,20 +509,6 @@
       }
       .category-tab.active .cat-count { background: rgba(201,168,76,0.25); }
 
-      .category-active-indicator {
-        display: flex; align-items: center; gap: 8px;
-        padding: 8px 14px; margin-bottom: 10px;
-        background: var(--gold-glow-strong); border: 1px solid var(--gold-dim);
-        border-radius: 8px; font-size: 13px; font-weight: 700;
-        color: var(--gold); direction: rtl;
-      }
-      .category-active-indicator .indicator-icon {
-        font-size: 14px; opacity: 0.8;
-      }
-      .category-active-indicator .indicator-label {
-        opacity: 0.7; font-weight: 400; font-size: 12px;
-      }
-
       .cat-search-row {
         display: flex; gap: 6px; margin-bottom: 10px; position: relative;
       }
@@ -1051,24 +1037,6 @@
           catTabsHtml += `</div>`;
         }
 
-        // Active category indicator (persistent label)
-        let catIndicatorHtml = '';
-        {
-          let indicatorName = '';
-          if (activeCategoryTab === '__unclassified__') {
-            indicatorName = 'غير مصنف';
-          } else if (activeCategoryTab != null) {
-            indicatorName = allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '';
-          }
-          if (indicatorName) {
-            catIndicatorHtml = `<div class="category-active-indicator">
-              <span class="indicator-icon">▶</span>
-              <span>${escapeAttr(indicatorName)}</span>
-              <span class="indicator-label">— التصنيف النشط حالياً</span>
-            </div>`;
-          }
-        }
-
         // Search row (always visible)
         let searchHtml = '';
         {
@@ -1126,7 +1094,6 @@
             <button class="btn-delete-sec" id="deleteSecBtn">حذف القسم</button>
           </div>
           ${catTabsHtml}
-          ${catIndicatorHtml}
           ${searchHtml}
           ${items.length
             ? `<table class="items"><thead><tr>
