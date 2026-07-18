@@ -31,10 +31,44 @@ router.get("/diagnostic", asyncHandler(async (req, res) => {
   const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
 
+  let itemsWithCategoryId = null;
+  let itemsWithoutCategoryId = null;
+  let itemsCategoryIdColumnExists = false;
+
+  try {
+    const colCheck = await db.prepare(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'items' AND column_name = 'category_id'`
+    ).get();
+    itemsCategoryIdColumnExists = !!colCheck;
+  } catch {
+    // SQLite — use PRAGMA
+    try {
+      const cols = await db.prepare("PRAGMA table_info(items)").all();
+      itemsCategoryIdColumnExists = cols.some(c => c.name === "category_id");
+    } catch {
+      itemsCategoryIdColumnExists = false;
+    }
+  }
+
+  if (itemsCategoryIdColumnExists) {
+    try {
+      const withCat = await db.prepare("SELECT COUNT(*) as count FROM items WHERE category_id IS NOT NULL").get();
+      const withoutCat = await db.prepare("SELECT COUNT(*) as count FROM items WHERE category_id IS NULL").get();
+      itemsWithCategoryId = withCat?.count ?? 0;
+      itemsWithoutCategoryId = withoutCat?.count ?? 0;
+    } catch {
+      // ignore
+    }
+  }
+
   res.json({
     database: process.env.DATABASE_URL ? "PostgreSQL" : "SQLite",
     price_categories_count: catCount?.count ?? 0,
     price_items_count: itemCount?.count ?? 0,
+    items_category_id_column_exists: itemsCategoryIdColumnExists,
+    items_with_category_id: itemsWithCategoryId,
+    items_without_category_id: itemsWithoutCategoryId,
   });
 }));
 

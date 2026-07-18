@@ -341,7 +341,8 @@ async function initializeDatabase() {
           overhead_pct REAL NOT NULL DEFAULT 35,
           selling_price REAL NOT NULL DEFAULT 0,
           notes TEXT NOT NULL DEFAULT '',
-          sort_order INTEGER NOT NULL DEFAULT 0
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          category_id INTEGER REFERENCES price_categories(id) ON DELETE SET NULL
         );
 
         CREATE TABLE IF NOT EXISTS quote_templates (
@@ -513,7 +514,8 @@ async function initializeDatabase() {
         overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 35,
         selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
         notes TEXT NOT NULL DEFAULT '',
-        sort_order INTEGER NOT NULL DEFAULT 0
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        category_id BIGINT REFERENCES price_categories(id) ON DELETE SET NULL
       );
 
       CREATE TABLE IF NOT EXISTS quote_templates (
