@@ -2066,7 +2066,11 @@
         state.discountType = quote.discount_type || "fixed";
         state.executionDays = quote.execution_days || 45;
         state.validityDays = quote.validity_days || 30;
-        try { state.paymentTerms = JSON.parse(quote.payment_terms || "[]"); } catch { state.paymentTerms = []; }
+        try {
+          state.paymentTerms = Array.isArray(quote.payment_terms)
+            ? quote.payment_terms
+            : JSON.parse(quote.payment_terms || "[]");
+        } catch { state.paymentTerms = []; }
 
         sections = (quote.sections || []).map(s => ({
           ...s,
