@@ -7,6 +7,8 @@ let sqliteDb = null;
 let initializationPromise = null;
 let Database = null;
 
+const CURRENT_DATA_VERSION = 1;
+
 function loadSqlite() {
   if (!Database) {
     Database = require("better-sqlite3");
@@ -357,7 +359,8 @@ async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS price_categories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
-          sort_order INTEGER NOT NULL DEFAULT 0
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'default'
         );
 
         CREATE TABLE IF NOT EXISTS price_items (
@@ -370,7 +373,13 @@ async function initializeDatabase() {
           base_cost REAL NOT NULL DEFAULT 0,
           overhead_pct REAL NOT NULL DEFAULT 35,
           selling_price REAL NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'default',
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
         );
       `);
 
@@ -391,9 +400,12 @@ async function initializeDatabase() {
         "INTEGER REFERENCES price_categories(id) ON DELETE SET NULL",
       );
 
+      await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
+      await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");
+
       console.log("[db] SQLite tables created, seeding defaults...");
       await seedDefaultTemplates();
-      await seedDefaultPriceList();
+      await smartMergeDefaultPriceList();
       await ensureSeeded();
       console.log("[db] initializeDatabase complete.");
 
@@ -530,7 +542,8 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS price_categories (
         id BIGSERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        source TEXT NOT NULL DEFAULT 'default'
       );
 
       CREATE TABLE IF NOT EXISTS price_items (
@@ -543,7 +556,13 @@ async function initializeDatabase() {
         base_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
         overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 35,
         selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+        source TEXT NOT NULL DEFAULT 'default',
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       );
     `);
 
@@ -564,9 +583,12 @@ async function initializeDatabase() {
       "BIGINT REFERENCES price_categories(id) ON DELETE SET NULL",
     );
 
+    await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
+    await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");
+
     console.log("[db] PostgreSQL tables created, seeding defaults...");
     await seedDefaultTemplates();
-    await seedDefaultPriceList();
+    await smartMergeDefaultPriceList();
     await ensureSeeded();
     console.log("[db] initializeDatabase complete.");
 
@@ -889,6 +911,220 @@ async function seedDefaultPriceList() {
   console.log(`[seed] seedDefaultPriceList done: ${categories.length} categories, ${itemsInserted} items inserted, ${itemsFailed} failed.`);
 }
 
+async function smartMergeDefaultPriceList() {
+  console.log("[seed] smartMergeDefaultPriceList: checking versions...");
+
+  let storedVersion = 0;
+  try {
+    const row = await db.prepare("SELECT value FROM app_settings WHERE key = 'data_version'").get();
+    if (row) storedVersion = parseInt(row.value, 10) || 0;
+  } catch {
+    // app_settings table might not exist yet on first run
+  }
+
+  console.log(`[seed] Code version: ${CURRENT_DATA_VERSION}, Stored version: ${storedVersion}`);
+
+  if (storedVersion >= CURRENT_DATA_VERSION) {
+    console.log("[seed] Data is up to date, no merge needed.");
+    return;
+  }
+
+  const defaultCategories = [
+    { name: "أعمال الجبسيومبورد", sort_order: 0 },
+    { name: "أعمال الدهان", sort_order: 1 },
+    { name: "أعمال القصارة", sort_order: 2 },
+    { name: "أعمال البلاط والرخام", sort_order: 3 },
+    { name: "أعمال التدفئة", sort_order: 4 },
+    { name: "أعمال الصحي", sort_order: 5 },
+    { name: "أعمال خزان المياه والبركة", sort_order: 6 },
+    { name: "أعمال المجاري", sort_order: 7 },
+    { name: "أعمال الحدائق", sort_order: 8 },
+    { name: "الأعمال الكهربائية", sort_order: 9 },
+  ];
+
+  const defaultItems = [
+    { catIdx: 0, code: "GYM-001", name: "اعمال الاسقف جبسيوم بورد", unit: "م²", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-002", name: "اعمال شراشف", unit: "م ط", selling_price: 2.7 },
+    { catIdx: 0, code: "GYM-003", name: "اعمال شراشف انارة", unit: "م ط", selling_price: 4.725 },
+    { catIdx: 0, code: "GYM-004", name: "اعمال قواطع جبسيوم بورد", unit: "م²", selling_price: 16.2 },
+    { catIdx: 0, code: "GYM-005", name: "اعمال كرنيشة انارة (سم جبص 40)", unit: "م ط", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-006", name: "اعمال كرنيشة سقف (سم جبص 10)", unit: "م ط", selling_price: 5.4 },
+    { catIdx: 0, code: "GYM-007", name: "اعمال كرنيشة جدار (سم جبص 25)", unit: "م ط", selling_price: 10.8 },
+    { catIdx: 0, code: "GYM-008", name: "اعمال كرنيشة شبك (سم جبص 50)", unit: "م ط", selling_price: 13.5 },
+    { catIdx: 0, code: "GYM-009", name: "اعمال براويز جبص فريمات بالجدران", unit: "م ط", selling_price: 9.45 },
+    { catIdx: 0, code: "GYM-010", name: "اعمال كرنيشة في البراويز", unit: "وحدة", selling_price: 20.25 },
+    { catIdx: 0, code: "GYM-011", name: "اعمال زخرفة تاج", unit: "وحدة", selling_price: 27 },
+    { catIdx: 0, code: "GYM-012", name: "اعمال براويز جبص حول الشبابيك", unit: "م ط", selling_price: 9.45 },
+    { catIdx: 0, code: "GYM-013", name: "اعمال بحرة جبص زخرفة", unit: "وحدة", selling_price: 67.5 },
+    { catIdx: 0, code: "GYM-014", name: "اعمال جبص نحت", unit: "وحدة", selling_price: 675 },
+    { catIdx: 0, code: "GYM-015", name: "فتحات صيانة", unit: "وحدة", selling_price: 27 },
+
+    { catIdx: 1, code: "PNT-001", name: "اعمال دهان الاسقف", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-002", name: "اعمال دهان قواطع الجدران سادة / الوان 2+", unit: "م²", selling_price: 3.375 },
+    { catIdx: 1, code: "PNT-003", name: "اعمال دهان الكرانيش", unit: "م ط", selling_price: 2.025 },
+    { catIdx: 1, code: "PNT-004", name: "اعمال دهان الجدران", unit: "م²", selling_price: 3.375 },
+    { catIdx: 1, code: "PNT-005", name: "اعمال زخرفة تاج", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-006", name: "اعمال بحرة جبص زخرفة", unit: "م²", selling_price: 6.75 },
+    { catIdx: 1, code: "PNT-007", name: "اعمال كرنيشة في البراويز", unit: "م²", selling_price: 4.05 },
+    { catIdx: 1, code: "PNT-008", name: "اعمال دهان البراويز", unit: "م ط", selling_price: 1.35 },
+
+    { catIdx: 2, code: "PLS-001", name: "قصارة جدران", unit: "م²", selling_price: 9.45 },
+    { catIdx: 2, code: "PLS-002", name: "قصارة مسطح", unit: "م²", selling_price: 4.05 },
+
+    { catIdx: 3, code: "TLR-001", name: "اعمال بلاط ارضيات رخام", unit: "م²", selling_price: 54 },
+    { catIdx: 3, code: "TLR-002", name: "اعمال بلاط ارضيات بورسلان", unit: "م²", selling_price: 27 },
+    { catIdx: 3, code: "TLR-003", name: "جدران الحمامات بورسلان", unit: "م²", selling_price: 27 },
+    { catIdx: 3, code: "TLR-004", name: "اعمال بانيل رخام", unit: "م ط", selling_price: 20.25 },
+    { catIdx: 3, code: "TLR-005", name: "اعمال بورد رخام", unit: "م ط", selling_price: 13.5 },
+    { catIdx: 3, code: "TLR-006", name: "رخام الدرج الداخلي", unit: "وحدة", selling_price: 54 },
+    { catIdx: 3, code: "TLR-007", name: "رخام درج الخدمات", unit: "وحدة", selling_price: 27 },
+    { catIdx: 3, code: "TLR-008", name: "بسطة الدرج رخام", unit: "وحدة", selling_price: 27 },
+    { catIdx: 3, code: "TLR-009", name: "رسمة المدخل ووترجت", unit: "وحدة", selling_price: 5400 },
+    { catIdx: 3, code: "TLR-010", name: "البراطيش", unit: "م²", selling_price: 13.5 },
+    { catIdx: 3, code: "TLR-011", name: "المصارف", unit: "وحدة", selling_price: 20.25 },
+
+    { catIdx: 4, code: "HTR-001", name: "تركيب خزانة التدفئة تحت البلاط", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 4, code: "HTR-002", name: "تركيب شبكات انابيب التدفئة تحت البلاط", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 4, code: "HTR-003", name: "نقطة فرعية: بويلر غاز", unit: "مقطوع", selling_price: 472.5 },
+    { catIdx: 4, code: "HTR-004", name: "نقطة فرعية: بويلر ديزل", unit: "مقطوع", selling_price: 675 },
+    { catIdx: 4, code: "HTR-005", name: "نقطة فرعية: بويلر سلندر ماء", unit: "مقطوع", selling_price: 607.5 },
+    { catIdx: 4, code: "HTR-006", name: "تركيب مدخنة بويلر عمودية", unit: "مقطوع", selling_price: 13.5 },
+    { catIdx: 4, code: "HTR-007", name: "تمديد خطوط رئيسية داخل المنور", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 4, code: "HTR-008", name: "تركيب طفايات حريق لغرفة البويلر", unit: "مقطوع", selling_price: 20.25 },
+    { catIdx: 4, code: "HTR-009", name: "تمديد روديتر تدفئة", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 4, code: "HTR-010", name: "تركيب خزان ديزل 2 م²", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 4, code: "HTR-011", name: "تمديد خطوط تعبئة خزان الديزل", unit: "مقطوع", selling_price: 337.5 },
+
+    { catIdx: 5, code: "PLB-001", name: "حمام معلق مكون من اربع قطع", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 5, code: "PLB-002", name: "حمام عادي معلق مكون من اربع قطع", unit: "مقطوع", selling_price: 303.75 },
+    { catIdx: 5, code: "PLB-003", name: "انش2 خط + خط بارد + مطبخ خط ساخن", unit: "مقطوع", selling_price: 236.25 },
+    { catIdx: 5, code: "PLB-004", name: "تركيب خزانة الصحي المياه", unit: "مقطوع", selling_price: 60.75 },
+    { catIdx: 5, code: "PLB-005", name: "تاسيس خطوط غاز من غرفة الغاز الى المطابخ", unit: "مقطوع", selling_price: 3375 },
+    { catIdx: 5, code: "PLB-006", name: "انش4 غرفة غسيل تمديد خط مجاري", unit: "مقطوع", selling_price: 236.25 },
+    { catIdx: 5, code: "PLB-007", name: "حمام ضيوف او خادمة مكون من ثلاث قطع", unit: "مقطوع", selling_price: 270 },
+    { catIdx: 5, code: "PLB-008", name: "تاسيس خطوط مكيفات وتوصيلها مع الفلترايات", unit: "مقطوع", selling_price: 33.75 },
+
+    { catIdx: 6, code: "TKN-001", name: "رفع خزان ماء 2 م وشبكه مع شبكة المياه", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 6, code: "TKN-002", name: "اعمال البركة حسب المخطط", unit: "مقطوع", selling_price: 810 },
+    { catIdx: 6, code: "TKN-003", name: "تاسيس خطوط سوفتنر للمسبح", unit: "مقطوع", selling_price: 202.5 },
+    { catIdx: 6, code: "TKN-004", name: "تاسيس وتركيب نظام شمسي solar system", unit: "مقطوع", selling_price: 607.5 },
+
+    { catIdx: 7, code: "SWR-001", name: "انش4 خطوط تصريف مجاري", unit: "مقطوع", selling_price: 5.4 },
+    { catIdx: 7, code: "SWR-002", name: "حمام الحارس وتركيب", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 7, code: "SWR-003", name: "تمديد خطوط حدائق نصف انش", unit: "مقطوع", selling_price: 472.5 },
+    { catIdx: 7, code: "SWR-004", name: "منهل عمق 90 سم", unit: "مقطوع", selling_price: 67.5 },
+    { catIdx: 7, code: "SWR-005", name: "منهل عمق 160-90 سم", unit: "مقطوع", selling_price: 101.25 },
+    { catIdx: 7, code: "SWR-006", name: "منهل عمق 200-160 سم", unit: "مقطوع", selling_price: 270 },
+    { catIdx: 7, code: "SWR-007", name: "منهل عمق 300-200 سم", unit: "مقطوع", selling_price: 337.5 },
+    { catIdx: 7, code: "SWR-008", name: "انش6 خط مجاري", unit: "مقطوع", selling_price: 8.1 },
+    { catIdx: 7, code: "SWR-009", name: "انش4 خط مجاري", unit: "مقطوع", selling_price: 6.75 },
+    { catIdx: 7, code: "SWR-010", name: "انش3 خط مجاري", unit: "مقطوع", selling_price: 4.05 },
+    { catIdx: 7, code: "SWR-011", name: "انش2 خط مجاري", unit: "مقطوع", selling_price: 4.05 },
+
+    { catIdx: 8, code: "GRD-001", name: "تمديد خطوط حدائق وتركيب الحنفيات", unit: "مقطوع", selling_price: 472.5 },
+
+    { catIdx: 9, code: "01", name: "نقطة ابريز كاملة", unit: "وحدة", selling_price: 36.00 },
+    { catIdx: 9, code: "02", name: "نقل نقطة ابريز", unit: "وحدة", selling_price: 18.00 },
+    { catIdx: 9, code: "03", name: "نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "04", name: "نقل نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "05", name: "نقطة سبوت لايت", unit: "وحدة", selling_price: 24.00 },
+    { catIdx: 9, code: "06", name: "مفتاح انارة", unit: "وحدة", selling_price: 10.80 },
+    { catIdx: 9, code: "07", name: "نقطة ماجنتيك لايت", unit: "وحدة", selling_price: 26.40 },
+    { catIdx: 9, code: "08", name: "نقطة انارة مخفية", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "09", name: "نقطة مكيف 1 طن", unit: "وحدة", selling_price: 96.00 },
+    { catIdx: 9, code: "10", name: "نقطة مكيف 1.5 طن", unit: "وحدة", selling_price: 180.00 },
+    { catIdx: 9, code: "11", name: "نقل حساس غاز مع سلك ومواسير", unit: "وحدة", selling_price: 42.00 },
+    { catIdx: 9, code: "12", name: "نقل ثيرموستات مع سلك ومواسير", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "13", name: "نقطة ثيرموستات تكييف", unit: "وحدة", selling_price: 72.00 },
+    { catIdx: 9, code: "14", name: "نقطة انارة جدارية", unit: "وحدة", selling_price: 24.00 },
+    { catIdx: 9, code: "15", name: "نقطة انارة ثريا", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "16", name: "تركيب ليد بروفايل لايت", unit: "م.ط", selling_price: 6.00 },
+    { catIdx: 9, code: "17", name: "نقطة للشاشات", unit: "وحدة", selling_price: 78.00 },
+    { catIdx: 9, code: "18", name: "نقطة مع كيبل للشاشات", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "19", name: "تجميع لوحات وتوزيع أحمال", unit: "وحدة", selling_price: 144.00 },
+    { catIdx: 9, code: "20", name: "تغيير أسلاك أباريز وتوصيل مواسير أرضية", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "21", name: "توريد وتركيب سكة إنارة تراك ماجنتيك", unit: "م.ط", selling_price: 12.00 },
+    { catIdx: 9, code: "22", name: "توريد وتركيب محول إنارة تراك ماجنتيك", unit: "عدد", selling_price: 19.20 },
+    { catIdx: 9, code: "23", name: "تأسيس وتمديد 8 نقاط كاميرات وتوصيلهم لـ 3 شاشات", unit: "عدد", selling_price: 600.00 },
+  ];
+
+  const existingCats = await db.prepare("SELECT id, name FROM price_categories").all();
+  const catNameToId = {};
+  for (const c of existingCats) catNameToId[c.name] = c.id;
+
+  let catsAdded = 0;
+  const catIdMap = {};
+  for (let i = 0; i < defaultCategories.length; i++) {
+    const cat = defaultCategories[i];
+    if (catNameToId[cat.name]) {
+      catIdMap[i] = catNameToId[cat.name];
+    } else {
+      const info = await db.prepare(
+        "INSERT INTO price_categories (name, sort_order, source) VALUES (?, ?, 'default')"
+      ).run(cat.name, cat.sort_order);
+      catIdMap[i] = info.lastInsertRowid;
+      catsAdded++;
+      console.log(`[seed] merge: added category "${cat.name}" id=${catIdMap[i]}`);
+    }
+  }
+
+  const existingItems = await db.prepare(
+    "SELECT id, category_id, item_code, source, selling_price FROM price_items"
+  ).all();
+  const existingItemKeys = new Set();
+  const existingDefaultItems = new Map();
+  for (const it of existingItems) {
+    const key = `${it.category_id}:${it.item_code}`;
+    existingItemKeys.add(key);
+    if (it.source === 'default') {
+      existingDefaultItems.set(key, it);
+    }
+  }
+
+  let itemsAdded = 0;
+  let itemsUpdated = 0;
+  const overheadPct = 35;
+  for (const item of defaultItems) {
+    const catId = catIdMap[item.catIdx];
+    if (!catId) continue;
+    const key = `${catId}:${item.code}`;
+    const sp = Number(item.selling_price) || 0;
+    const bc = Math.round((sp / (1 + overheadPct / 100)) * 1000) / 1000;
+
+    if (!existingItemKeys.has(key)) {
+      await db.prepare(
+        `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price, source)
+         VALUES (?, ?, ?, '', ?, ?, ?, ?, 'default')`
+      ).run(catId, item.code, item.name, item.unit || "مقطوع", bc, overheadPct, sp);
+      itemsAdded++;
+    } else if (existingDefaultItems.has(key)) {
+      const existing = existingDefaultItems.get(key);
+      if (Math.abs((existing.selling_price || 0) - sp) > 0.001) {
+        await db.prepare(
+          "UPDATE price_items SET selling_price = ?, base_cost = ? WHERE id = ?"
+        ).run(sp, bc, existing.id);
+        itemsUpdated++;
+      }
+    }
+  }
+
+  await db.prepare("UPDATE price_categories SET source = 'default' WHERE source IS NULL OR source = ''").run();
+  await db.prepare("UPDATE price_items SET source = 'default' WHERE source IS NULL OR source = ''").run();
+
+  try {
+    const existingSetting = await db.prepare("SELECT key FROM app_settings WHERE key = 'data_version'").get();
+    if (existingSetting) {
+      await db.prepare("UPDATE app_settings SET value = ? WHERE key = 'data_version'").run(String(CURRENT_DATA_VERSION));
+    } else {
+      await db.prepare("INSERT INTO app_settings (key, value) VALUES ('data_version', ?)").run(String(CURRENT_DATA_VERSION));
+    }
+  } catch (err) {
+    console.error("[seed] Failed to update data_version:", err.message || err);
+  }
+
+  console.log(`[seed] smartMerge done: ${catsAdded} categories added, ${itemsAdded} items added, ${itemsUpdated} items updated.`);
+}
+
 async function ensureSeeded() {
   const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const catTotal = catCount?.count ?? 0;
@@ -905,7 +1141,7 @@ async function ensureSeeded() {
 
   console.log("[db] ⚠ Insufficient price list data, re-seeding...");
   await seedDefaultTemplates();
-  await seedDefaultPriceList();
+  await smartMergeDefaultPriceList();
 
   const recheckCats = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const recheckItems = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
@@ -951,6 +1187,7 @@ const db = {
   initializeDatabase,
   ensureSeeded,
   seedDefaultPriceList,
+  smartMergeDefaultPriceList,
 };
 
 module.exports = db;
@@ -959,3 +1196,4 @@ module.exports.resolveDatabasePath = resolveDatabasePath;
 module.exports.initializeDatabase = initializeDatabase;
 module.exports.ensureSeeded = ensureSeeded;
 module.exports.seedDefaultPriceList = seedDefaultPriceList;
+module.exports.smartMergeDefaultPriceList = smartMergeDefaultPriceList;
