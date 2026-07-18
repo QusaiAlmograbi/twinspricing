@@ -510,36 +510,87 @@
       .category-tab.active .cat-count { background: rgba(201,168,76,0.25); }
 
       .cat-search-row {
-        display: flex; gap: 6px; margin-bottom: 10px;
+        display: flex; gap: 6px; margin-bottom: 10px; position: relative;
       }
       .cat-search-input {
-        flex: 1; font-family: inherit; font-size: 13px; padding: 8px 12px;
+        flex: 1; font-family: inherit; font-size: 13px; padding: 10px 12px;
         border: 1px solid var(--pewter); border-radius: 8px;
         background: var(--surface-raised); color: var(--champagne);
+        transition: border-color 0.15s;
       }
       .cat-search-input::placeholder { color: var(--ash); opacity: 0.6; }
+      .cat-search-input:focus { border-color: var(--gold-dim); outline: none; }
+      .cat-search-clear {
+        position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; color: var(--ash); cursor: pointer;
+        font-size: 14px; padding: 2px 6px; border-radius: 4px; display: none;
+      }
+      .cat-search-clear:hover { color: var(--gold); background: var(--gold-glow); }
+      .cat-search-clear.visible { display: block; }
 
       .cat-search-results {
         position: absolute; top: 100%; right: 0; left: 0;
         background: var(--surface); border: 1px solid var(--pewter);
-        border-radius: 10px; max-height: 260px; overflow-y: auto;
+        border-radius: 10px; max-height: 320px; overflow-y: auto;
         z-index: 50; display: none;
         box-shadow: 0 8px 30px rgba(0,0,0,0.4);
       }
       .cat-search-results.open { display: block; }
+      .cat-search-results::-webkit-scrollbar { width: 5px; }
+      .cat-search-results::-webkit-scrollbar-track { background: transparent; }
+      .cat-search-results::-webkit-scrollbar-thumb { background: var(--pewter); border-radius: 3px; }
+
+      .cat-search-header {
+        padding: 8px 14px; font-size: 11px; font-weight: 600;
+        color: var(--ash); border-bottom: 1px solid var(--pewter);
+        display: flex; justify-content: space-between; align-items: center;
+        position: sticky; top: 0; background: var(--surface); z-index: 1;
+      }
+      .cat-search-header .result-count { color: var(--gold); }
+
       .cat-search-item {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 14px; cursor: pointer; transition: 0.1s;
+        padding: 10px 14px; cursor: pointer; transition: background 0.1s;
         border-bottom: 1px solid var(--pewter);
       }
       .cat-search-item:last-child { border-bottom: none; }
-      .cat-search-item:hover { background: var(--gold-glow); }
+      .cat-search-item:hover, .cat-search-item.highlighted {
+        background: var(--gold-glow);
+      }
+      .cat-search-item .csi-info { min-width: 0; flex: 1; }
       .cat-search-item .csi-name { font-size: 13px; font-weight: 600; color: var(--champagne); }
-      .cat-search-item .csi-code { font-size: 11px; color: var(--gold); }
-      .cat-search-item .csi-desc { font-size: 11px; color: var(--ash); }
-      .cat-search-item .csi-price { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; margin-right: 12px; }
-      .cat-search-item .csi-unit { font-size: 11px; color: var(--ash); margin-right: 8px; }
-      .cat-search-empty { text-align: center; color: var(--ash); font-size: 12px; padding: 20px; }
+      .cat-search-item .csi-code { font-size: 11px; color: var(--gold); font-weight: 600; }
+      .cat-search-item .csi-desc { font-size: 11px; color: var(--ash); margin-top: 1px; }
+      .cat-search-item .csi-meta { display: flex; align-items: center; gap: 8px; white-space: nowrap; margin-right: 12px; }
+      .cat-search-item .csi-price { font-size: 13px; font-weight: 700; color: var(--gold); }
+      .cat-search-item .csi-unit { font-size: 11px; color: var(--ash); }
+
+      .cat-search-item mark {
+        background: var(--gold-glow-strong); color: var(--gold);
+        border-radius: 2px; padding: 0 1px;
+      }
+      .cat-search-loading {
+        text-align: center; color: var(--ash); font-size: 12px; padding: 20px;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+      }
+      .cat-search-loading::before {
+        content: ""; width: 14px; height: 14px;
+        border: 2px solid var(--pewter); border-top-color: var(--gold);
+        border-radius: 50%; animation: spin 0.6s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .cat-search-empty {
+        text-align: center; color: var(--ash); font-size: 12.5px; padding: 24px 14px;
+      }
+      .cat-search-empty .empty-title { font-weight: 600; margin-bottom: 6px; color: var(--champagne); }
+      .cat-search-manual-btn {
+        margin-top: 8px; display: inline-block;
+        padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        background: var(--gold-glow); border: 1px solid var(--gold-dim);
+        color: var(--gold); cursor: pointer; font-family: inherit; transition: 0.15s;
+      }
+      .cat-search-manual-btn:hover { background: var(--gold-glow-strong); border-color: var(--gold); }
 
       @media (max-width: 860px) {
         .layout { flex-direction: column; }
@@ -906,8 +957,10 @@
         // Search row (only when a category tab is active)
         let searchHtml = '';
         if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
-          searchHtml = `<div class="cat-search-row" style="position:relative;">
-            <input class="cat-search-input" id="catSearchInput" type="text" placeholder="بحث في ${escapeAttr(allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '')} أو إضافة بند جديد..." />
+          const catName = allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '';
+          searchHtml = `<div class="cat-search-row">
+            <input class="cat-search-input" id="catSearchInput" type="text" placeholder="بحث في ${escapeAttr(catName)} — اكتب أو اضغط لعرض كل البنود..." autocomplete="off" />
+            <button class="cat-search-clear" id="catSearchClear" title="مسح">✕</button>
             <div class="cat-search-results" id="catSearchResults"></div>
           </div>`;
         }
@@ -983,76 +1036,181 @@
           };
         });
 
-        // Catalog search for active category
+        // ---- Item Search / Autocomplete ----
+        if (!window._itemSearchCache) window._itemSearchCache = {};
         const catSearchInput = document.getElementById("catSearchInput");
         const catSearchResults = document.getElementById("catSearchResults");
+        const catSearchClear = document.getElementById("catSearchClear");
         let catSearchTimeout = null;
+        let catHighlightIdx = -1;
+        let catCachedItems = [];
+
+        function fuzzyMatch(text, query) {
+          text = text.toLowerCase();
+          query = query.toLowerCase();
+          if (text.includes(query)) return true;
+          let qi = 0;
+          for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+            if (text[ti] === query[qi]) qi++;
+          }
+          return qi === query.length;
+        }
+
+        function highlightText(text, query) {
+          if (!query) return escapeAttr(text);
+          const lower = text.toLowerCase();
+          const qLower = query.toLowerCase();
+          const idx = lower.indexOf(qLower);
+          if (idx >= 0) {
+            const before = text.slice(0, idx);
+            const match = text.slice(idx, idx + query.length);
+            const after = text.slice(idx + query.length);
+            return escapeAttr(before) + '<mark>' + escapeAttr(match) + '</mark>' + escapeAttr(after);
+          }
+          return escapeAttr(text);
+        }
+
+        async function fetchCategoryItems(catId) {
+          if (window._itemSearchCache[catId]) return window._itemSearchCache[catId];
+          try {
+            const data = await api(`/price-list/${catId}/items`);
+            const items = data.items || [];
+            window._itemSearchCache[catId] = items;
+            return items;
+          } catch {
+            return [];
+          }
+        }
+
+        function renderSearchResults(items, query) {
+          if (items.length === 0) {
+            catSearchResults.innerHTML = `
+              <div class="cat-search-empty">
+                <div class="empty-title">ما في نتائج لـ "${escapeAttr(query)}"</div>
+                <div>ممكن تكتب كود تاني أو تضيف البند يدوياً</div>
+                <button class="cat-search-manual-btn" id="catSearchManualBtn">+ إضافة "${escapeAttr(query)}" كبند جديد</button>
+              </div>`;
+            catHighlightIdx = -1;
+            const manualBtn = document.getElementById("catSearchManualBtn");
+            if (manualBtn) {
+              manualBtn.onclick = async () => {
+                await addItemManual(query);
+                catSearchInput.value = "";
+                catSearchClear.classList.remove("visible");
+                catSearchResults.classList.remove("open");
+              };
+            }
+            return;
+          }
+
+          const header = `<div class="cat-search-header"><span>${query ? 'نتائج البحث' : 'كل البنود'}</span><span class="result-count">${items.length} بند</span></div>`;
+
+          const rows = items.map((it, i) => `
+            <div class="cat-search-item${i === catHighlightIdx ? ' highlighted' : ''}" data-idx="${i}" data-id="${it.id}">
+              <div class="csi-info">
+                ${it.item_code ? `<div class="csi-code">${highlightText(it.item_code, query)}</div>` : ''}
+                <div class="csi-name">${highlightText(it.name, query)}</div>
+                ${it.description ? `<div class="csi-desc">${highlightText(it.description, query)}</div>` : ''}
+              </div>
+              <div class="csi-meta">
+                <span class="csi-unit">${escapeAttr(it.unit)}</span>
+                <span class="csi-price">${money(it.selling_price)}</span>
+              </div>
+            </div>`).join("");
+
+          catSearchResults.innerHTML = header + rows;
+          catHighlightIdx = -1;
+
+          catSearchResults.querySelectorAll(".cat-search-item").forEach(el => {
+            el.onclick = async () => {
+              const id = Number(el.dataset.id);
+              const pItem = items.find(i => i.id === id);
+              if (pItem) await addItemFromCatalog(pItem);
+              catSearchInput.value = "";
+              catSearchClear.classList.remove("visible");
+              catSearchResults.classList.remove("open");
+            };
+          });
+        }
+
         if (catSearchInput && catSearchResults) {
+          catSearchInput.onfocus = async () => {
+            if (!activeCategoryTab || activeCategoryTab === '__unclassified__') return;
+            catSearchResults.classList.add("open");
+            const q = catSearchInput.value.trim();
+            if (q) {
+              catSearchInput.dispatchEvent(new Event('input'));
+              return;
+            }
+            catSearchResults.innerHTML = '<div class="cat-search-loading">جاري تحميل البنود...</div>';
+            catCachedItems = await fetchCategoryItems(activeCategoryTab);
+            renderSearchResults(catCachedItems, "");
+          };
+
           catSearchInput.oninput = () => {
+            const val = catSearchInput.value;
+            catSearchClear.classList.toggle("visible", val.length > 0);
             clearTimeout(catSearchTimeout);
             catSearchTimeout = setTimeout(async () => {
-              const q = catSearchInput.value.trim();
-              if (!q || q.length < 1) {
-                catSearchResults.classList.remove("open");
-                catSearchResults.innerHTML = "";
-                return;
+              const q = val.trim();
+              if (!activeCategoryTab || activeCategoryTab === '__unclassified__') return;
+              catSearchResults.classList.add("open");
+              if (!catCachedItems.length) {
+                catCachedItems = await fetchCategoryItems(activeCategoryTab);
               }
-              if (!activeCategoryTab || activeCategoryTab === '__unclassified__') {
-                catSearchResults.classList.remove("open");
-                return;
+              let filtered;
+              if (!q) {
+                filtered = catCachedItems;
+              } else {
+                filtered = catCachedItems.filter(it =>
+                  fuzzyMatch(it.name, q) ||
+                  fuzzyMatch(it.item_code || '', q) ||
+                  fuzzyMatch(it.description || '', q)
+                );
               }
-              try {
-                const data = await api(`/price-list/${activeCategoryTab}/items?q=${encodeURIComponent(q)}`);
-                const pItems = data.items || [];
-                if (pItems.length === 0) {
-                  catSearchResults.innerHTML = `<div class="cat-search-empty">ما في نتائج. اضغط Enter لإضافة "${escapeAttr(q)}" كبن�� جديد.</div>`;
-                  catSearchResults.classList.add("open");
-                } else {
-                  catSearchResults.innerHTML = pItems.map(it => `
-                    <div class="cat-search-item" data-id="${it.id}">
-                      <div>
-                        ${it.item_code ? `<div class="csi-code">${escapeAttr(it.item_code)}</div>` : ''}
-                        <div class="csi-name">${escapeAttr(it.name)}</div>
-                        ${it.description ? `<div class="csi-desc">${escapeAttr(it.description)}</div>` : ''}
-                      </div>
-                      <div style="display:flex;align-items:center;">
-                        <span class="csi-unit">${escapeAttr(it.unit)}</span>
-                        <span class="csi-price">${money(it.selling_price)}</span>
-                      </div>
-                    </div>
-                  `).join("");
-                  catSearchResults.classList.add("open");
-                  catSearchResults.querySelectorAll(".cat-search-item").forEach(el => {
-                    el.onclick = async () => {
-                      const pid = Number(el.dataset.id);
-                      const pItem = pItems.find(i => i.id === pid);
-                      if (pItem) await addItemFromCatalog(pItem);
-                      catSearchInput.value = "";
-                      catSearchResults.classList.remove("open");
-                    };
-                  });
-                }
-              } catch {
-                catSearchResults.innerHTML = '<div class="cat-search-empty">صار في خطأ بالبحث</div>';
-                catSearchResults.classList.add("open");
-              }
-            }, 300);
+              renderSearchResults(filtered, q);
+            }, 200);
           };
 
           catSearchInput.onkeydown = async (e) => {
-            if (e.key === 'Enter') {
-              const q = catSearchInput.value.trim();
-              if (q) {
-                await addItemManual(q);
-                catSearchInput.value = "";
-                catSearchResults.classList.remove("open");
+            const items = catSearchResults.querySelectorAll(".cat-search-item");
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              catHighlightIdx = Math.min(catHighlightIdx + 1, items.length - 1);
+              items.forEach((el, i) => el.classList.toggle("highlighted", i === catHighlightIdx));
+              if (items[catHighlightIdx]) items[catHighlightIdx].scrollIntoView({ block: "nearest" });
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              catHighlightIdx = Math.max(catHighlightIdx - 1, 0);
+              items.forEach((el, i) => el.classList.toggle("highlighted", i === catHighlightIdx));
+              if (items[catHighlightIdx]) items[catHighlightIdx].scrollIntoView({ block: "nearest" });
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (catHighlightIdx >= 0 && items[catHighlightIdx]) {
+                items[catHighlightIdx].click();
+              } else {
+                const q = catSearchInput.value.trim();
+                if (q) {
+                  await addItemManual(q);
+                  catSearchInput.value = "";
+                  catSearchClear.classList.remove("visible");
+                  catSearchResults.classList.remove("open");
+                }
               }
+            } else if (e.key === "Escape") {
+              catSearchResults.classList.remove("open");
+              catSearchInput.blur();
             }
           };
 
-          catSearchInput.onfocus = () => {
-            if (catSearchInput.value.trim()) catSearchInput.dispatchEvent(new Event('input'));
-          };
+          if (catSearchClear) {
+            catSearchClear.onclick = () => {
+              catSearchInput.value = "";
+              catSearchClear.classList.remove("visible");
+              catSearchInput.focus();
+              catSearchInput.dispatchEvent(new Event('input'));
+            };
+          }
 
           document.addEventListener('click', (e) => {
             if (catSearchResults && !catSearchInput.contains(e.target) && !catSearchResults.contains(e.target)) {
