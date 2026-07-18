@@ -197,15 +197,18 @@
         background: var(--surface-raised); color: var(--champagne);
       }
       table.items input[type="number"] { text-align: center; }
+      table.items .f-qty::-webkit-inner-spin-button,
+      table.items .f-qty::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      table.items .f-qty { -moz-appearance: textfield; }
       .col-code { width: 5%; text-align: center; font-weight: 600; color: var(--gold); font-size: 12px; }
       .col-name { width: 18%; }
-      .col-desc { width: 16%; }
+      .col-desc { width: 14%; }
       .col-img { width: 40px; text-align: center; }
       .col-unit { width: 8%; }
-      .col-qty { width: 7%; }
+      .col-qty { width: 11%; }
       .col-price { width: 10%; }
       .col-total { width: 10%; font-weight: 700; text-align: left; padding-left: 4px; white-space: nowrap; color: var(--champagne); }
-      .col-notes { width: 12%; }
+      .col-notes { width: 10%; }
       .col-del { width: 30px; text-align: center; }
       .del-btn {
         border: none; background: var(--danger); color: #fff;
@@ -853,6 +856,13 @@
       function moneyShort(n) {
         return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
+      function moneyInt(n) {
+        n = Number.isFinite(n) ? n : 0;
+        return Math.round(n).toLocaleString("en-US") + " د.أ";
+      }
+      function moneyShortInt(n) {
+        return Math.round(Number(n || 0)).toLocaleString("en-US");
+      }
       function escapeAttr(s) {
         return (s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       }
@@ -1078,7 +1088,7 @@
             <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
             <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${moneyShort(it.selling_price)}" ${isOwnerOrAdmin ? 'readonly style="background:var(--surface);color:var(--gold);font-weight:700;"' : ''}></td>
             ${costCell}
-            <td class="col-total">${money(total)}</td>
+            <td class="col-total">${moneyInt(total)}</td>
             <td class="col-notes"><input type="text" class="f-notes" value="${escapeAttr(it.notes)}" placeholder="ملاحظات"></td>
             <td class="col-del"><button class="del-btn" title="حذف">✕</button></td>
           </tr>`;
@@ -1111,7 +1121,7 @@
 
         // Section subtotal
         const secSub = allItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
-        document.getElementById("secSubtotal").textContent = `► إجمالي القسم: ${money(secSub)}`;
+        document.getElementById("secSubtotal").textContent = `► إجمالي القسم: ${moneyInt(secSub)}`;
 
         // Category tab click events
         document.querySelectorAll("#categoryTabs .category-tab").forEach(tab => {
@@ -1600,7 +1610,7 @@
         const secEl = document.getElementById("sidebarSections");
         secEl.innerHTML = sections.map((sec) => {
           const sub = (sec.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
-          return `<div class="sidebar-sec-row"><span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}</span><span class="n">${money(sub)}</span></div>`;
+          return `<div class="sidebar-sec-row"><span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}</span><span class="n">${moneyInt(sub)}</span></div>`;
         }).join("") || '<p class="empty-note">ابدأ بإضافة أقسام.</p>';
 
         // Compute totals
@@ -1622,14 +1632,14 @@
         const profitMargin = estimatedCost > 0 ? ((grandTotal / estimatedCost - 1) * 100).toFixed(1) : 0;
 
         document.getElementById("totalsBreakdown").innerHTML = `
-          <div class="tb-row"><span>مجموع البنود</span><span class="n">${money(subtotal)}</span></div>
-          ${discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${money(discount)}</span></div>` : ""}
-          <div class="tb-row"><span>بعد الخصم</span><span class="n">${money(afterDiscount)}</span></div>
-          <div class="tb-row"><span>الضريبة (${taxPct}%)</span><span class="n">+ ${money(vat)}</span></div>
-          <div class="tb-row highlight"><span>التكلفة المقدرة</span><span class="n">${money(estimatedCost)}</span></div>
+          <div class="tb-row"><span>مجموع البنود</span><span class="n">${moneyInt(subtotal)}</span></div>
+          ${discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${moneyInt(discount)}</span></div>` : ""}
+          <div class="tb-row"><span>بعد الخصم</span><span class="n">${moneyInt(afterDiscount)}</span></div>
+          <div class="tb-row"><span>الضريبة (${taxPct}%)</span><span class="n">+ ${moneyInt(vat)}</span></div>
+          <div class="tb-row highlight"><span>التكلفة المقدرة</span><span class="n">${moneyInt(estimatedCost)}</span></div>
           <div class="tb-row highlight"><span>هامش الربح</span><span class="n">${profitMargin}%</span></div>`;
 
-        document.getElementById("grandTotalVal").textContent = money(grandTotal);
+        document.getElementById("grandTotalVal").textContent = moneyInt(grandTotal);
 
         // Payment terms
         renderPaymentTerms(grandTotal);
@@ -1641,7 +1651,7 @@
           if (sec && sec.items[idx]) {
             const it = sec.items[idx];
             const lt = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
-            tr.querySelector(".col-total").textContent = money(lt);
+            tr.querySelector(".col-total").textContent = moneyInt(lt);
             if (isOwnerOrAdmin) {
               const priceInput = tr.querySelector(".f-price");
               if (priceInput) priceInput.value = moneyShort(it.selling_price);
@@ -1655,7 +1665,7 @@
             (s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0
           );
           const el = document.getElementById("secSubtotal");
-          if (el) el.textContent = `► إجمالي القسم: ${money(secSub)}`;
+          if (el) el.textContent = `► إجمالي القسم: ${moneyInt(secSub)}`;
         }
 
       }
@@ -1667,7 +1677,7 @@
           return `<div class="payment-row">
             <input type="number" min="0" max="100" class="pct-input" value="${term.percentage}" data-idx="${i}" data-field="percentage" />
             <input type="text" class="desc-input" value="${escapeAttr(term.trigger_description)}" data-idx="${i}" data-field="trigger_description" placeholder="الوصف" />
-            <span class="amt">${moneyShort(amt)} د.أ</span>
+            <span class="amt">${moneyShortInt(amt)} د.أ</span>
           </div>`;
         }).join("");
         el.querySelectorAll("input").forEach(inp => {
@@ -2043,7 +2053,7 @@
             <div class="saved-item" data-id="${q.id}">
               <div class="info">
                 <div class="name">${escapeAttr(q.project_name)}${q.reference_no ? ' · <span style="color:var(--gold);font-weight:400;">' + escapeAttr(q.reference_no) + '</span>' : ''}${q.designer_name ? ' · <span style="color:var(--ash);font-weight:400;">' + escapeAttr(q.designer_name) + '</span>' : ''}</div>
-                <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${money(q.total)}</div>
+                <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${moneyInt(q.total)}</div>
               </div>
               <div class="btns"><button class="load-btn">فتح</button><button class="del-q-btn">حذف</button></div>
             </div>
