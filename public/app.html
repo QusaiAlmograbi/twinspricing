@@ -858,10 +858,17 @@
       }
       function moneyInt(n) {
         n = Number.isFinite(n) ? n : 0;
-        return Math.round(n).toLocaleString("en-US") + " د.أ";
+        const opts = Number.isInteger(n)
+          ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+        return n.toLocaleString("en-US", opts) + " د.أ";
       }
       function moneyShortInt(n) {
-        return Math.round(Number(n || 0)).toLocaleString("en-US");
+        n = Number(n || 0);
+        const opts = Number.isInteger(n)
+          ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+        return n.toLocaleString("en-US", opts);
       }
       function escapeAttr(s) {
         return (s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
