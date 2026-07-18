@@ -622,7 +622,7 @@
         document.getElementById("itemModalDesc").value = item ? (item.description || "") : "";
         document.getElementById("itemModalUnit").value = item ? (item.unit || "عدد") : "عدد";
         document.getElementById("itemModalCost").value = item ? (item.base_cost || 0) : 0;
-        document.getElementById("itemModalOverhead").value = item ? (item.overhead_pct || 40) : 40;
+        document.getElementById("itemModalOverhead").value = item ? (item.overhead_pct || 35) : 35;
         updateItemPrice();
         modal.classList.add("open");
         document.getElementById("itemModalName").focus();
@@ -647,7 +647,7 @@
           description: document.getElementById("itemModalDesc").value.trim(),
           unit: document.getElementById("itemModalUnit").value,
           base_cost: Number(document.getElementById("itemModalCost").value) || 0,
-          overhead_pct: Number(document.getElementById("itemModalOverhead").value) || 40,
+          overhead_pct: Number(document.getElementById("itemModalOverhead").value) || 35,
         };
         if (!body.name) { showToast("اسم البند مطلوب"); return; }
         if (editingItemId !== null) {

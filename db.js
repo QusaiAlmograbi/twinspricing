@@ -338,7 +338,7 @@ async function initializeDatabase() {
           qty REAL NOT NULL DEFAULT 1,
           image TEXT,
           base_cost REAL NOT NULL DEFAULT 0,
-          overhead_pct REAL NOT NULL DEFAULT 40,
+          overhead_pct REAL NOT NULL DEFAULT 35,
           selling_price REAL NOT NULL DEFAULT 0,
           notes TEXT NOT NULL DEFAULT '',
           sort_order INTEGER NOT NULL DEFAULT 0
@@ -367,7 +367,7 @@ async function initializeDatabase() {
           description TEXT NOT NULL DEFAULT '',
           unit TEXT NOT NULL DEFAULT 'عدد',
           base_cost REAL NOT NULL DEFAULT 0,
-          overhead_pct REAL NOT NULL DEFAULT 40,
+          overhead_pct REAL NOT NULL DEFAULT 35,
           selling_price REAL NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -510,7 +510,7 @@ async function initializeDatabase() {
         qty DOUBLE PRECISION NOT NULL DEFAULT 1,
         image TEXT,
         base_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
-        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 40,
+        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 35,
         selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
         notes TEXT NOT NULL DEFAULT '',
         sort_order INTEGER NOT NULL DEFAULT 0
@@ -539,7 +539,7 @@ async function initializeDatabase() {
         description TEXT NOT NULL DEFAULT '',
         unit TEXT NOT NULL DEFAULT 'عدد',
         base_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
-        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 40,
+        overhead_pct DOUBLE PRECISION NOT NULL DEFAULT 35,
         selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
@@ -596,16 +596,16 @@ async function seedDefaultTemplates() {
           {
             code: "A", name: "Master Bedroom", sort_order: 0,
             items: [
-              { item_code: "A.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3500, overhead_pct: 40, notes: "" },
-              { item_code: "A.2", name: "TV Unit", description: "Wall-mounted TV unit with storage and LED backlight", unit: "مقطوع", qty: 1, base_cost: 1800, overhead_pct: 40, notes: "" },
-              { item_code: "A.3", name: "Vanity Desk", description: "Vanity desk with mirror and LED lighting", unit: "مقطوع", qty: 1, base_cost: 1200, overhead_pct: 40, notes: "" },
+              { item_code: "A.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3629.63, overhead_pct: 35, notes: "" },
+              { item_code: "A.2", name: "TV Unit", description: "Wall-mounted TV unit with storage and LED backlight", unit: "مقطوع", qty: 1, base_cost: 1866.67, overhead_pct: 35, notes: "" },
+              { item_code: "A.3", name: "Vanity Desk", description: "Vanity desk with mirror and LED lighting", unit: "مقطوع", qty: 1, base_cost: 1244.44, overhead_pct: 35, notes: "" },
             ],
           },
           {
             code: "B", name: "Kids Bedroom", sort_order: 1,
             items: [
-              { item_code: "B.1", name: "Wardrobe", description: "Two-door wardrobe with internal organizer", unit: "مقطوع", qty: 1, base_cost: 2200, overhead_pct: 40, notes: "" },
-              { item_code: "B.2", name: "Study Desk", description: "Built-in study desk with overhead shelves", unit: "مقطوع", qty: 1, base_cost: 900, overhead_pct: 40, notes: "" },
+              { item_code: "B.1", name: "Wardrobe", description: "Two-door wardrobe with internal organizer", unit: "مقطوع", qty: 1, base_cost: 2281.48, overhead_pct: 35, notes: "" },
+              { item_code: "B.2", name: "Study Desk", description: "Built-in study desk with overhead shelves", unit: "مقطوع", qty: 1, base_cost: 933.33, overhead_pct: 35, notes: "" },
             ],
           },
         ],
@@ -622,10 +622,10 @@ async function seedDefaultTemplates() {
           {
             code: "A", name: "Kitchen", sort_order: 0,
             items: [
-              { item_code: "A.1", name: "Upper Cabinets", description: "Upper kitchen cabinets with soft-close hinges, matte finish", unit: "مقطوع", qty: 1, base_cost: 4000, overhead_pct: 40, notes: "" },
-              { item_code: "A.2", name: "Lower Cabinets", description: "Lower kitchen cabinets with drawers, pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5000, overhead_pct: 40, notes: "" },
-              { item_code: "A.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 600, overhead_pct: 40, notes: "" },
-              { item_code: "A.4", name: "Kitchen Lighting", description: "LED strip under-cabinet lighting + pendant lights", unit: "مقطوع", qty: 1, base_cost: 500, overhead_pct: 40, notes: "" },
+              { item_code: "A.1", name: "Upper Cabinets", description: "Upper kitchen cabinets with soft-close hinges, matte finish", unit: "مقطوع", qty: 1, base_cost: 4148.15, overhead_pct: 35, notes: "" },
+              { item_code: "A.2", name: "Lower Cabinets", description: "Lower kitchen cabinets with drawers, pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5185.19, overhead_pct: 35, notes: "" },
+              { item_code: "A.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 622.22, overhead_pct: 35, notes: "" },
+              { item_code: "A.4", name: "Kitchen Lighting", description: "LED strip under-cabinet lighting + pendant lights", unit: "مقطوع", qty: 1, base_cost: 518.52, overhead_pct: 35, notes: "" },
             ],
           },
         ],
@@ -642,9 +642,9 @@ async function seedDefaultTemplates() {
           {
             code: "A", name: "Interior Painting", sort_order: 0,
             items: [
-              { item_code: "A.1", name: "Surface Preparation", description: "Wall cleaning, crack filling, sanding, primer coat", unit: "م²", qty: 120, base_cost: 5, overhead_pct: 40, notes: "" },
-              { item_code: "A.2", name: "Jotun Paint", description: "Two coats of Jotun washable matt paint", unit: "م²", qty: 120, base_cost: 8, overhead_pct: 40, notes: "" },
-              { item_code: "A.3", name: "Ceiling Paint", description: "Jotun ceiling white paint, two coats", unit: "م²", qty: 80, base_cost: 6, overhead_pct: 40, notes: "" },
+              { item_code: "A.1", name: "Surface Preparation", description: "Wall cleaning, crack filling, sanding, primer coat", unit: "م²", qty: 120, base_cost: 5.19, overhead_pct: 35, notes: "" },
+              { item_code: "A.2", name: "Jotun Paint", description: "Two coats of Jotun washable matt paint", unit: "م²", qty: 120, base_cost: 8.30, overhead_pct: 35, notes: "" },
+              { item_code: "A.3", name: "Ceiling Paint", description: "Jotun ceiling white paint, two coats", unit: "م²", qty: 80, base_cost: 6.22, overhead_pct: 35, notes: "" },
             ],
           },
         ],
@@ -661,31 +661,31 @@ async function seedDefaultTemplates() {
           {
             code: "A", name: "Living Room", sort_order: 0,
             items: [
-              { item_code: "A.1", name: "Entertainment Unit", description: "Custom entertainment unit with TV mount, storage, and LED backlight", unit: "مقطوع", qty: 1, base_cost: 3000, overhead_pct: 40, notes: "" },
-              { item_code: "A.2", name: "Wall Paneling", description: "Decorative wall paneling with hidden LED strips", unit: "م²", qty: 8, base_cost: 200, overhead_pct: 40, notes: "" },
-              { item_code: "A.3", name: "Ceiling Design", description: " gypsum ceiling with LED cove lighting", unit: "م²", qty: 30, base_cost: 45, overhead_pct: 40, notes: "" },
+              { item_code: "A.1", name: "Entertainment Unit", description: "Custom entertainment unit with TV mount, storage, and LED backlight", unit: "مقطوع", qty: 1, base_cost: 3111.11, overhead_pct: 35, notes: "" },
+              { item_code: "A.2", name: "Wall Paneling", description: "Decorative wall paneling with hidden LED strips", unit: "م²", qty: 8, base_cost: 207.41, overhead_pct: 35, notes: "" },
+              { item_code: "A.3", name: "Ceiling Design", description: " gypsum ceiling with LED cove lighting", unit: "م²", qty: 30, base_cost: 46.67, overhead_pct: 35, notes: "" },
             ],
           },
           {
             code: "B", name: "Master Bedroom", sort_order: 1,
             items: [
-              { item_code: "B.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3500, overhead_pct: 40, notes: "" },
-              { item_code: "B.2", name: "TV Unit", description: "Wall-mounted TV unit with storage", unit: "مقطوع", qty: 1, base_cost: 1800, overhead_pct: 40, notes: "" },
+              { item_code: "B.1", name: "L-shaped Wardrobe", description: "L-shaped wardrobe with LED lighting, soft-close drawers", unit: "مقطوع", qty: 1, base_cost: 3629.63, overhead_pct: 35, notes: "" },
+              { item_code: "B.2", name: "TV Unit", description: "Wall-mounted TV unit with storage", unit: "مقطوع", qty: 1, base_cost: 1866.67, overhead_pct: 35, notes: "" },
             ],
           },
           {
             code: "C", name: "Kitchen", sort_order: 2,
             items: [
-              { item_code: "C.1", name: "Upper Cabinets", description: "Upper kitchen cabinets, soft-close hinges", unit: "مقطوع", qty: 1, base_cost: 4000, overhead_pct: 40, notes: "" },
-              { item_code: "C.2", name: "Lower Cabinets", description: "Lower cabinets with pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5000, overhead_pct: 40, notes: "" },
-              { item_code: "C.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 600, overhead_pct: 40, notes: "" },
+              { item_code: "C.1", name: "Upper Cabinets", description: "Upper kitchen cabinets, soft-close hinges", unit: "مقطوع", qty: 1, base_cost: 4148.15, overhead_pct: 35, notes: "" },
+              { item_code: "C.2", name: "Lower Cabinets", description: "Lower cabinets with pull-out organizers", unit: "مقطوع", qty: 1, base_cost: 5185.19, overhead_pct: 35, notes: "" },
+              { item_code: "C.3", name: "Countertop", description: "Quartz countertop with waterfall edge", unit: "م²", qty: 4, base_cost: 622.22, overhead_pct: 35, notes: "" },
             ],
           },
           {
             code: "D", name: "Painting", sort_order: 3,
             items: [
-              { item_code: "D.1", name: "Wall Painting", description: "Surface prep + two coats Jotun washable matt", unit: "م²", qty: 200, base_cost: 13, overhead_pct: 40, notes: "" },
-              { item_code: "D.2", name: "Ceiling Painting", description: "Jotun ceiling white, two coats", unit: "م²", qty: 120, base_cost: 6, overhead_pct: 40, notes: "" },
+              { item_code: "D.1", name: "Wall Painting", description: "Surface prep + two coats Jotun washable matt", unit: "م²", qty: 200, base_cost: 13.48, overhead_pct: 35, notes: "" },
+              { item_code: "D.2", name: "Ceiling Painting", description: "Jotun ceiling white, two coats", unit: "م²", qty: 120, base_cost: 6.22, overhead_pct: 35, notes: "" },
             ],
           },
         ],
@@ -845,7 +845,7 @@ async function seedDefaultPriceList() {
       continue;
     }
     const sp = Number(item.selling_price) || 0;
-    const overheadPct = 40;
+    const overheadPct = 35;
     const baseCost = sp / (1 + overheadPct / 100);
     try {
       await db.prepare(
