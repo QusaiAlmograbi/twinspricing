@@ -473,13 +473,15 @@
           if (delBtn) delBtn.onclick = async (e) => {
             e.stopPropagation();
             try {
-              const cat = categories.find(c => c.id === id);
+              console.log("[delete-category] Looking for id:", id, "type:", typeof id);
+              console.log("[delete-category] Available categories:", categories.map(c => ({ id: c.id, type: typeof c.id, name: c.name })));
+              const cat = categories.find(c => Number(c.id) === Number(id));
               if (!cat) { showToast("القسم غير موجود"); return; }
               if (!confirm(`هل أنت متأكد من حذف قسم "${cat.name}" وجميع بنوده؟`)) return;
-              console.log("[delete-category] id:", id, "name:", cat.name);
-              await api(`/price-list/${id}`, { method: "DELETE" });
+              console.log("[delete-category] Deleting id:", cat.id, "name:", cat.name);
+              await api(`/price-list/${cat.id}`, { method: "DELETE" });
               console.log("[delete-category] API success, reloading...");
-              if (activeCategoryId === id) { activeCategoryId = null; items = []; renderMain(); }
+              if (activeCategoryId === cat.id) { activeCategoryId = null; items = []; renderMain(); }
               await loadCategories();
               showToast("تم حذف القسم");
             } catch (err) {
