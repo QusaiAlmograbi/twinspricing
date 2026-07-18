@@ -38,18 +38,43 @@ router.get("/diagnostic", asyncHandler(async (req, res) => {
 }));
 
 // POST /api/price-list/seed — Manually trigger default seed (admin/owner only)
+// Supports ?force=true to re-seed even if data exists
 router.post("/seed", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
   }
 
+  const force = req.query.force === "true" || req.query.force === true;
+
   const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
-  if (existing) {
-    return res.json({ message: "البيانات موجودة مسبقاً، لا حاجة لإعادة التعبئة." });
+  if (existing && !force) {
+    const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
+    const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
+    return res.json({
+      message: "البيانات موجودة مسبقاً، لا حاجة لإعادة التعبئة.",
+      categories: catCount?.count ?? 0,
+      items: itemCount?.count ?? 0,
+    });
+  }
+
+  if (force && existing) {
+    console.log("[seed] Force re-seeding: clearing existing price list data...");
+    await db.prepare("DELETE FROM price_items").run();
+    await db.prepare("DELETE FROM price_categories").run();
   }
 
   await db.initializeDatabase();
-  res.json({ message: "تم تعبئة البيانات الافتراضية بنجاح." });
+
+  const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
+  const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
+  const cats = catCount?.count ?? 0;
+  const items = itemCount?.count ?? 0;
+
+  if (cats >= 9 && items > 0) {
+    res.json({ message: `تم تعبئة البيانات بنجاح: ${cats} أقسام و${items} بند.`, categories: cats, items });
+  } else {
+    res.status(500).json({ error: `تعبئة غير مكتملة: ${cats} أقسام و${items} بند. تحقق من سيرفر logs.`, categories: cats, items });
+  }
 }));
 
 // GET /api/price-list/:categoryId/items — List items in a category (with optional ?q= search)
