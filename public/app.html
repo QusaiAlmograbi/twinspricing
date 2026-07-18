@@ -592,6 +592,31 @@
       }
       .cat-search-manual-btn:hover { background: var(--gold-glow-strong); border-color: var(--gold); }
 
+      /* Inline name autocomplete */
+      .col-name { position: relative; }
+      .fname-autocomplete {
+        position: absolute; top: 100%; right: 0; left: 0;
+        background: var(--surface); border: 1px solid var(--pewter);
+        border-radius: 8px; max-height: 240px; overflow-y: auto;
+        z-index: 60; display: none;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      }
+      .fname-autocomplete.open { display: block; }
+      .fname-ac-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 10px; cursor: pointer; transition: background 0.1s;
+        border-bottom: 1px solid var(--pewter); font-size: 12px;
+      }
+      .fname-ac-item:last-child { border-bottom: none; }
+      .fname-ac-item:hover, .fname-ac-item.highlighted { background: var(--gold-glow); }
+      .fname-ac-item .fac-info { min-width: 0; flex: 1; }
+      .fname-ac-item .fac-name { font-size: 12.5px; font-weight: 600; color: var(--champagne); }
+      .fname-ac-item .fac-code { font-size: 10.5px; color: var(--gold); font-weight: 600; }
+      .fname-ac-item .fac-price { font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; margin-right: 8px; }
+      .fname-ac-item .fac-unit { font-size: 10.5px; color: var(--ash); }
+      .fname-ac-item mark { background: var(--gold-glow-strong); color: var(--gold); border-radius: 2px; padding: 0 1px; }
+      .fname-ac-empty { text-align: center; color: var(--ash); font-size: 11.5px; padding: 12px; }
+
       @media (max-width: 860px) {
         .layout { flex-direction: column; }
         .sidebar { position: static; width: 100%; flex-basis: auto; max-height: none; }
@@ -878,6 +903,64 @@
         return String(used.length + 1);
       }
 
+      // ---- Shared search utilities ----
+      function fuzzyMatch(text, query) {
+        text = text.toLowerCase();
+        query = query.toLowerCase();
+        if (text.includes(query)) return true;
+        let qi = 0;
+        for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+          if (text[ti] === query[qi]) qi++;
+        }
+        return qi === query.length;
+      }
+
+      function highlightText(text, query) {
+        if (!query) return escapeAttr(text);
+        const lower = text.toLowerCase();
+        const qLower = query.toLowerCase();
+        const idx = lower.indexOf(qLower);
+        if (idx >= 0) {
+          const before = text.slice(0, idx);
+          const match = text.slice(idx, idx + query.length);
+          const after = text.slice(idx + query.length);
+          return escapeAttr(before) + '<mark>' + escapeAttr(match) + '</mark>' + escapeAttr(after);
+        }
+        return escapeAttr(text);
+      }
+
+      if (!window._itemSearchCache) window._itemSearchCache = {};
+      async function fetchCategoryItems(catId) {
+        if (window._itemSearchCache[catId]) return window._itemSearchCache[catId];
+        try {
+          const data = await api(`/price-list/${catId}/items`);
+          const items = data.items || [];
+          window._itemSearchCache[catId] = items;
+          return items;
+        } catch {
+          return [];
+        }
+      }
+
+      async function fetchAllCategoryItems() {
+        if (window._allItemsCache) return window._allItemsCache;
+        if (allPickerCategories.length === 0) {
+          try {
+            const data = await api("/price-list");
+            allPickerCategories = data.categories || [];
+          } catch { return []; }
+        }
+        const results = [];
+        for (const cat of allPickerCategories) {
+          const items = await fetchCategoryItems(cat.id);
+          results.push(...items);
+        }
+        window._allItemsCache = results;
+        return results;
+      }
+
+      function invalidateAllItemsCache() { window._allItemsCache = null; }
+
       // ---- Render Functions ----
       function renderSectionsNav() {
         const nav = document.getElementById("sectionsNav");
@@ -954,12 +1037,17 @@
           catTabsHtml += `</div>`;
         }
 
-        // Search row (only when a category tab is active)
+        // Search row (always visible)
         let searchHtml = '';
-        if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
-          const catName = allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '';
+        {
+          const activeCatName = (activeCategoryTab && activeCategoryTab !== '__unclassified__')
+            ? (allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '')
+            : '';
+          const searchPlaceholder = activeCatName
+            ? `بحث في ${escapeAttr(activeCatName)} — اكتب أو اضغط لعرض كل البنود...`
+            : 'بحث في كل الفئات — اكتب اسم البند أو الكود...';
           searchHtml = `<div class="cat-search-row">
-            <input class="cat-search-input" id="catSearchInput" type="text" placeholder="بحث في ${escapeAttr(catName)} — اكتب أو اضغط لعرض كل البنود..." autocomplete="off" />
+            <input class="cat-search-input" id="catSearchInput" type="text" placeholder="${searchPlaceholder}" autocomplete="off" />
             <button class="cat-search-clear" id="catSearchClear" title="مسح">✕</button>
             <div class="cat-search-results" id="catSearchResults"></div>
           </div>`;
@@ -983,7 +1071,7 @@
 
           rows += `<tr data-idx="${origIdx}">
             <td class="col-code">${escapeAttr(it.item_code)}</td>
-            <td class="col-name"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند"></td>
+            <td class="col-name" style="position:relative"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند" autocomplete="off" /><div class="fname-autocomplete" id="fnameAc_${origIdx}"></div></td>
             <td class="col-desc"><input type="text" class="f-desc" value="${escapeAttr(it.description)}" placeholder="وصف تفصيلي"></td>
             ${imgCell}
             <td class="col-unit"><select class="f-unit">${UNITS.map(u => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
@@ -1037,50 +1125,12 @@
         });
 
         // ---- Item Search / Autocomplete ----
-        if (!window._itemSearchCache) window._itemSearchCache = {};
         const catSearchInput = document.getElementById("catSearchInput");
         const catSearchResults = document.getElementById("catSearchResults");
         const catSearchClear = document.getElementById("catSearchClear");
         let catSearchTimeout = null;
         let catHighlightIdx = -1;
         let catCachedItems = [];
-
-        function fuzzyMatch(text, query) {
-          text = text.toLowerCase();
-          query = query.toLowerCase();
-          if (text.includes(query)) return true;
-          let qi = 0;
-          for (let ti = 0; ti < text.length && qi < query.length; ti++) {
-            if (text[ti] === query[qi]) qi++;
-          }
-          return qi === query.length;
-        }
-
-        function highlightText(text, query) {
-          if (!query) return escapeAttr(text);
-          const lower = text.toLowerCase();
-          const qLower = query.toLowerCase();
-          const idx = lower.indexOf(qLower);
-          if (idx >= 0) {
-            const before = text.slice(0, idx);
-            const match = text.slice(idx, idx + query.length);
-            const after = text.slice(idx + query.length);
-            return escapeAttr(before) + '<mark>' + escapeAttr(match) + '</mark>' + escapeAttr(after);
-          }
-          return escapeAttr(text);
-        }
-
-        async function fetchCategoryItems(catId) {
-          if (window._itemSearchCache[catId]) return window._itemSearchCache[catId];
-          try {
-            const data = await api(`/price-list/${catId}/items`);
-            const items = data.items || [];
-            window._itemSearchCache[catId] = items;
-            return items;
-          } catch {
-            return [];
-          }
-        }
 
         function renderSearchResults(items, query) {
           if (items.length === 0) {
@@ -1124,7 +1174,7 @@
           catSearchResults.querySelectorAll(".cat-search-item").forEach(el => {
             el.onclick = async () => {
               const id = Number(el.dataset.id);
-              const pItem = items.find(i => i.id === id);
+              const pItem = items.find(i => Number(i.id) === id);
               if (pItem) await addItemFromCatalog(pItem);
               catSearchInput.value = "";
               catSearchClear.classList.remove("visible");
@@ -1135,7 +1185,6 @@
 
         if (catSearchInput && catSearchResults) {
           catSearchInput.onfocus = async () => {
-            if (!activeCategoryTab || activeCategoryTab === '__unclassified__') return;
             catSearchResults.classList.add("open");
             const q = catSearchInput.value.trim();
             if (q) {
@@ -1143,7 +1192,11 @@
               return;
             }
             catSearchResults.innerHTML = '<div class="cat-search-loading">جاري تحميل البنود...</div>';
-            catCachedItems = await fetchCategoryItems(activeCategoryTab);
+            if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
+              catCachedItems = await fetchCategoryItems(activeCategoryTab);
+            } else {
+              catCachedItems = await fetchAllCategoryItems();
+            }
             renderSearchResults(catCachedItems, "");
           };
 
@@ -1153,10 +1206,13 @@
             clearTimeout(catSearchTimeout);
             catSearchTimeout = setTimeout(async () => {
               const q = val.trim();
-              if (!activeCategoryTab || activeCategoryTab === '__unclassified__') return;
               catSearchResults.classList.add("open");
               if (!catCachedItems.length) {
-                catCachedItems = await fetchCategoryItems(activeCategoryTab);
+                if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
+                  catCachedItems = await fetchCategoryItems(activeCategoryTab);
+                } else {
+                  catCachedItems = await fetchAllCategoryItems();
+                }
               }
               let filtered;
               if (!q) {
@@ -1212,11 +1268,15 @@
             };
           }
 
-          document.addEventListener('click', (e) => {
-            if (catSearchResults && !catSearchInput.contains(e.target) && !catSearchResults.contains(e.target)) {
+          if (window._docClickSearchHandler) {
+            document.removeEventListener('click', window._docClickSearchHandler);
+          }
+          window._docClickSearchHandler = (e) => {
+            if (catSearchResults && catSearchInput && !catSearchInput.contains(e.target) && !catSearchResults.contains(e.target)) {
               catSearchResults.classList.remove("open");
             }
-          });
+          };
+          document.addEventListener('click', window._docClickSearchHandler);
         }
 
         // Event: rename/delete for custom sections
@@ -1246,11 +1306,15 @@
             category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
           };
           if (currentQuoteId && sec.id) {
-            const res = await api(`/sections/${sec.id}/items`, {
-              method: "POST", body: JSON.stringify(newItem),
-            });
-            newItem.id = res.id;
-            newItem.selling_price = res.selling_price;
+            try {
+              const res = await api(`/sections/${sec.id}/items`, {
+                method: "POST", body: JSON.stringify(newItem),
+              });
+              newItem.id = res.id;
+              newItem.selling_price = res.selling_price;
+            } catch (e) {
+              showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+            }
           }
           allItems.push(newItem);
           renderAll();
@@ -1267,11 +1331,15 @@
               category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
             };
             if (currentQuoteId && sec.id) {
-              const res = await api(`/sections/${sec.id}/items`, {
-                method: "POST", body: JSON.stringify(newItem),
-              });
-              newItem.id = res.id;
-              newItem.selling_price = res.selling_price;
+              try {
+                const res = await api(`/sections/${sec.id}/items`, {
+                  method: "POST", body: JSON.stringify(newItem),
+                });
+                newItem.id = res.id;
+                newItem.selling_price = res.selling_price;
+              } catch (e) {
+                showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+              }
             }
             allItems.push(newItem);
             renderAll();
@@ -1285,7 +1353,96 @@
           const idx = Number(tr.getAttribute("data-idx"));
           const item = allItems[idx];
 
-          tr.querySelector(".f-name").oninput = (e) => { item.name = e.target.value; };
+          // f-name autocomplete
+          const fNameInput = tr.querySelector(".f-name");
+          const fNameAc = document.getElementById("fnameAc_" + idx);
+          let fNameTimeout = null;
+          let fNameHighlightIdx = -1;
+          let fNameCachedItems = [];
+
+          fNameInput.oninput = (e) => {
+            item.name = e.target.value;
+            clearTimeout(fNameTimeout);
+            if (!fNameAc) return;
+            const val = e.target.value.trim();
+            if (!val) { fNameAc.classList.remove("open"); fNameAc.innerHTML = ""; return; }
+            fNameTimeout = setTimeout(async () => {
+              if (!fNameCachedItems.length) {
+                fNameCachedItems = await fetchAllCategoryItems();
+              }
+              const filtered = fNameCachedItems.filter(it =>
+                fuzzyMatch(it.name, val) ||
+                fuzzyMatch(it.item_code || '', val) ||
+                fuzzyMatch(it.description || '', val)
+              ).slice(0, 12);
+              if (filtered.length === 0) {
+                fNameAc.innerHTML = '<div class="fname-ac-empty">ما في نتائج</div>';
+                fNameAc.classList.add("open");
+                fNameHighlightIdx = -1;
+                return;
+              }
+              fNameHighlightIdx = -1;
+              fNameAc.innerHTML = filtered.map((it, i) => `
+                <div class="fname-ac-item" data-idx="${i}" data-id="${it.id}">
+                  <div class="fac-info">
+                    ${it.item_code ? `<div class="fac-code">${highlightText(it.item_code, val)}</div>` : ''}
+                    <div class="fac-name">${highlightText(it.name, val)}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="fac-unit">${escapeAttr(it.unit)}</span>
+                    <span class="fac-price">${money(it.selling_price)}</span>
+                  </div>
+                </div>`).join("");
+              fNameAc.classList.add("open");
+              fNameAc.querySelectorAll(".fname-ac-item").forEach(el => {
+                el.onmousedown = (ev) => {
+                  ev.preventDefault();
+                  const id = Number(el.dataset.id);
+                  const catItem = fNameCachedItems.find(i => Number(i.id) === id);
+                  if (catItem) {
+                    item.name = catItem.name || item.name;
+                    item.description = catItem.description || item.description;
+                    item.unit = catItem.unit || item.unit;
+                    item.item_code = catItem.item_code || item.item_code;
+                    item.base_cost = Number(catItem.base_cost) || 0;
+                    item.overhead_pct = Number(catItem.overhead_pct) || 40;
+                    item.selling_price = Number(catItem.selling_price) || 0;
+                    if (!item.category_id && catItem.category_id) item.category_id = catItem.category_id;
+                    renderAll();
+                    showToast("تم تعبئة البند من الكتالوج");
+                  }
+                  fNameAc.classList.remove("open");
+                };
+              });
+            }, 200);
+          };
+
+          fNameInput.onkeydown = (e) => {
+            if (!fNameAc || !fNameAc.classList.contains("open")) return;
+            const acItems = fNameAc.querySelectorAll(".fname-ac-item");
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              fNameHighlightIdx = Math.min(fNameHighlightIdx + 1, acItems.length - 1);
+              acItems.forEach((el, i) => el.classList.toggle("highlighted", i === fNameHighlightIdx));
+              if (acItems[fNameHighlightIdx]) acItems[fNameHighlightIdx].scrollIntoView({ block: "nearest" });
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              fNameHighlightIdx = Math.max(fNameHighlightIdx - 1, 0);
+              acItems.forEach((el, i) => el.classList.toggle("highlighted", i === fNameHighlightIdx));
+              if (acItems[fNameHighlightIdx]) acItems[fNameHighlightIdx].scrollIntoView({ block: "nearest" });
+            } else if (e.key === "Enter") {
+              if (fNameHighlightIdx >= 0 && acItems[fNameHighlightIdx]) {
+                e.preventDefault();
+                acItems[fNameHighlightIdx].dispatchEvent(new Event("mousedown"));
+              }
+            } else if (e.key === "Escape") {
+              fNameAc.classList.remove("open");
+            }
+          };
+
+          fNameInput.onfocus = () => {
+            if (fNameInput.value.trim()) fNameInput.dispatchEvent(new Event('input'));
+          };
           tr.querySelector(".f-desc").oninput = (e) => { item.description = e.target.value; };
           tr.querySelector(".f-unit").onchange = (e) => { item.unit = e.target.value; };
           tr.querySelector(".f-notes").oninput = (e) => { item.notes = e.target.value; };
@@ -1357,6 +1514,13 @@
             };
           }
         });
+
+        // Close fname autocomplete on outside click
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.col-name')) {
+            document.querySelectorAll('.fname-autocomplete.open').forEach(ac => ac.classList.remove('open'));
+          }
+        });
       }
 
       async function addItemFromCatalog(catItem) {
@@ -1377,11 +1541,15 @@
           category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
         };
         if (currentQuoteId && sec.id) {
-          const res = await api(`/sections/${sec.id}/items`, {
-            method: "POST", body: JSON.stringify(newItem),
-          });
-          newItem.id = res.id;
-          newItem.selling_price = res.selling_price;
+          try {
+            const res = await api(`/sections/${sec.id}/items`, {
+              method: "POST", body: JSON.stringify(newItem),
+            });
+            newItem.id = res.id;
+            newItem.selling_price = res.selling_price;
+          } catch (e) {
+            showToast("تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message);
+          }
         }
         allItems.push(newItem);
         renderAll();
@@ -1406,11 +1574,15 @@
           category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
         };
         if (currentQuoteId && sec.id) {
-          const res = await api(`/sections/${sec.id}/items`, {
-            method: "POST", body: JSON.stringify(newItem),
-          });
-          newItem.id = res.id;
-          newItem.selling_price = res.selling_price;
+          try {
+            const res = await api(`/sections/${sec.id}/items`, {
+              method: "POST", body: JSON.stringify(newItem),
+            });
+            newItem.id = res.id;
+            newItem.selling_price = res.selling_price;
+          } catch (e) {
+            showToast("تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message);
+          }
         }
         allItems.push(newItem);
         renderAll();
@@ -1712,7 +1884,7 @@
           resultsEl.querySelectorAll(".picker-item").forEach(el => {
             el.onclick = () => {
               const id = Number(el.dataset.id);
-              const item = items.find(i => i.id === id);
+              const item = items.find(i => Number(i.id) === id);
               if (item && pickerCurrentItemIdx !== null) fillItemFromCatalog(pickerCurrentItemIdx, item);
               closePicker();
             };
