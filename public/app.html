@@ -994,7 +994,7 @@
         const catsInSection = [];
         const catCounts = {};
         allItems.forEach(it => {
-          const cid = it.category_id || null;
+          const cid = it.category_id != null ? Number(it.category_id) : null;
           if (!catCounts[cid]) catCounts[cid] = 0;
           catCounts[cid]++;
         });
@@ -1012,7 +1012,7 @@
         } else if (activeCategoryTab === "__unclassified__") {
           items = allItems.filter(it => !it.category_id);
         } else {
-          items = allItems.filter(it => it.category_id === activeCategoryTab);
+          items = allItems.filter(it => (it.category_id != null ? Number(it.category_id) : null) === activeCategoryTab);
         }
 
         // Category tabs HTML
@@ -2011,7 +2011,7 @@
 
         sections = (quote.sections || []).map(s => ({
           ...s,
-          items: (s.items || []).map(it => ({ ...it, qty: Number(it.qty) || 1, category_id: it.category_id || null })),
+          items: (s.items || []).map(it => ({ ...it, qty: Number(it.qty) || 1, category_id: it.category_id != null ? Number(it.category_id) : null })),
         }));
         activeSectionIdx = 0;
         activeCategoryTab = null;
@@ -2124,7 +2124,7 @@
         }
         renderAll();
         loadSavedList();
-        loadPickerCategories();
+        await loadPickerCategories();
       })();
     </script>
   </body>
