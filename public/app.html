@@ -293,6 +293,24 @@
       .payment-row .pct-input { width: 45px; text-align: center; }
       .payment-row .desc-input { flex: 1; }
       .payment-row .amt { font-weight: 700; color: var(--champagne); white-space: nowrap; font-size: 11px; }
+      .payment-row .del-term-btn {
+        flex: 0 0 auto; background: none; border: none; color: var(--danger);
+        cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 4px; line-height: 1;
+      }
+      .payment-row .del-term-btn:hover { background: var(--danger-tint); }
+      .add-term-btn {
+        display: flex; align-items: center; justify-content: center; gap: 4px;
+        width: 100%; padding: 6px; margin-top: 4px;
+        background: transparent; border: 1px dashed var(--pewter);
+        border-radius: 6px; color: var(--gold-dim); font-family: inherit;
+        font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.15s;
+      }
+      .add-term-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .pct-warning {
+        font-size: 11px; font-weight: 600; color: var(--danger);
+        margin-top: 4px; padding: 4px 8px; background: var(--danger-tint);
+        border-radius: 5px;
+      }
 
       .meta-row { display: flex; gap: 8px; margin-top: 8px; }
       .meta-row label { font-size: 11.5px; color: var(--ash); font-weight: 600; display: flex; flex-direction: column; gap: 3px; flex: 1; }
@@ -1679,23 +1697,47 @@
 
       function renderPaymentTerms(grandTotal) {
         const el = document.getElementById("paymentTerms");
+        const totalPct = state.paymentTerms.reduce((s, t) => s + (Number(t.percentage) || 0), 0);
+        const overBudget = totalPct > 100;
         el.innerHTML = state.paymentTerms.map((term, i) => {
           const amt = (grandTotal * (term.percentage || 0)) / 100;
           return `<div class="payment-row">
             <input type="number" min="0" max="100" class="pct-input" value="${term.percentage}" data-idx="${i}" data-field="percentage" />
             <input type="text" class="desc-input" value="${escapeAttr(term.trigger_description)}" data-idx="${i}" data-field="trigger_description" placeholder="الوصف" />
             <span class="amt">${moneyShortInt(amt)} د.أ</span>
+            <button class="del-term-btn" data-idx="${i}" title="حذف الدفعة">✕</button>
           </div>`;
-        }).join("");
-        el.querySelectorAll("input").forEach(inp => {
+        }).join("") + `<button class="add-term-btn" id="addTermBtn">+ إضافة دفعة</button>` +
+          (overBudget ? `<div class="pct-warning">⚠ مجموع النسب (${totalPct}%) يتجاوز 100% — يجب تعديل النسب قبل الحفظ</div>` : "");
+        el.querySelectorAll(".pct-input").forEach(inp => {
           inp.oninput = (e) => {
             const idx = Number(e.target.dataset.idx);
-            const field = e.target.dataset.field;
-            if (field === "percentage") state.paymentTerms[idx].percentage = Number(e.target.value) || 0;
-            else state.paymentTerms[idx].trigger_description = e.target.value;
+            state.paymentTerms[idx].percentage = Number(e.target.value) || 0;
             renderPaymentTerms(grandTotal);
           };
         });
+        el.querySelectorAll(".desc-input").forEach(inp => {
+          inp.oninput = (e) => {
+            const idx = Number(e.target.dataset.idx);
+            state.paymentTerms[idx].trigger_description = e.target.value;
+          };
+        });
+        el.querySelectorAll(".del-term-btn").forEach(btn => {
+          btn.onclick = () => {
+            const idx = Number(btn.dataset.idx);
+            state.paymentTerms.splice(idx, 1);
+            renderPaymentTerms(grandTotal);
+          };
+        });
+        const addBtn = document.getElementById("addTermBtn");
+        if (addBtn) {
+          addBtn.onclick = () => {
+            state.paymentTerms.push({ percentage: 0, trigger_description: "" });
+            renderPaymentTerms(grandTotal);
+            const inputs = el.querySelectorAll(".pct-input");
+            if (inputs.length) inputs[inputs.length - 1].focus();
+          };
+        }
       }
 
       function renderAll() {
