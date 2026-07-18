@@ -21,6 +21,37 @@ router.get("/", asyncHandler(async (req, res) => {
   res.json({ categories });
 }));
 
+// GET /api/price-list/diagnostic — Check DB status (admin/owner only)
+router.get("/diagnostic", asyncHandler(async (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
+  const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
+
+  res.json({
+    database: process.env.DATABASE_URL ? "PostgreSQL" : "SQLite",
+    price_categories_count: catCount?.count ?? 0,
+    price_items_count: itemCount?.count ?? 0,
+  });
+}));
+
+// POST /api/price-list/seed — Manually trigger default seed (admin/owner only)
+router.post("/seed", asyncHandler(async (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
+  if (existing) {
+    return res.json({ message: "البيانات موجودة مسبقاً، لا حاجة لإعادة التعبئة." });
+  }
+
+  await db.initializeDatabase();
+  res.json({ message: "تم تعبئة البيانات الافتراضية بنجاح." });
+}));
+
 // GET /api/price-list/:categoryId/items — List items in a category (with optional ?q= search)
 router.get("/:categoryId/items", asyncHandler(async (req, res) => {
   const categoryId = Number(req.params.categoryId);
