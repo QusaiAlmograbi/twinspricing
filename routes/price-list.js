@@ -323,9 +323,12 @@ router.delete("/:categoryId", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "القسم غير موجود" });
   }
 
-  // Items cascade-delete via FK
+  // Delete items manually first (don't rely solely on CASCADE)
+  await db.prepare("DELETE FROM price_items WHERE category_id = ?").run(categoryId);
+  // Delete the category itself
   await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
-  res.json({ ok: true });
+  console.log(`[delete-category] Deleted category ${categoryId} and its items`);
+  res.json({ ok: true, deletedCategoryId: categoryId });
 }));
 
 module.exports = router;

@@ -472,14 +472,18 @@
           if (editBtn) editBtn.onclick = (e) => { e.stopPropagation(); openCatModal(id); };
           if (delBtn) delBtn.onclick = async (e) => {
             e.stopPropagation();
-            const cat = categories.find(c => c.id === id);
-            if (!confirm(`هل أنت متأكد من حذف قسم "${cat.name}" وجميع بنوده؟`)) return;
             try {
+              const cat = categories.find(c => c.id === id);
+              if (!cat) { showToast("القسم غير موجود"); return; }
+              if (!confirm(`هل أنت متأكد من حذف قسم "${cat.name}" وجميع بنوده؟`)) return;
+              console.log("[delete-category] id:", id, "name:", cat.name);
               await api(`/price-list/${id}`, { method: "DELETE" });
+              console.log("[delete-category] API success, reloading...");
               if (activeCategoryId === id) { activeCategoryId = null; items = []; renderMain(); }
               await loadCategories();
               showToast("تم حذف القسم");
             } catch (err) {
+              console.error("[delete-category] Error:", err);
               showToast(err.message || "صار في خطأ");
             }
           };
