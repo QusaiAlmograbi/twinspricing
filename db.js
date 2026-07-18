@@ -393,6 +393,7 @@ async function initializeDatabase() {
       console.log("[db] SQLite tables created, seeding defaults...");
       await seedDefaultTemplates();
       await seedDefaultPriceList();
+      await ensureSeeded();
       console.log("[db] initializeDatabase complete.");
 
       return true;
@@ -564,6 +565,7 @@ async function initializeDatabase() {
     console.log("[db] PostgreSQL tables created, seeding defaults...");
     await seedDefaultTemplates();
     await seedDefaultPriceList();
+    await ensureSeeded();
     console.log("[db] initializeDatabase complete.");
 
     return true;
@@ -574,7 +576,10 @@ async function initializeDatabase() {
 
 async function seedDefaultTemplates() {
   const existing = await db.prepare("SELECT id FROM quote_templates WHERE is_default = 1 LIMIT 1").get();
-  if (existing) return;
+  if (existing) {
+    console.log("[seed] quote_templates already has data, skipping seed.");
+    return;
+  }
 
   const defaultPaymentTerms = [
     { percentage: 60, trigger_description: "Upon contract signing" },
@@ -691,11 +696,18 @@ async function seedDefaultTemplates() {
     },
   ];
 
+  let inserted = 0;
   for (const tmpl of templates) {
-    await db.prepare(
-      "INSERT INTO quote_templates (name, description, data, created_by, is_default) VALUES (?,?,?,?,1)",
-    ).run(tmpl.name, tmpl.description, JSON.stringify(tmpl.data), null);
+    try {
+      await db.prepare(
+        "INSERT INTO quote_templates (name, description, data, created_by, is_default) VALUES (?,?,?,?,1)",
+      ).run(tmpl.name, tmpl.description, JSON.stringify(tmpl.data), null);
+      inserted++;
+    } catch (err) {
+      console.error(`[seed] FAILED to insert template "${tmpl.name}":`, err.message || err);
+    }
   }
+  console.log(`[seed] seedDefaultTemplates: ${inserted}/${templates.length} templates inserted.`);
 }
 
 async function seedDefaultPriceList() {
@@ -849,6 +861,36 @@ async function seedDefaultPriceList() {
   console.log(`[seed] seedDefaultPriceList done: ${categories.length} categories, ${itemsInserted} items inserted, ${itemsFailed} failed.`);
 }
 
+async function ensureSeeded() {
+  const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
+  const catTotal = catCount?.count ?? 0;
+
+  const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
+  const itemTotal = itemCount?.count ?? 0;
+
+  console.log(`[db] ensureSeeded: ${catTotal} categories, ${itemTotal} items`);
+
+  if (catTotal >= 9 && itemTotal > 0) {
+    console.log("[db] ✓ Price list data verified.");
+    return;
+  }
+
+  console.log("[db] ⚠ Insufficient price list data, re-seeding...");
+  await seedDefaultTemplates();
+  await seedDefaultPriceList();
+
+  const recheckCats = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
+  const recheckItems = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
+  const newCats = recheckCats?.count ?? 0;
+  const newItems = recheckItems?.count ?? 0;
+
+  if (newCats >= 9 && newItems > 0) {
+    console.log(`[db] ✓ Re-seed successful: ${newCats} categories, ${newItems} items.`);
+  } else {
+    console.error(`[db] ✗ Re-seed FAILED: ${newCats} categories, ${newItems} items. Check server logs for errors.`);
+  }
+}
+
 async function tableColumns(tableName) {
   if (isSqlite()) {
     const db = getSqliteDb();
@@ -879,9 +921,11 @@ const db = {
   exec,
   query: executeQuery,
   initializeDatabase,
+  ensureSeeded,
 };
 
 module.exports = db;
 module.exports.getDatabaseConfig = getDatabaseConfig;
 module.exports.resolveDatabasePath = resolveDatabasePath;
 module.exports.initializeDatabase = initializeDatabase;
+module.exports.ensureSeeded = ensureSeeded;

@@ -76,8 +76,9 @@ async function startServer(
 ) {
   try {
     await db.initializeDatabase();
+    console.log("[server] ✓ Database initialized successfully.");
   } catch (error) {
-    console.error("فشل تهيئة قاعدة PostgreSQL:", error);
+    console.error("فشل تهيئة قاعدة البيانات:", error);
     throw error;
   }
 

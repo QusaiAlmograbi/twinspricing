@@ -484,6 +484,16 @@
           </tbody>
         </table>
         <div class="msg" id="msgBox"></div>
+        <hr class="section-divider" />
+        <section>
+          <h2 style="font-family:'Cormorant Garamond','Cairo',serif;font-size:17px;color:var(--champagne);margin:0 0 6px;">تعبئة قائمة الأسعار</h2>
+          <p style="color:var(--ash);font-size:12.5px;margin:0 0 12px;">إعادة تعبئة البيانات الافتراضية للأسعار والبنود في حال كانت ناقصة أو مفقودة.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="seedPriceListBtn" style="background:var(--gold);color:var(--bg);border:none;padding:8px 18px;border-radius:8px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;">تعبئة البيانات</button>
+            <button id="forceSeedBtn" style="background:transparent;border:1px solid var(--danger);color:var(--danger);padding:8px 18px;border-radius:8px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;">إعادة تعبئة كاملة (force)</button>
+          </div>
+          <div class="msg" id="seedMsg" style="margin-top:8px;"></div>
+        </section>
       </div>
     </div>
 
@@ -532,6 +542,33 @@
         box.style.display = "block";
         setTimeout(() => (box.style.display = "none"), 2500);
       }
+
+      function showSeedMsg(text, ok) {
+        const box = document.getElementById("seedMsg");
+        box.textContent = text;
+        box.className = "msg " + (ok ? "ok" : "err") + " show";
+        box.style.display = "block";
+        setTimeout(() => (box.style.display = "none"), 4000);
+      }
+
+      document.getElementById("seedPriceListBtn").onclick = async () => {
+        try {
+          const result = await api("/price-list/seed", { method: "POST" });
+          showSeedMsg(result.message, true);
+        } catch (err) {
+          showSeedMsg(err.message || "صار خطأ", false);
+        }
+      };
+
+      document.getElementById("forceSeedBtn").onclick = async () => {
+        if (!confirm("هل أنت متأكد؟ سيحذف جميع البيانات الحالية للأسعار ويعيد تعبئتها.")) return;
+        try {
+          const result = await api("/price-list/seed?force=true", { method: "POST" });
+          showSeedMsg(result.message, true);
+        } catch (err) {
+          showSeedMsg(err.message || "صار خطأ", false);
+        }
+      };
 
       async function loadUsers() {
         const body = document.getElementById("usersBody");
