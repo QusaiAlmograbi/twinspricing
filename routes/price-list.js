@@ -104,49 +104,6 @@ router.post("/", asyncHandler(async (req, res) => {
   res.json({ id: info.lastInsertRowid, name: name.trim(), sort_order: sort_order ?? maxOrder.next_order });
 }));
 
-// PUT /api/price-list/:categoryId — Update category (admin/owner only)
-router.put("/:categoryId", asyncHandler(async (req, res) => {
-  if (!isAdminOrOwner(req.user.role)) {
-    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
-  }
-
-  const categoryId = Number(req.params.categoryId);
-  const existing = await db
-    .prepare("SELECT * FROM price_categories WHERE id = ?")
-    .get(categoryId);
-  if (!existing) {
-    return res.status(404).json({ error: "القسم غير موجود" });
-  }
-
-  const { name, sort_order } = req.body;
-  await db
-    .prepare(
-      "UPDATE price_categories SET name = COALESCE(?, name), sort_order = COALESCE(?, sort_order) WHERE id = ?"
-    )
-    .run(name ? name.trim() : null, sort_order, categoryId);
-
-  res.json({ ok: true });
-}));
-
-// DELETE /api/price-list/:categoryId — Delete category (admin/owner only)
-router.delete("/:categoryId", asyncHandler(async (req, res) => {
-  if (!isAdminOrOwner(req.user.role)) {
-    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
-  }
-
-  const categoryId = Number(req.params.categoryId);
-  const existing = await db
-    .prepare("SELECT * FROM price_categories WHERE id = ?")
-    .get(categoryId);
-  if (!existing) {
-    return res.status(404).json({ error: "القسم غير موجود" });
-  }
-
-  // Items cascade-delete via FK
-  await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
-  res.json({ ok: true });
-}));
-
 // POST /api/price-list/:categoryId/items — Add item to category (admin/owner only)
 router.post("/:categoryId/items", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
@@ -265,6 +222,49 @@ router.delete("/items/:itemId", asyncHandler(async (req, res) => {
   }
 
   await db.prepare("DELETE FROM price_items WHERE id = ?").run(itemId);
+  res.json({ ok: true });
+}));
+
+// PUT /api/price-list/:categoryId — Update category (admin/owner only)
+router.put("/:categoryId", asyncHandler(async (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const categoryId = Number(req.params.categoryId);
+  const existing = await db
+    .prepare("SELECT * FROM price_categories WHERE id = ?")
+    .get(categoryId);
+  if (!existing) {
+    return res.status(404).json({ error: "القسم غير موجود" });
+  }
+
+  const { name, sort_order } = req.body;
+  await db
+    .prepare(
+      "UPDATE price_categories SET name = COALESCE(?, name), sort_order = COALESCE(?, sort_order) WHERE id = ?"
+    )
+    .run(name ? name.trim() : null, sort_order, categoryId);
+
+  res.json({ ok: true });
+}));
+
+// DELETE /api/price-list/:categoryId — Delete category (admin/owner only)
+router.delete("/:categoryId", asyncHandler(async (req, res) => {
+  if (!isAdminOrOwner(req.user.role)) {
+    return res.status(403).json({ error: "هذا الإجراء يحتاج صلاحية مدير أو مالك" });
+  }
+
+  const categoryId = Number(req.params.categoryId);
+  const existing = await db
+    .prepare("SELECT * FROM price_categories WHERE id = ?")
+    .get(categoryId);
+  if (!existing) {
+    return res.status(404).json({ error: "القسم غير موجود" });
+  }
+
+  // Items cascade-delete via FK
+  await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
   res.json({ ok: true });
 }));
 

@@ -474,10 +474,14 @@
             e.stopPropagation();
             const cat = categories.find(c => c.id === id);
             if (!confirm(`هل أنت متأكد من حذف قسم "${cat.name}" وجميع بنوده؟`)) return;
-            await api(`/price-list/${id}`, { method: "DELETE" });
-            if (activeCategoryId === id) { activeCategoryId = null; items = []; renderMain(); }
-            await loadCategories();
-            showToast("تم حذف القسم");
+            try {
+              await api(`/price-list/${id}`, { method: "DELETE" });
+              if (activeCategoryId === id) { activeCategoryId = null; items = []; renderMain(); }
+              await loadCategories();
+              showToast("تم حذف القسم");
+            } catch (err) {
+              showToast(err.message || "صار في خطأ");
+            }
           };
         });
       }
