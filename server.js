@@ -44,9 +44,13 @@ function createApp() {
   app.use("/api/price-list", priceListRoutes);
 
   app.use(express.static(path.join(__dirname, "public"), {
-    maxAge: 0,
-    etag: false,
-    lastModified: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
   }));
 
   app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
