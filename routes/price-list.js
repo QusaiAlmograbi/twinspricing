@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../db");
-const { seedDefaultPriceList } = require("../db");
+const { seedDefaultPriceList, smartMergeDefaultPriceList } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -81,24 +81,16 @@ router.post("/seed", asyncHandler(async (req, res) => {
 
   const force = req.query.force === "true" || req.query.force === true;
 
-  const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
-  if (existing && !force) {
-    const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
-    const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
-    return res.json({
-      message: "البيانات موجودة مسبقاً، لا حاجة لإعادة التعبئة.",
-      categories: catCount?.count ?? 0,
-      items: itemCount?.count ?? 0,
-    });
+  if (force) {
+    const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
+    if (existing) {
+      console.log("[seed] Force re-seeding: clearing existing price list data...");
+      await db.prepare("DELETE FROM price_items").run();
+      await db.prepare("DELETE FROM price_categories").run();
+    }
   }
 
-  if (force && existing) {
-    console.log("[seed] Force re-seeding: clearing existing price list data...");
-    await db.prepare("DELETE FROM price_items").run();
-    await db.prepare("DELETE FROM price_categories").run();
-  }
-
-  await seedDefaultPriceList();
+  await smartMergeDefaultPriceList();
 
   const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
@@ -158,7 +150,7 @@ router.post("/", asyncHandler(async (req, res) => {
     .get();
 
   const info = await db
-    .prepare("INSERT INTO price_categories (name, sort_order) VALUES (?, ?)")
+    .prepare("INSERT INTO price_categories (name, sort_order, source) VALUES (?, ?, 'user')")
     .run(name.trim(), sort_order ?? maxOrder.next_order);
 
   res.json({ id: info.lastInsertRowid, name: name.trim(), sort_order: sort_order ?? maxOrder.next_order });
@@ -197,8 +189,8 @@ router.post("/:categoryId/items", asyncHandler(async (req, res) => {
 
   const info = await db
     .prepare(
-      `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user')`
     )
     .run(
       categoryId,
