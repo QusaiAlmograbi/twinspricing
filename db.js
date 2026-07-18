@@ -922,6 +922,7 @@ const db = {
   query: executeQuery,
   initializeDatabase,
   ensureSeeded,
+  seedDefaultPriceList,
 };
 
 module.exports = db;
@@ -929,3 +930,4 @@ module.exports.getDatabaseConfig = getDatabaseConfig;
 module.exports.resolveDatabasePath = resolveDatabasePath;
 module.exports.initializeDatabase = initializeDatabase;
 module.exports.ensureSeeded = ensureSeeded;
+module.exports.seedDefaultPriceList = seedDefaultPriceList;

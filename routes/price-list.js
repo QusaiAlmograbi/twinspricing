@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { seedDefaultPriceList } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -63,7 +64,7 @@ router.post("/seed", asyncHandler(async (req, res) => {
     await db.prepare("DELETE FROM price_categories").run();
   }
 
-  await db.initializeDatabase();
+  await seedDefaultPriceList();
 
   const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
