@@ -1065,7 +1065,7 @@
             ? `<td style="min-width:160px"><div class="cost-fields">
                 <input type="number" min="0" step="0.1" class="f-basecost" value="${it.base_cost || 0}" title="التكلفة الأساسية" />
                 <span class="pct-badge">%</span>
-                <input type="number" min="0" max="100" step="1" class="f-overhead" value="${it.overhead_pct || 40}" title="نسبة هامش الربح" />
+                <input type="number" min="0" max="100" step="1" class="f-overhead" value="${it.overhead_pct || 35}" title="نسبة هامش الربح" />
               </div></td>`
             : "";
 
@@ -1302,7 +1302,7 @@
           const newItem = {
             item_code: `${sec.code}.${allItems.length + 1}`,
             name: "", description: "", unit: "عدد", qty: 1,
-            base_cost: 0, overhead_pct: 40, selling_price: 0, notes: "", image: null,
+            base_cost: 0, overhead_pct: 35, selling_price: 0, notes: "", image: null,
             category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
           };
           if (currentQuoteId && sec.id) {
@@ -1327,7 +1327,7 @@
             const newItem = {
               item_code: `${sec.code}.${allItems.length + 1}`,
               name: "", description: "", unit: "عدد", qty: 1,
-              base_cost: 0, overhead_pct: 40, selling_price: 0, notes: "", image: null,
+              base_cost: 0, overhead_pct: 35, selling_price: 0, notes: "", image: null,
               category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
             };
             if (currentQuoteId && sec.id) {
@@ -1405,7 +1405,7 @@
                     item.unit = catItem.unit || item.unit;
                     item.item_code = catItem.item_code || item.item_code;
                     item.base_cost = Number(catItem.base_cost) || 0;
-                    item.overhead_pct = Number(catItem.overhead_pct) || 40;
+                    item.overhead_pct = Number(catItem.overhead_pct) || 35;
                     item.selling_price = Number(catItem.selling_price) || 0;
                     if (!item.category_id && catItem.category_id) item.category_id = catItem.category_id;
                     renderAll();
@@ -1534,7 +1534,7 @@
           unit: catItem.unit || "عدد",
           qty: 1,
           base_cost: Number(catItem.base_cost) || 0,
-          overhead_pct: Number(catItem.overhead_pct) || 40,
+          overhead_pct: Number(catItem.overhead_pct) || 35,
           selling_price: Number(catItem.selling_price) || 0,
           notes: "",
           image: null,
@@ -1567,7 +1567,7 @@
           unit: "عدد",
           qty: 1,
           base_cost: 0,
-          overhead_pct: 40,
+          overhead_pct: 35,
           selling_price: 0,
           notes: "",
           image: null,
@@ -1904,7 +1904,7 @@
         item.description = catItem.description || item.description;
         item.unit = catItem.unit || item.unit;
         item.base_cost = Number(catItem.base_cost) || 0;
-        item.overhead_pct = Number(catItem.overhead_pct) || 40;
+        item.overhead_pct = Number(catItem.overhead_pct) || 35;
         item.selling_price = Number(catItem.selling_price) || (item.base_cost * (1 + item.overhead_pct / 100));
         if (!item.category_id && pickerActiveCatId) {
           item.category_id = pickerActiveCatId;

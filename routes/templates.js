@@ -98,8 +98,8 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
             itemData.qty || 1,
             itemData.image || null,
             itemData.base_cost || 0,
-            itemData.overhead_pct || 40,
-            (itemData.base_cost || 0) * (1 + (itemData.overhead_pct || 40) / 100),
+            itemData.overhead_pct || 35,
+            (itemData.base_cost || 0) * (1 + (itemData.overhead_pct || 35) / 100),
             itemData.notes || "",
             itemData.sort_order || 0,
           );

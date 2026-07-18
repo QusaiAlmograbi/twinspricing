@@ -53,7 +53,7 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
   } = req.body;
 
   const baseCost = Number(base_cost) || 0;
-  const overheadPct = Number(overhead_pct) || 40;
+  const overheadPct = Number(overhead_pct) || 35;
   const sellingPrice = baseCost * (1 + overheadPct / 100);
 
   const maxOrder = await db
