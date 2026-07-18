@@ -731,6 +731,7 @@ async function seedDefaultPriceList() {
     { name: "أعمال خزان المياه والبركة", sort_order: 6 },
     { name: "أعمال المجاري", sort_order: 7 },
     { name: "أعمال الحدائق", sort_order: 8 },
+    { name: "الأعمال الكهربائية", sort_order: 9 },
   ];
 
   const items = [
@@ -822,6 +823,31 @@ async function seedDefaultPriceList() {
 
     // --- أعمال الحدائق (8) ---
     { catIdx: 8, code: "GRD-001", name: "تمديد خطوط حدائق وتركيب الحنفيات", unit: "مقطوع", selling_price: 472.5 },
+
+    // --- الأعمال الكهربائية (9) ---
+    { catIdx: 9, code: "01", name: "نقطة ابريز كاملة", unit: "وحدة", selling_price: 36.00 },
+    { catIdx: 9, code: "02", name: "نقل نقطة ابريز", unit: "وحدة", selling_price: 18.00 },
+    { catIdx: 9, code: "03", name: "نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "04", name: "نقل نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "05", name: "نقطة سبوت لايت", unit: "وحدة", selling_price: 24.00 },
+    { catIdx: 9, code: "06", name: "مفتاح انارة", unit: "وحدة", selling_price: 10.80 },
+    { catIdx: 9, code: "07", name: "نقطة ماجنتيك لايت", unit: "وحدة", selling_price: 26.40 },
+    { catIdx: 9, code: "08", name: "نقطة انارة مخفية", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "09", name: "نقطة مكيف 1 طن", unit: "وحدة", selling_price: 96.00 },
+    { catIdx: 9, code: "10", name: "نقطة مكيف 1.5 طن", unit: "وحدة", selling_price: 180.00 },
+    { catIdx: 9, code: "11", name: "نقل حساس غاز مع سلك ومواسير", unit: "وحدة", selling_price: 42.00 },
+    { catIdx: 9, code: "12", name: "نقل ثيرموستات مع سلك ومواسير", unit: "وحدة", selling_price: 48.00 },
+    { catIdx: 9, code: "13", name: "نقطة ثيرموستات تكييف", unit: "وحدة", selling_price: 72.00 },
+    { catIdx: 9, code: "14", name: "نقطة انارة جدارية", unit: "وحدة", selling_price: 24.00 },
+    { catIdx: 9, code: "15", name: "نقطة انارة ثريا", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "16", name: "تركيب ليد بروفايل لايت", unit: "م.ط", selling_price: 6.00 },
+    { catIdx: 9, code: "17", name: "نقطة للشاشات", unit: "وحدة", selling_price: 78.00 },
+    { catIdx: 9, code: "18", name: "نقطة مع كيبل للشاشات", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "19", name: "تجميع لوحات وتوزيع أحمال", unit: "وحدة", selling_price: 144.00 },
+    { catIdx: 9, code: "20", name: "تغيير أسلاك أباريز وتوصيل مواسير أرضية", unit: "وحدة", selling_price: 30.00 },
+    { catIdx: 9, code: "21", name: "توريد وتركيب سكة إنارة تراك ماجنتيك", unit: "م.ط", selling_price: 12.00 },
+    { catIdx: 9, code: "22", name: "توريد وتركيب محول إنارة تراك ماجنتيك", unit: "عدد", selling_price: 19.20 },
+    { catIdx: 9, code: "23", name: "تأسيس وتمديد 8 نقاط كاميرات وتوصيلهم لـ 3 شاشات", unit: "عدد", selling_price: 600.00 },
   ];
 
   const catIdMap = {};
@@ -872,7 +898,7 @@ async function ensureSeeded() {
 
   console.log(`[db] ensureSeeded: ${catTotal} categories, ${itemTotal} items`);
 
-  if (catTotal >= 9 && itemTotal > 0) {
+  if (catTotal >= 10 && itemTotal > 0) {
     console.log("[db] ✓ Price list data verified.");
     return;
   }
@@ -886,7 +912,7 @@ async function ensureSeeded() {
   const newCats = recheckCats?.count ?? 0;
   const newItems = recheckItems?.count ?? 0;
 
-  if (newCats >= 9 && newItems > 0) {
+  if (newCats >= 10 && newItems > 0) {
     console.log(`[db] ✓ Re-seed successful: ${newCats} categories, ${newItems} items.`);
   } else {
     console.error(`[db] ✗ Re-seed FAILED: ${newCats} categories, ${newItems} items. Check server logs for errors.`);
