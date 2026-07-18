@@ -244,6 +244,8 @@ async function initializeDatabase() {
     return initializationPromise;
   }
 
+  console.log(`[db] initializeDatabase: using ${isSqlite() ? "SQLite" : "PostgreSQL"}`);
+
   initializationPromise = (async () => {
     if (isSqlite()) {
       const db = getSqliteDb();
@@ -388,8 +390,10 @@ async function initializeDatabase() {
         "INTEGER REFERENCES price_categories(id) ON DELETE SET NULL",
       );
 
+      console.log("[db] SQLite tables created, seeding defaults...");
       await seedDefaultTemplates();
       await seedDefaultPriceList();
+      console.log("[db] initializeDatabase complete.");
 
       return true;
     }
@@ -557,8 +561,10 @@ async function initializeDatabase() {
       "BIGINT REFERENCES price_categories(id) ON DELETE SET NULL",
     );
 
+    console.log("[db] PostgreSQL tables created, seeding defaults...");
     await seedDefaultTemplates();
     await seedDefaultPriceList();
+    console.log("[db] initializeDatabase complete.");
 
     return true;
   })();
@@ -693,8 +699,13 @@ async function seedDefaultTemplates() {
 }
 
 async function seedDefaultPriceList() {
+  console.log("[seed] seedDefaultPriceList: checking if price_categories has data...");
   const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
-  if (existing) return;
+  if (existing) {
+    console.log("[seed] price_categories already has data, skipping seed.");
+    return;
+  }
+  console.log("[seed] price_categories is empty, seeding default price list...");
 
   const categories = [
     { name: "أعمال الجبسيومبورد", sort_order: 0 },
@@ -802,23 +813,40 @@ async function seedDefaultPriceList() {
   const catIdMap = {};
   for (let i = 0; i < categories.length; i++) {
     const cat = categories[i];
-    const info = await db.prepare(
-      "INSERT INTO price_categories (name, sort_order) VALUES (?, ?)"
-    ).run(cat.name, cat.sort_order);
-    catIdMap[i] = info.lastInsertRowid;
+    try {
+      const info = await db.prepare(
+        "INSERT INTO price_categories (name, sort_order) VALUES (?, ?)"
+      ).run(cat.name, cat.sort_order);
+      catIdMap[i] = info.lastInsertRowid;
+      console.log(`[seed] inserted category "${cat.name}" with id=${catIdMap[i]}`);
+    } catch (err) {
+      console.error(`[seed] FAILED to insert category "${cat.name}":`, err.message || err);
+    }
   }
 
+  let itemsInserted = 0;
+  let itemsFailed = 0;
   for (const item of items) {
     const catId = catIdMap[item.catIdx];
-    if (!catId) continue;
+    if (!catId) {
+      itemsFailed++;
+      continue;
+    }
     const sp = Number(item.selling_price) || 0;
     const overheadPct = 40;
     const baseCost = sp / (1 + overheadPct / 100);
-    await db.prepare(
-      `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(catId, item.code, item.name, "", item.unit || "مقطوع", Math.round(baseCost * 1000) / 1000, overheadPct, sp);
+    try {
+      await db.prepare(
+        `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(catId, item.code, item.name, "", item.unit || "مقطوع", Math.round(baseCost * 1000) / 1000, overheadPct, sp);
+      itemsInserted++;
+    } catch (err) {
+      itemsFailed++;
+      console.error(`[seed] FAILED to insert item "${item.code} ${item.name}":`, err.message || err);
+    }
   }
+  console.log(`[seed] seedDefaultPriceList done: ${categories.length} categories, ${itemsInserted} items inserted, ${itemsFailed} failed.`);
 }
 
 async function tableColumns(tableName) {
