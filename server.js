@@ -13,6 +13,7 @@ const pdfRoutes = require("./routes/pdf");
 const usersRoutes = require("./routes/users");
 const profileRoutes = require("./routes/profile");
 const priceListRoutes = require("./routes/price-list");
+const disciplinesRoutes = require("./routes/disciplines");
 
 if (!process.env.JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
@@ -42,6 +43,7 @@ function createApp() {
   app.use("/api/users", usersRoutes);
   app.use("/api/profile", profileRoutes);
   app.use("/api/price-list", priceListRoutes);
+  app.use("/api/disciplines", disciplinesRoutes);
 
   app.use(express.static(path.join(__dirname, "public"), {
     setHeaders: (res, filePath) => {

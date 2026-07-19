@@ -403,10 +403,29 @@ async function initializeDatabase() {
       await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
       await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");
 
+      // --- Discipline tables (Many-to-Many) ---
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS disciplines (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS discipline_sections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          discipline_id INTEGER NOT NULL REFERENCES disciplines(id) ON DELETE CASCADE,
+          section_id INTEGER NOT NULL REFERENCES price_categories(id) ON DELETE CASCADE,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          UNIQUE(discipline_id, section_id)
+        );
+      `);
+
       console.log("[db] SQLite tables created, seeding defaults...");
       await seedDefaultTemplates();
       await smartMergeDefaultPriceList();
       await ensureSeeded();
+      await migrateDisciplines();
       console.log("[db] initializeDatabase complete.");
 
       return true;
@@ -586,10 +605,29 @@ async function initializeDatabase() {
     await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
     await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");
 
+    // --- Discipline tables (Many-to-Many) ---
+    await exec(`
+      CREATE TABLE IF NOT EXISTS disciplines (
+        id BIGSERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS discipline_sections (
+        id BIGSERIAL PRIMARY KEY,
+        discipline_id BIGINT NOT NULL REFERENCES disciplines(id) ON DELETE CASCADE,
+        section_id BIGINT NOT NULL REFERENCES price_categories(id) ON DELETE CASCADE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(discipline_id, section_id)
+      );
+    `);
+
     console.log("[db] PostgreSQL tables created, seeding defaults...");
     await seedDefaultTemplates();
     await smartMergeDefaultPriceList();
     await ensureSeeded();
+    await migrateDisciplines();
     console.log("[db] initializeDatabase complete.");
 
     return true;
@@ -1123,6 +1161,33 @@ async function smartMergeDefaultPriceList() {
   }
 
   console.log(`[seed] smartMerge done: ${catsAdded} categories added, ${itemsAdded} items added, ${itemsUpdated} items updated.`);
+}
+
+async function migrateDisciplines() {
+  try {
+    const tableExists = await db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='disciplines'"
+    ).get();
+    if (!tableExists) return;
+
+    const discCount = await db.prepare("SELECT COUNT(*) as count FROM disciplines").get();
+    if (discCount.count > 0) return;
+
+    const info = await db.prepare(
+      "INSERT INTO disciplines (name, sort_order) VALUES ('Unclassified', 0)"
+    ).run();
+    const unclassifiedId = info.lastInsertRowid;
+
+    const allCategories = await db.prepare("SELECT id FROM price_categories").all();
+    for (let i = 0; i < allCategories.length; i++) {
+      await db.prepare(
+        "INSERT INTO discipline_sections (discipline_id, section_id, sort_order) VALUES (?, ?, ?)"
+      ).run(unclassifiedId, allCategories[i].id, i);
+    }
+    console.log(`[db] migrateDisciplines: created "Unclassified" with ${allCategories.length} sections.`);
+  } catch (err) {
+    console.error("[db] migrateDisciplines error:", err.message || err);
+  }
 }
 
 async function ensureSeeded() {
