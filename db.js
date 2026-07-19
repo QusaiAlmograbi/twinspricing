@@ -949,7 +949,7 @@ async function seedDefaultPriceList() {
   console.log(`[seed] seedDefaultPriceList done: ${categories.length} categories, ${itemsInserted} items inserted, ${itemsFailed} failed.`);
 }
 
-async function smartMergeDefaultPriceList() {
+async function smartMergeDefaultPriceList({ force = false } = {}) {
   console.log("[seed] smartMergeDefaultPriceList: checking versions...");
 
   let storedVersion = 0;
@@ -960,9 +960,9 @@ async function smartMergeDefaultPriceList() {
     // app_settings table might not exist yet on first run
   }
 
-  console.log(`[seed] Code version: ${CURRENT_DATA_VERSION}, Stored version: ${storedVersion}`);
+  console.log(`[seed] Code version: ${CURRENT_DATA_VERSION}, Stored version: ${storedVersion}, Force: ${force}`);
 
-  if (storedVersion >= CURRENT_DATA_VERSION) {
+  if (!force && storedVersion >= CURRENT_DATA_VERSION) {
     console.log("[seed] Data is up to date, no merge needed.");
     return;
   }
@@ -1170,21 +1170,16 @@ async function migrateDisciplines() {
     ).get();
     if (!tableExists) return;
 
-    const discCount = await db.prepare("SELECT COUNT(*) as count FROM disciplines").get();
-    if (discCount.count > 0) return;
+    const unclassified = await db.prepare(
+      "SELECT id FROM disciplines WHERE name = 'Unclassified' LIMIT 1"
+    ).get();
 
-    const info = await db.prepare(
-      "INSERT INTO disciplines (name, sort_order) VALUES ('Unclassified', 0)"
-    ).run();
-    const unclassifiedId = info.lastInsertRowid;
-
-    const allCategories = await db.prepare("SELECT id FROM price_categories").all();
-    for (let i = 0; i < allCategories.length; i++) {
-      await db.prepare(
-        "INSERT INTO discipline_sections (discipline_id, section_id, sort_order) VALUES (?, ?, ?)"
-      ).run(unclassifiedId, allCategories[i].id, i);
+    if (unclassified) {
+      console.log("[db] migrateDisciplines: cleaning up 'Unclassified' discipline...");
+      await db.prepare("DELETE FROM discipline_sections WHERE discipline_id = ?").run(unclassified.id);
+      await db.prepare("DELETE FROM disciplines WHERE id = ?").run(unclassified.id);
+      console.log("[db] migrateDisciplines: removed 'Unclassified' discipline and its section links.");
     }
-    console.log(`[db] migrateDisciplines: created "Unclassified" with ${allCategories.length} sections.`);
   } catch (err) {
     console.error("[db] migrateDisciplines error:", err.message || err);
   }

@@ -333,6 +333,12 @@
               <div class="cat-list" id="catList"></div>
               <button class="add-cat-btn" id="addCatBtn">+ قسم جديد</button>
             </div>
+
+            <!-- All unlinked categories -->
+            <div id="unlinkedWrap" style="margin-top:16px;border-top:1px solid var(--pewter);padding-top:14px;">
+              <h2>جميع الأقسام <span id="unlinkedCount" style="font-size:12px;color:var(--ash);font-weight:400;"></span></h2>
+              <div class="cat-list" id="unlinkedCatList"></div>
+            </div>
           </aside>
           <main class="main-panel" id="mainPanel">
             <div class="empty-note">اختر تخصصاً ثم قسماً من القائمة لعرض البنود</div>
@@ -457,6 +463,8 @@
       let editingDisciplineId = null;
       let creatingNewDiscipline = false;
 
+      let unlinkedCategories = [];
+
       // ---- Load Disciplines ----
       async function loadDisciplines() {
         const data = await api("/disciplines");
@@ -499,12 +507,8 @@
             try {
               const disc = disciplines.find(d => Number(d.id) === Number(id));
               if (!disc) { showToast("التخصص غير موجود"); return; }
-              if (disc.name === "Unclassified") {
-                showToast("لا يمكن حذف تخصص \"Unclassified\"");
-                return;
-              }
               if (disc.section_count > 0) {
-                showToast(`Cannot delete this discipline because it contains ${disc.section_count} section(s). Remove the sections first.`);
+                showToast(`لا يمكن حذف التخصص لأنه يحتوي على ${disc.section_count} قسم(أقسام). أزل الأقسام أولًا.`);
                 return;
               }
               if (!confirm(`هل أنت متأكد من حذف تخصص "${disc.name}"؟`)) return;
@@ -518,6 +522,7 @@
                 renderMain();
               }
               await loadDisciplines();
+              await loadUnlinkedCategories();
               showToast("تم حذف التخصص");
             } catch (err) {
               showToast(err.message || "صار في خطأ");
@@ -531,6 +536,7 @@
         activeCategoryId = null;
         items = [];
         renderDisciplines();
+        renderUnlinkedCategories();
         await loadDisciplineSections();
         renderMain();
       }
@@ -594,15 +600,14 @@
             try {
               const cat = disciplineSections.find(c => Number(c.id) === Number(id));
               if (!cat) { showToast("القسم غير موجود"); return; }
-              const msg = cat.item_count > 0
-                ? `Delete section "${cat.name}"?\n\nThis will permanently delete ${cat.item_count} item(s) linked to this section.`
-                : `هل أنت متأكد من حذف قسم "${cat.name}"؟`;
+              const msg = `إزالة "${cat.name}" من هذا التخصص؟\n\nلن يُحذف القسم أو بنوده — سيظهر القسم في "جميع الأقسام" كقسم غير مرتبط.`;
               if (!confirm(msg)) return;
               await api(`/disciplines/${activeDisciplineId}/sections/${cat.id}`, { method: "DELETE" });
               if (activeCategoryId === cat.id) { activeCategoryId = null; items = []; renderMain(); }
               await loadDisciplineSections();
               await loadDisciplines();
-              showToast("تم حذف القسم من التخصص");
+              await loadUnlinkedCategories();
+              showToast("تمت إزالة القسم من التخصص");
             } catch (err) {
               showToast(err.message || "صار في خطأ");
             }
@@ -629,7 +634,71 @@
       async function selectCategory(id) {
         activeCategoryId = id;
         renderDisciplineSections();
+        renderUnlinkedCategories();
         await loadItems();
+      }
+
+      // ---- Load Unlinked Categories ----
+      async function loadUnlinkedCategories() {
+        const data = await api("/price-list/unlinked");
+        unlinkedCategories = data.categories || [];
+        renderUnlinkedCategories();
+      }
+
+      function renderUnlinkedCategories() {
+        const el = document.getElementById("unlinkedCatList");
+        document.getElementById("unlinkedCount").textContent = `(${unlinkedCategories.length})`;
+        if (unlinkedCategories.length === 0) {
+          el.innerHTML = '<p class="empty-note" style="padding:12px 0;">كل الأقسام مرتبطة بتصنيفات</p>';
+          return;
+        }
+        el.innerHTML = unlinkedCategories.map(cat => `
+          <div class="cat-row${cat.id === activeCategoryId ? ' active' : ''}" data-id="${cat.id}">
+            <span class="cat-name">${escapeHtml(cat.name)}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="cat-count">${cat.item_count} بند</span>
+              ${isOwnerOrAdmin ? `
+              <div class="cat-actions">
+                <button data-action="link" title="إضافة لتصنيف">↗</button>
+              </div>` : ''}
+            </div>
+          </div>
+        `).join("");
+
+        el.querySelectorAll(".cat-row").forEach(row => {
+          const id = Number(row.dataset.id);
+          row.addEventListener("click", (e) => {
+            if (e.target.closest("[data-action]")) return;
+            selectCategory(id);
+          });
+          const linkBtn = row.querySelector("[data-action='link']");
+          if (linkBtn) linkBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const cat = unlinkedCategories.find(c => Number(c.id) === Number(id));
+            if (!cat) return;
+            const discNames = disciplines.map(d => d.name);
+            if (discNames.length === 0) {
+              showToast("أنشئ تخصص أولًا ثم أضف القسم له");
+              return;
+            }
+            const chosen = prompt("اختر اسم التخصص:\n" + disciplines.map((d, i) => `${i + 1}. ${d.name}`).join("\n") + "\n\nأدخل رقم التخصص:");
+            const idx = parseInt(chosen, 10) - 1;
+            if (idx >= 0 && idx < disciplines.length) {
+              try {
+                await api(`/disciplines/${disciplines[idx].id}/sections`, {
+                  method: "POST",
+                  body: JSON.stringify({ section_id: id })
+                });
+                showToast(`تمت إضافة "${cat.name}" لتصنيف "${disciplines[idx].name}"`);
+                await loadUnlinkedCategories();
+                if (activeDisciplineId) await loadDisciplineSections();
+                await loadDisciplines();
+              } catch (err) {
+                showToast(err.message || "صار في خطأ");
+              }
+            }
+          };
+        });
       }
 
       async function loadItems() {
@@ -646,7 +715,7 @@
           panel.innerHTML = '<div class="empty-note">اختر قسماً من القائمة لعرض البنود</div>';
           return;
         }
-        const cat = disciplineSections.find(c => c.id === activeCategoryId) || categories.find(c => c.id === activeCategoryId);
+        const cat = disciplineSections.find(c => c.id === activeCategoryId) || unlinkedCategories.find(c => c.id === activeCategoryId) || categories.find(c => c.id === activeCategoryId);
         const catName = cat ? cat.name : "";
         const searchVal = (document.getElementById("searchInput") || {}).value || "";
 
@@ -716,6 +785,7 @@
             await api(`/price-list/items/${it.id}`, { method: "DELETE" });
             await loadItems();
             await loadDisciplineSections();
+            await loadUnlinkedCategories();
             showToast("تم حذف البند");
           };
         });
@@ -748,7 +818,7 @@
         document.getElementById("catModalNameLabel").textContent = "اسم القسم";
         document.getElementById("catModalName").placeholder = "مثال: البلاط، الإضاءة، السباكة";
         if (editingCategoryId !== null) {
-          const cat = disciplineSections.find(c => c.id === editingCategoryId) || categories.find(c => c.id === editingCategoryId);
+          const cat = disciplineSections.find(c => c.id === editingCategoryId) || unlinkedCategories.find(c => c.id === editingCategoryId) || categories.find(c => c.id === editingCategoryId);
           document.getElementById("catModalName").value = cat ? cat.name : "";
         } else {
           document.getElementById("catModalName").value = "";
@@ -786,6 +856,7 @@
             showToast("تمت إضافة القسم");
           }
           await loadDisciplines();
+          await loadUnlinkedCategories();
           if (activeDisciplineId) await loadDisciplineSections();
         } else if (editingCategoryId !== null) {
           await api(`/price-list/${editingCategoryId}`, { method: "PUT", body: JSON.stringify({ name }) });
@@ -844,6 +915,7 @@
         closeItemModal();
         await loadItems();
         await loadDisciplineSections();
+        await loadUnlinkedCategories();
       };
 
       document.getElementById("addDiscBtn").onclick = () => openDisciplineModal();
@@ -860,6 +932,7 @@
           window.location.href = "/index.html";
         };
         await loadDisciplines();
+        await loadUnlinkedCategories();
       })();
     </script>
   </body>

@@ -73,16 +73,12 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "التخصص غير موجود" });
   }
 
-  if (existing.name === "Unclassified") {
-    return res.status(400).json({ error: "لا يمكن حذف تخصص \"Unclassified\" — هذا القسم النظامي يحتوي على جميع الأقسام غير المصنفة." });
-  }
-
   const sectionCount = await db.prepare(
     "SELECT COUNT(*) as count FROM discipline_sections WHERE discipline_id = ?"
   ).get(id);
   if (sectionCount.count > 0) {
     return res.status(400).json({
-      error: `Cannot delete this discipline because it contains ${sectionCount.count} section(s). Remove the sections first.`
+      error: `لا يمكن حذف التخصص لأنه يحتوي على ${sectionCount.count} قسم(أقسام). أزل الأقسام أولًا.`
     });
   }
 
