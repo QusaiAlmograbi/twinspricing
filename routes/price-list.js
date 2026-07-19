@@ -22,6 +22,23 @@ router.get("/", asyncHandler(async (req, res) => {
   res.json({ categories });
 }));
 
+// GET /api/price-list/unlinked — Categories not linked to any discipline
+router.get("/unlinked", asyncHandler(async (req, res) => {
+  const categories = await db
+    .prepare(
+      `SELECT pc.id, pc.name, pc.sort_order,
+              COUNT(pi.id) as item_count
+       FROM price_categories pc
+       LEFT JOIN price_items pi ON pi.category_id = pc.id
+       LEFT JOIN discipline_sections ds ON ds.section_id = pc.id
+       WHERE ds.id IS NULL
+       GROUP BY pc.id
+       ORDER BY pc.sort_order ASC, pc.name ASC`
+    )
+    .all();
+  res.json({ categories });
+}));
+
 // GET /api/price-list/diagnostic — Check DB status (admin/owner only)
 router.get("/diagnostic", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
@@ -87,10 +104,11 @@ router.post("/seed", asyncHandler(async (req, res) => {
       console.log("[seed] Force re-seeding: clearing existing price list data...");
       await db.prepare("DELETE FROM price_items").run();
       await db.prepare("DELETE FROM price_categories").run();
+      await db.prepare("UPDATE app_settings SET value = '0' WHERE key = 'data_version'").run();
     }
   }
 
-  await smartMergeDefaultPriceList();
+  await smartMergeDefaultPriceList({ force: true });
 
   const catCount = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const itemCount = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
