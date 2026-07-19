@@ -1001,6 +1001,18 @@
 
       function invalidateAllItemsCache() { window._allItemsCache = null; }
 
+      async function fetchDisciplineItems(disciplineId) {
+        if (!disciplineId) return fetchAllCategoryItems();
+        const discCats = allPickerCategories.filter(cat => cat._disciplineId === disciplineId);
+        if (discCats.length === 0) return [];
+        const results = [];
+        for (const cat of discCats) {
+          const items = await fetchCategoryItems(cat.id);
+          results.push(...items);
+        }
+        return results;
+      }
+
       // ---- Render Functions ----
       function renderSectionsNav() {
         const nav = document.getElementById("sectionsNav");
@@ -1041,6 +1053,7 @@
         const filteredCats = selectedDisciplineId
           ? allPickerCategories.filter(cat => cat._disciplineId === selectedDisciplineId)
           : allPickerCategories;
+        console.log('[DBG-4] renderMainPanel: selectedDisciplineId=', selectedDisciplineId, 'filteredCats.length=', filteredCats.length, 'filteredCats:', filteredCats.map(c => c.name));
         filteredCats.forEach(cat => {
           catsInSection.push({ id: cat.id, name: cat.name, count: catCounts[cat.id] || 0 });
         });
@@ -1096,8 +1109,13 @@
           const activeCatName = (activeCategoryTab && activeCategoryTab !== '__unclassified__')
             ? (allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '')
             : '';
+          const activeDiscName = (!activeCategoryTab && selectedDisciplineId)
+            ? (allDisciplines.find(d => d.id === selectedDisciplineId)?.name || '')
+            : '';
           const searchPlaceholder = activeCatName
             ? `بحث في ${escapeAttr(activeCatName)} — اكتب أو اضغط لعرض كل البنود...`
+            : activeDiscName
+            ? `بحث في ${escapeAttr(activeDiscName)} — اكتب اسم البند أو الكود...`
             : 'بحث في كل الفئات — اكتب اسم البند أو الكود...';
           searchHtml = `<div class="cat-search-row">
             <input class="cat-search-input" id="catSearchInput" type="text" placeholder="${searchPlaceholder}" autocomplete="off" />
@@ -1173,6 +1191,8 @@
             const val = tab.dataset.disc;
             selectedDisciplineId = val === 'all' ? null : Number(val);
             activeCategoryTab = null;
+            console.log('[DBG-3] Discipline tab clicked. selectedDisciplineId:', selectedDisciplineId);
+            console.log('[DBG-3] allPickerCategories annotations:', allPickerCategories.map(c => ({id:c.id, name:c.name, _disciplineId:c._disciplineId})));
             renderAll();
           };
         });
@@ -1258,6 +1278,8 @@
             catSearchResults.innerHTML = '<div class="cat-search-loading">جاري تحميل البنود...</div>';
             if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
               catCachedItems = await fetchCategoryItems(activeCategoryTab);
+            } else if (selectedDisciplineId) {
+              catCachedItems = await fetchDisciplineItems(selectedDisciplineId);
             } else {
               catCachedItems = await fetchAllCategoryItems();
             }
@@ -1274,6 +1296,8 @@
               if (!catCachedItems.length) {
                 if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
                   catCachedItems = await fetchCategoryItems(activeCategoryTab);
+                } else if (selectedDisciplineId) {
+                  catCachedItems = await fetchDisciplineItems(selectedDisciplineId);
                 } else {
                   catCachedItems = await fetchAllCategoryItems();
                 }
@@ -1924,6 +1948,8 @@
             allPickerCategories.forEach(cat => {
               cat._disciplineId = catToDiscMap[cat.id] || null;
             });
+            console.log('[DBG-1] catToDiscMap built:', JSON.stringify(catToDiscMap));
+            console.log('[DBG-1] allPickerCategories after annotation:', allPickerCategories.map(c => ({id:c.id, name:c.name, _disciplineId:c._disciplineId})));
           }
           renderPickerCategories();
           if (preselectedCategoryId) {
@@ -2246,6 +2272,9 @@
         renderAll();
         loadSavedList();
         await loadPickerCategories();
+        console.log('[DBG-2] After init loadPickerCategories:');
+        console.log('  allDisciplines:', allDisciplines.map(d => ({id:d.id, name:d.name})));
+        console.log('  allPickerCategories:', allPickerCategories.map(c => ({id:c.id, name:c.name, _disciplineId:c._disciplineId})));
       })();
     </script>
   </body>
