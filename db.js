@@ -1201,7 +1201,7 @@ async function ensureSeeded() {
 
   console.log("[db] ⚠ Insufficient price list data, re-seeding...");
   await seedDefaultTemplates();
-  await smartMergeDefaultPriceList();
+  await smartMergeDefaultPriceList({ force: true });
 
   const recheckCats = await db.prepare("SELECT COUNT(*) as count FROM price_categories").get();
   const recheckItems = await db.prepare("SELECT COUNT(*) as count FROM price_items").get();
