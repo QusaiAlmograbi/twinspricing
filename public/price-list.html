@@ -455,6 +455,7 @@
       let editingCategoryId = null;
       let editingItemId = null;
       let editingDisciplineId = null;
+      let creatingNewDiscipline = false;
 
       // ---- Load Disciplines ----
       async function loadDisciplines() {
@@ -723,6 +724,7 @@
       // ---- Discipline Modal ----
       function openDisciplineModal(editId) {
         editingDisciplineId = editId || null;
+        creatingNewDiscipline = !editId;
         const modal = document.getElementById("catModal");
         document.getElementById("catModalTitle").textContent = editingDisciplineId !== null ? "تعديل التخصص" : "إضافة تخصص جديد";
         document.getElementById("catModalNameLabel").textContent = "اسم التخصص";
@@ -740,6 +742,7 @@
       // ---- Category Modal ----
       function openCatModal(editId) {
         editingCategoryId = editId || null;
+        creatingNewDiscipline = false;
         const modal = document.getElementById("catModal");
         document.getElementById("catModalTitle").textContent = editingCategoryId !== null ? "تعديل القسم" : "إضافة قسم جديد";
         document.getElementById("catModalNameLabel").textContent = "اسم القسم";
@@ -753,7 +756,7 @@
         modal.classList.add("open");
         document.getElementById("catModalName").focus();
       }
-      function closeCatModal() { document.getElementById("catModal").classList.remove("open"); }
+      function closeCatModal() { document.getElementById("catModal").classList.remove("open"); creatingNewDiscipline = false; }
       document.getElementById("catModalCancel").onclick = closeCatModal;
       document.getElementById("catModal").onclick = (e) => { if (e.target === e.currentTarget) closeCatModal(); };
       document.getElementById("catModalSave").onclick = async () => {
@@ -761,7 +764,12 @@
         if (!name) { showToast("الاسم مطلوب"); return; }
 
         // Discipline mode vs category mode
-        if (editingDisciplineId !== null) {
+        if (creatingNewDiscipline) {
+          await api("/disciplines", { method: "POST", body: JSON.stringify({ name }) });
+          showToast("تمت إضافة التخصص");
+          creatingNewDiscipline = false;
+          await loadDisciplines();
+        } else if (editingDisciplineId !== null) {
           await api(`/disciplines/${editingDisciplineId}`, { method: "PUT", body: JSON.stringify({ name }) });
           showToast("تم تعديل التخصص");
           editingDisciplineId = null;
