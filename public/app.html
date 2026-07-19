@@ -868,6 +868,8 @@
       let currentQuoteId = null;
       let isOwnerOrAdmin = currentUser.role === "owner" || currentUser.role === "admin";
       let allPickerCategories = [];
+      let allDisciplines = [];
+      let selectedDisciplineId = null;
       let activeCategoryTab = null;
 
       function money(n) {
@@ -1028,7 +1030,7 @@
         if (!sec) return;
         const allItems = sec.items || [];
 
-        // Always show all categories as tabs
+        // Always show all categories as tabs, filtered by selected discipline if any
         const catsInSection = [];
         const catCounts = {};
         allItems.forEach(it => {
@@ -1036,7 +1038,10 @@
           if (!catCounts[cid]) catCounts[cid] = 0;
           catCounts[cid]++;
         });
-        allPickerCategories.forEach(cat => {
+        const filteredCats = selectedDisciplineId
+          ? allPickerCategories.filter(cat => cat._disciplineId === selectedDisciplineId)
+          : allPickerCategories;
+        filteredCats.forEach(cat => {
           catsInSection.push({ id: cat.id, name: cat.name, count: catCounts[cat.id] || 0 });
         });
 
@@ -1053,7 +1058,17 @@
           items = allItems.filter(it => (it.category_id != null ? Number(it.category_id) : null) === activeCategoryTab);
         }
 
-        // Category tabs HTML
+        // Discipline tabs + Category tabs HTML
+        let discTabsHtml = '';
+        if (allDisciplines.length > 1) {
+          discTabsHtml = `<div class="category-tabs" id="disciplineTabs">
+            <button class="category-tab${selectedDisciplineId === null ? ' active' : ''}" data-disc="all">الكل</button>`;
+          allDisciplines.forEach(d => {
+            discTabsHtml += `<button class="category-tab${selectedDisciplineId === d.id ? ' active' : ''}" data-disc="${d.id}">${escapeAttr(d.name)}</button>`;
+          });
+          discTabsHtml += `</div>`;
+        }
+
         let catTabsHtml = '';
         const totalClassified = catsInSection.reduce((s, c) => s + c.count, 0);
         const totalAll = allItems.length;
@@ -1131,6 +1146,7 @@
             <button class="btn-rename" id="renameSecBtn">تعديل الاسم</button>
             <button class="btn-delete-sec" id="deleteSecBtn">حذف القسم</button>
           </div>
+          ${discTabsHtml}
           ${catTabsHtml}
           ${searchHtml}
           ${items.length
@@ -1150,6 +1166,16 @@
         // Section subtotal
         const secSub = allItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
         document.getElementById("secSubtotal").textContent = `► إجمالي القسم: ${moneyInt(secSub)}`;
+
+        // Discipline tab click events
+        document.querySelectorAll("#disciplineTabs .category-tab").forEach(tab => {
+          tab.onclick = () => {
+            const val = tab.dataset.disc;
+            selectedDisciplineId = val === 'all' ? null : Number(val);
+            activeCategoryTab = null;
+            renderAll();
+          };
+        });
 
         // Category tab click events
         document.querySelectorAll("#categoryTabs .category-tab").forEach(tab => {
@@ -1878,9 +1904,26 @@
 
       async function loadPickerCategories(preselectedCategoryId) {
         try {
+          if (allDisciplines.length === 0) {
+            const discData = await api("/disciplines");
+            allDisciplines = discData.disciplines || [];
+          }
           if (allPickerCategories.length === 0) {
             const data = await api("/price-list");
             allPickerCategories = data.categories || [];
+            // Annotate categories with discipline IDs
+            const catToDiscMap = {};
+            for (const disc of allDisciplines) {
+              try {
+                const secData = await api(`/disciplines/${disc.id}/sections`);
+                (secData.sections || []).forEach(sec => {
+                  if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
+                });
+              } catch { /* skip */ }
+            }
+            allPickerCategories.forEach(cat => {
+              cat._disciplineId = catToDiscMap[cat.id] || null;
+            });
           }
           renderPickerCategories();
           if (preselectedCategoryId) {
@@ -1895,13 +1938,25 @@
 
       function renderPickerCategories() {
         const el = document.getElementById("pickerCats");
-        if (allPickerCategories.length === 0) {
+        if (allDisciplines.length === 0 && allPickerCategories.length === 0) {
           el.innerHTML = '<span style="color:var(--ash);font-size:12px;">ما في أقسام بعد. <a href="/price-list" style="color:var(--gold);">أنشئ أقساماً أولاً</a></span>';
           return;
         }
-        el.innerHTML = allPickerCategories.map(cat => `
-          <button class="picker-cat-btn${cat.id === pickerActiveCatId ? ' active' : ''}" data-id="${cat.id}">${escapeAttr(cat.name)} (${cat.item_count})</button>
-        `).join("");
+        let html = '';
+        allDisciplines.forEach(disc => {
+          html += `<div style="width:100%;font-size:11px;font-weight:700;color:var(--gold);padding:6px 0 2px;border-top:1px solid var(--pewter);margin-top:4px;">${escapeAttr(disc.name)}</div>`;
+          const discSections = allPickerCategories.filter(cat =>
+            cat._disciplineId === disc.id
+          );
+          if (discSections.length === 0) {
+            html += `<span style="font-size:11px;color:var(--ash);padding:2px 8px;">لا توجد أقسام</span>`;
+          } else {
+            discSections.forEach(cat => {
+              html += `<button class="picker-cat-btn${cat.id === pickerActiveCatId ? ' active' : ''}" data-id="${cat.id}">${escapeAttr(cat.name)} (${cat.item_count})</button>`;
+            });
+          }
+        });
+        el.innerHTML = html;
         el.querySelectorAll(".picker-cat-btn").forEach(btn => {
           btn.onclick = () => {
             pickerActiveCatId = Number(btn.dataset.id);
