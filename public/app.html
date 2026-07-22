@@ -1098,7 +1098,7 @@
               الكل<span class="cat-count">${totalAll}</span>
             </button>`;
           catsInSection.forEach(cat => {
-            catTabsHtml += `<button class="category-tab${activeCategoryTab === cat.id ? ' active' : ''}" data-cat="${cat.id}">
+            catTabsHtml += `<button class="category-tab${activeCategoryTab != null && Number(activeCategoryTab) === Number(cat.id) ? ' active' : ''}" data-cat="${cat.id}">
               ${escapeAttr(cat.name)}<span class="cat-count">${cat.count}</span>
             </button>`;
           });
