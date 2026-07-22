@@ -1003,7 +1003,7 @@
 
       async function fetchDisciplineItems(disciplineId) {
         if (!disciplineId) return fetchAllCategoryItems();
-        const discCats = allPickerCategories.filter(cat => cat._disciplineId === disciplineId);
+        const discCats = allPickerCategories.filter(cat => Number(cat._disciplineId) === Number(disciplineId));
         if (discCats.length === 0) return [];
         const results = [];
         for (const cat of discCats) {
@@ -1051,7 +1051,7 @@
           catCounts[cid]++;
         });
         const filteredCats = selectedDisciplineId
-          ? allPickerCategories.filter(cat => cat._disciplineId === selectedDisciplineId)
+          ? allPickerCategories.filter(cat => Number(cat._disciplineId) === Number(selectedDisciplineId))
           : allPickerCategories;
         console.log('[DBG-4] renderMainPanel: selectedDisciplineId=', selectedDisciplineId, 'filteredCats.length=', filteredCats.length, 'filteredCats:', filteredCats.map(c => c.name));
         filteredCats.forEach(cat => {
@@ -1077,7 +1077,7 @@
           discTabsHtml = `<div class="category-tabs" id="disciplineTabs">
             <button class="category-tab${selectedDisciplineId === null ? ' active' : ''}" data-disc="all">الكل</button>`;
           allDisciplines.forEach(d => {
-            discTabsHtml += `<button class="category-tab${selectedDisciplineId === d.id ? ' active' : ''}" data-disc="${d.id}">${escapeAttr(d.name)}</button>`;
+            discTabsHtml += `<button class="category-tab${Number(selectedDisciplineId) === Number(d.id) ? ' active' : ''}" data-disc="${d.id}">${escapeAttr(d.name)}</button>`;
           });
           discTabsHtml += `</div>`;
         }
@@ -1110,7 +1110,7 @@
             ? (allPickerCategories.find(c => c.id === activeCategoryTab)?.name || '')
             : '';
           const activeDiscName = (!activeCategoryTab && selectedDisciplineId)
-            ? (allDisciplines.find(d => d.id === selectedDisciplineId)?.name || '')
+            ? (allDisciplines.find(d => Number(d.id) === Number(selectedDisciplineId))?.name || '')
             : '';
           const searchPlaceholder = activeCatName
             ? `بحث في ${escapeAttr(activeCatName)} — اكتب أو اضغط لعرض كل البنود...`
@@ -1175,7 +1175,7 @@
                 <th class="col-total">الإجمالي</th><th class="col-notes">ملاحظات</th><th class="col-del"></th>
               </tr></thead><tbody>${rows}</tbody></table>`
             : selectedDisciplineId && filteredCats.length === 0
-              ? `<p class="empty-note" style="padding:20px 0;">لا توجد أقسام مربوطة بتصنيف "${escapeAttr(allDisciplines.find(d => d.id === selectedDisciplineId)?.name || '')}". أضف أقساماً من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</p>`
+              ? `<p class="empty-note" style="padding:20px 0;">لا توجد أقسام مربوطة بتصنيف "${escapeAttr(allDisciplines.find(d => Number(d.id) === Number(selectedDisciplineId))?.name || '')}". أضف أقساماً من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</p>`
               : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? 'ما في بنود لهالقسم. ابدأ بإضافة أول بند.' : 'ما في بنود لسا. ابدأ بإضافة أول بند.'}</p>`
           }
           <button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>
@@ -1954,7 +1954,7 @@
               } catch { /* skip */ }
             }
             allPickerCategories.forEach(cat => {
-              cat._disciplineId = catToDiscMap[cat.id] || null;
+              cat._disciplineId = catToDiscMap[cat.id] != null ? Number(catToDiscMap[cat.id]) : null;
             });
             console.log('[DBG-1] catToDiscMap built:', JSON.stringify(catToDiscMap));
             console.log('[DBG-1] allPickerCategories after annotation:', allPickerCategories.map(c => ({id:c.id, name:c.name, _disciplineId:c._disciplineId})));
