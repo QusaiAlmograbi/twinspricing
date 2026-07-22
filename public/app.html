@@ -1073,7 +1073,7 @@
 
         // Discipline tabs + Category tabs HTML
         let discTabsHtml = '';
-        if (allDisciplines.length > 1) {
+        if (allDisciplines.length >= 1) {
           discTabsHtml = `<div class="category-tabs" id="disciplineTabs">
             <button class="category-tab${selectedDisciplineId === null ? ' active' : ''}" data-disc="all">الكل</button>`;
           allDisciplines.forEach(d => {
@@ -1174,7 +1174,9 @@
                 <th class="col-price">سعر البيع</th>${costHeader}
                 <th class="col-total">الإجمالي</th><th class="col-notes">ملاحظات</th><th class="col-del"></th>
               </tr></thead><tbody>${rows}</tbody></table>`
-            : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? 'ما في بنود لهالقسم. ابدأ بإضافة أول بند.' : 'ما في بنود لسا. ابدأ بإضافة أول بند.'}</p>`
+            : selectedDisciplineId && filteredCats.length === 0
+              ? `<p class="empty-note" style="padding:20px 0;">لا توجد أقسام مربوطة بتصنيف "${escapeAttr(allDisciplines.find(d => d.id === selectedDisciplineId)?.name || '')}". أضف أقساماً من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</p>`
+              : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? 'ما في بنود لهالقسم. ابدأ بإضافة أول بند.' : 'ما في بنود لسا. ابدأ بإضافة أول بند.'}</p>`
           }
           <button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>
           ${isOwnerOrAdmin ? '<button class="pick-catalog-btn" id="pickCatalogBtn">📂 اختيار من كتالوج الأسعار</button>' : ''}
@@ -1456,7 +1458,13 @@
             if (!val) { fNameAc.classList.remove("open"); fNameAc.innerHTML = ""; return; }
             fNameTimeout = setTimeout(async () => {
               if (!fNameCachedItems.length) {
-                fNameCachedItems = await fetchAllCategoryItems();
+                if (activeCategoryTab && activeCategoryTab !== '__unclassified__') {
+                  fNameCachedItems = await fetchCategoryItems(activeCategoryTab);
+                } else if (selectedDisciplineId) {
+                  fNameCachedItems = await fetchDisciplineItems(selectedDisciplineId);
+                } else {
+                  fNameCachedItems = await fetchAllCategoryItems();
+                }
               }
               const filtered = fNameCachedItems.filter(it =>
                 fuzzyMatch(it.name, val) ||
@@ -2269,9 +2277,9 @@
           document.getElementById("topbarAvatarImg").style.display = "block";
           document.getElementById("topbarAvatarCircle").querySelector(".topbar-avatar-placeholder").style.display = "none";
         }
-        renderAll();
         loadSavedList();
         await loadPickerCategories();
+        renderAll();
         console.log('[DBG-2] After init loadPickerCategories:');
         console.log('  allDisciplines:', allDisciplines.map(d => ({id:d.id, name:d.name})));
         console.log('  allPickerCategories:', allPickerCategories.map(c => ({id:c.id, name:c.name, _disciplineId:c._disciplineId})));
