@@ -335,6 +335,13 @@
       .btn-save:disabled { opacity: 0.6; cursor: default; }
       .btn-secondary { background: none; border: 1px solid var(--pewter) !important; color: var(--ash); }
       .btn-secondary:hover { border-color: var(--gold-dim) !important; color: var(--gold); }
+      .btn-new-quote {
+        font-family: inherit; font-size: 12px; font-weight: 600;
+        padding: 5px 12px; border-radius: 999px; cursor: pointer;
+        background: none; border: 1px solid var(--pewter); color: var(--ash);
+        transition: 0.15s; vertical-align: middle; margin-right: 10px;
+      }
+      .btn-new-quote:hover { border-color: var(--gold-dim); color: var(--gold); }
 
       /* Saved Quotes */
       .saved-quotes { margin-top: 16px; border-top: 1px solid var(--pewter); padding-top: 12px; }
@@ -688,7 +695,7 @@
 
         <header class="project-header">
           <div class="eyebrow">TWiNS Interior Design · أداة تسعير احترافية</div>
-          <h1 id="pageTitle">عرض سعر جديد</h1>
+          <h1 id="pageTitle">عرض سعر جديد</h1><button id="newQuoteBtn" class="btn-new-quote" title="عرض سعر جديد">+ جديد</button>
           <div class="project-fields">
             <label>رقم المرجع
               <input id="referenceNo" type="text" placeholder="JOF-26-0045-R01" />
@@ -810,6 +817,20 @@
       </div>
     </div>
 
+    <div class="modal-overlay" id="newQuoteModal">
+      <div class="modal">
+        <h3>عرض سعر جديد</h3>
+        <p style="color: var(--ash); font-size: 13.5px; margin: 0 0 16px;">
+          عندك أقسام وبنود غير محفوظة. وش تبي تسوي؟
+        </p>
+        <div class="modal-actions">
+          <button id="newQuoteCancel" class="btn-secondary">إلغاء</button>
+          <button id="newQuoteDiscard" class="btn-secondary" style="border-color: var(--danger) !important; color: var(--danger);">تجاهل</button>
+          <button id="newQuoteSave" class="btn-save">احفظ وأبدأ جديد</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // Theme toggle
       const savedTheme = localStorage.getItem("theme") || "dark";
@@ -871,6 +892,8 @@
       let allDisciplines = [];
       let selectedDisciplineId = null;
       let activeCategoryTab = null;
+      let hasUnsavedWork = false;
+      function markDirty() { hasUnsavedWork = true; }
 
       function money(n) {
         n = Number.isFinite(n) ? n : 0;
@@ -1389,6 +1412,7 @@
             sections.splice(activeSectionIdx, 1);
             if (activeSectionIdx >= sections.length) activeSectionIdx = Math.max(0, sections.length - 1);
             activeCategoryTab = null;
+            markDirty();
             renderAll();
             showToast("تم حذف القسم");
           } catch (e) { showToast(e.message); }
@@ -1414,6 +1438,7 @@
             }
           }
           allItems.push(newItem);
+          markDirty();
           renderAll();
         };
 
@@ -1439,6 +1464,7 @@
               }
             }
             allItems.push(newItem);
+            markDirty();
             renderAll();
             const preCat = (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null;
             openPicker(allItems.length - 1, preCat);
@@ -1546,13 +1572,14 @@
           fNameInput.onfocus = () => {
             if (fNameInput.value.trim()) fNameInput.dispatchEvent(new Event('input'));
           };
-          tr.querySelector(".f-desc").oninput = (e) => { item.description = e.target.value; };
-          tr.querySelector(".f-unit").onchange = (e) => { item.unit = e.target.value; };
-          tr.querySelector(".f-notes").oninput = (e) => { item.notes = e.target.value; };
+          tr.querySelector(".f-desc").oninput = (e) => { item.description = e.target.value; markDirty(); };
+          tr.querySelector(".f-unit").onchange = (e) => { item.unit = e.target.value; markDirty(); };
+          tr.querySelector(".f-notes").oninput = (e) => { item.notes = e.target.value; markDirty(); };
 
           tr.querySelector(".f-qty").oninput = (e) => {
             item.qty = Number(e.target.value) || 0;
             recalcItem(item);
+            markDirty();
             renderTotals();
           };
 
@@ -1560,6 +1587,7 @@
           if (!isOwnerOrAdmin) {
             priceInput.oninput = (e) => {
               item.selling_price = Number(e.target.value) || 0;
+              markDirty();
               renderTotals();
             };
           }
@@ -1570,11 +1598,13 @@
             if (baseCostInput) baseCostInput.oninput = (e) => {
               item.base_cost = Number(e.target.value) || 0;
               recalcItem(item);
+              markDirty();
               renderTotals();
             };
             if (overheadInput) overheadInput.oninput = (e) => {
               item.overhead_pct = Number(e.target.value) || 0;
               recalcItem(item);
+              markDirty();
               renderTotals();
             };
           }
@@ -1584,6 +1614,7 @@
               await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" });
             }
             allItems.splice(idx, 1);
+            markDirty();
             renderAll();
           };
 
@@ -1600,6 +1631,7 @@
               const file = e.target.files && e.target.files[0];
               if (!file) return;
               item.image = await compressImage(file);
+              markDirty();
               renderAll();
             };
           }
@@ -1613,6 +1645,7 @@
             rmBtn.onclick = (e) => {
               e.stopPropagation();
               item.image = null;
+              markDirty();
               renderAll();
             };
           }
@@ -1655,6 +1688,7 @@
           }
         }
         allItems.push(newItem);
+        markDirty();
         renderAll();
         showToast("تمت إضافة البند من الكتالوج");
       }
@@ -1688,6 +1722,7 @@
           }
         }
         allItems.push(newItem);
+        markDirty();
         renderAll();
         showToast("تمت إضافة البند يدوياً");
       }
@@ -1781,6 +1816,7 @@
           inp.oninput = (e) => {
             const idx = Number(e.target.dataset.idx);
             state.paymentTerms[idx].percentage = Number(e.target.value) || 0;
+            markDirty();
             renderPaymentTerms(grandTotal);
           };
         });
@@ -1788,12 +1824,14 @@
           inp.oninput = (e) => {
             const idx = Number(e.target.dataset.idx);
             state.paymentTerms[idx].trigger_description = e.target.value;
+            markDirty();
           };
         });
         el.querySelectorAll(".del-term-btn").forEach(btn => {
           btn.onclick = () => {
             const idx = Number(btn.dataset.idx);
             state.paymentTerms.splice(idx, 1);
+            markDirty();
             renderPaymentTerms(grandTotal);
           };
         });
@@ -1801,6 +1839,7 @@
         if (addBtn) {
           addBtn.onclick = () => {
             state.paymentTerms.push({ percentage: 0, trigger_description: "" });
+            markDirty();
             renderPaymentTerms(grandTotal);
             const inputs = el.querySelectorAll(".pct-input");
             if (inputs.length) inputs[inputs.length - 1].focus();
@@ -1855,6 +1894,7 @@
           activeSectionIdx = sections.length - 1;
         }
         closeSectionModal();
+        markDirty();
         renderAll();
         showToast(editingSectionIdx !== null ? "تم تعديل القسم" : "تمت إضافة القسم");
       };
@@ -2144,6 +2184,7 @@
           }
 
           document.getElementById("pageTitle").textContent = state.projectName || "عرض سعر";
+          hasUnsavedWork = false;
           showToast("تم حفظ العرض");
           loadSavedList();
         } catch (e) {
@@ -2177,6 +2218,7 @@
         }));
         activeSectionIdx = 0;
         activeCategoryTab = null;
+        hasUnsavedWork = false;
 
         document.getElementById("projectName").value = state.projectName;
         document.getElementById("referenceNo").value = state.referenceNo;
@@ -2217,7 +2259,7 @@
               try {
                 await api("/quotes/" + id, { method: "DELETE" });
                 loadSavedList();
-                if (currentQuoteId == id) document.getElementById("newQuoteBtn")?.click() || resetQuote();
+                if (currentQuoteId == id) resetQuote();
               } catch (e) { showToast(e.message); }
             };
           });
@@ -2239,6 +2281,7 @@
         sections = [];
         activeSectionIdx = 0;
         activeCategoryTab = null;
+        hasUnsavedWork = false;
         document.getElementById("projectName").value = "";
         document.getElementById("referenceNo").value = "";
         document.getElementById("clientName").value = "";
@@ -2271,6 +2314,34 @@
       document.getElementById("logoutBtn").onclick = () => {
         localStorage.removeItem("token"); localStorage.removeItem("user");
         window.location.href = "/index.html";
+      };
+
+      // ---- New Quote Button + Modal ----
+      document.getElementById("newQuoteBtn").onclick = () => {
+        if (hasUnsavedWork) {
+          document.getElementById("newQuoteModal").classList.add("open");
+        } else {
+          resetQuote();
+        }
+      };
+      document.getElementById("newQuoteCancel").onclick = () => {
+        document.getElementById("newQuoteModal").classList.remove("open");
+      };
+      document.getElementById("newQuoteDiscard").onclick = () => {
+        document.getElementById("newQuoteModal").classList.remove("open");
+        resetQuote();
+      };
+      document.getElementById("newQuoteSave").onclick = async () => {
+        try {
+          await saveQuote();
+          document.getElementById("newQuoteModal").classList.remove("open");
+          resetQuote();
+        } catch (e) {
+          showToast("فشل الحفظ: " + e.message);
+        }
+      };
+      document.getElementById("newQuoteModal").onclick = (e) => {
+        if (e.target === e.currentTarget) document.getElementById("newQuoteModal").classList.remove("open");
       };
 
       // ---- Init ----
