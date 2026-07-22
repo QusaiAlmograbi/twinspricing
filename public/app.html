@@ -1064,7 +1064,12 @@
         // Filter items by active tab
         let items;
         if (activeCategoryTab === null) {
-          items = allItems;
+          if (selectedDisciplineId) {
+            const discCatIds = new Set(filteredCats.map(c => Number(c.id)));
+            items = allItems.filter(it => it.category_id != null && discCatIds.has(Number(it.category_id)));
+          } else {
+            items = allItems;
+          }
         } else if (activeCategoryTab === "__unclassified__") {
           items = allItems.filter(it => !it.category_id);
         } else {
@@ -1084,7 +1089,9 @@
 
         let catTabsHtml = '';
         const totalClassified = catsInSection.reduce((s, c) => s + c.count, 0);
-        const totalAll = allItems.length;
+        const totalAll = selectedDisciplineId
+          ? filteredCats.reduce((s, c) => s + (catCounts[Number(c.id)] || 0), 0)
+          : allItems.length;
         if (allPickerCategories.length > 0 || unclassCount > 0) {
           catTabsHtml = `<div class="category-tabs" id="categoryTabs">
             <button class="category-tab${activeCategoryTab === null ? ' active' : ''}" data-cat="all">
