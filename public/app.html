@@ -1180,7 +1180,7 @@
         const totalClassified = catsInSection.reduce((s, c) => s + c.count, 0);
         const totalAll = selectedDisciplineId
           ? filteredCats.reduce((s, c) => s + (catCounts[Number(c.id)] || 0), 0)
-          : allItems.length;
+          : roomFilteredItems.length;
         if (allPickerCategories.length > 0 || unclassCount > 0) {
           catTabsHtml = `<div class="category-tabs" id="categoryTabs">
             <button class="category-tab${activeCategoryTab === null ? ' active' : ''}" data-cat="all">
