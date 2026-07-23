@@ -377,6 +377,13 @@ async function initializeDatabase() {
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS rooms (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0
+        );
+
         CREATE TABLE IF NOT EXISTS app_settings (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL
@@ -399,6 +406,9 @@ async function initializeDatabase() {
         "category_id",
         "INTEGER REFERENCES price_categories(id) ON DELETE SET NULL",
       );
+
+      await ensureColumnIfMissing("sections", "has_rooms", "INTEGER NOT NULL DEFAULT 0");
+      await ensureColumnIfMissing("items", "room_id", "INTEGER REFERENCES rooms(id) ON DELETE SET NULL");
 
       await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
       await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");
@@ -579,6 +589,13 @@ async function initializeDatabase() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS rooms (
+        id BIGSERIAL PRIMARY KEY,
+        section_id BIGINT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+
       CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
@@ -601,6 +618,9 @@ async function initializeDatabase() {
       "category_id",
       "BIGINT REFERENCES price_categories(id) ON DELETE SET NULL",
     );
+
+    await ensureColumnIfMissing("sections", "has_rooms", "INTEGER NOT NULL DEFAULT 0");
+    await ensureColumnIfMissing("items", "room_id", "BIGINT REFERENCES rooms(id) ON DELETE SET NULL");
 
     await ensureColumnIfMissing("price_categories", "source", "TEXT NOT NULL DEFAULT 'default'");
     await ensureColumnIfMissing("price_items", "source", "TEXT NOT NULL DEFAULT 'default'");

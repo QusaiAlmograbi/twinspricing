@@ -50,6 +50,7 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
     notes,
     sort_order,
     category_id,
+    room_id,
   } = req.body;
 
   const baseCost = Number(base_cost) || 0;
@@ -62,8 +63,8 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
 
   const info = await db
     .prepare(
-      `INSERT INTO items (section_id, item_code, name, description, unit, qty, image, base_cost, overhead_pct, selling_price, notes, sort_order, category_id)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO items (section_id, item_code, name, description, unit, qty, image, base_cost, overhead_pct, selling_price, notes, sort_order, category_id, room_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       sectionId,
@@ -79,6 +80,7 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
       notes || "",
       sort_order ?? maxOrder.next_order,
       category_id || null,
+      room_id || null,
     );
 
   res.json({ id: info.lastInsertRowid, selling_price: sellingPrice });
@@ -109,6 +111,7 @@ router.put("/:sectionId/items/:id", asyncHandler(async (req, res) => {
     notes,
     sort_order,
     category_id,
+    room_id,
   } = req.body;
 
   const baseCost =
@@ -131,7 +134,8 @@ router.put("/:sectionId/items/:id", asyncHandler(async (req, res) => {
         selling_price = ?,
         notes = COALESCE(?, notes),
         sort_order = COALESCE(?, sort_order),
-        category_id = ?
+        category_id = ?,
+        room_id = ?
        WHERE id = ? AND section_id = ?`,
     )
     .run(
@@ -147,6 +151,7 @@ router.put("/:sectionId/items/:id", asyncHandler(async (req, res) => {
       notes,
       sort_order,
       category_id !== undefined ? (category_id || null) : existing.category_id,
+      room_id !== undefined ? (room_id || null) : existing.room_id,
       req.params.id,
       sectionId,
     );
