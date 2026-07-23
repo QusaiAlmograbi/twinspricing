@@ -73,9 +73,17 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     .all(q.id);
 
   for (const sec of sections) {
-    sec.items = await db
-      .prepare("SELECT * FROM items WHERE section_id = ? ORDER BY sort_order ASC")
+    sec.rooms = await db
+      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
       .all(sec.id);
+    sec.items = await db
+      .prepare("SELECT * FROM items WHERE section_id = ? AND room_id IS NULL ORDER BY sort_order ASC")
+      .all(sec.id);
+    for (const room of sec.rooms) {
+      room.items = await db
+        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
+        .all(room.id);
+    }
   }
 
   let paymentTerms;
@@ -96,6 +104,12 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     for (const item of sec.items) {
       sectionTotal += (item.qty || 0) * (item.selling_price || 0);
       sectionCost += (item.qty || 0) * (item.base_cost || 0);
+    }
+    for (const room of sec.rooms) {
+      for (const item of room.items) {
+        sectionTotal += (item.qty || 0) * (item.selling_price || 0);
+        sectionCost += (item.qty || 0) * (item.base_cost || 0);
+      }
     }
     sectionSubtotals.push({ code: sec.code, name: sec.name, subtotal: sectionTotal });
     totalSelling += sectionTotal;
@@ -235,63 +249,105 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
 
     doc.font(fontReg).fontSize(8).fillColor(darkText);
 
-    for (const item of sec.items) {
-      if (y > 710) {
-        doc.addPage();
-        y = 50;
-        // Re-draw table header on new page
-        doc.rect(40, y - 2, contentW, 18).fill(highlightBg);
+    // Helper: render a list of items
+    function renderItems(items, label) {
+      if (label) {
+        if (y > 710) { doc.addPage(); y = 50; renderTableHeader(); doc.font(fontReg).fontSize(8).fillColor(darkText); }
+        doc.rect(40, y - 2, contentW, 14).fill(highlightBg);
         doc.font(fontBold).fontSize(8).fillColor(darkText);
-        let nhx = 40;
-        headerLabels.forEach((h, i) => {
-          if (i === 7) { nhx += colW[i]; return; }
-          doc.text(h, nhx, y + 2, { width: colW[i], align: "center" });
-          nhx += colW[i];
-        });
-        y += 18;
-        doc.moveTo(40, y).lineTo(right, y).lineWidth(0.5).strokeColor(borderColor).stroke();
-        y += 6;
+        doc.text(label, 44, y + 1, { width: contentW - 8 });
+        y += 16;
         doc.font(fontReg).fontSize(8).fillColor(darkText);
       }
+      let roomSubtotal = 0;
+      for (const item of items) {
+        if (y > 710) {
+          doc.addPage();
+          y = 50;
+          renderTableHeader();
+          doc.font(fontReg).fontSize(8).fillColor(darkText);
+        }
 
-      const lineTotal = (item.qty || 0) * (item.selling_price || 0);
-      const descText = displayText(item.description || item.name || "");
-      const notesText = displayText(item.notes || "");
-      const sectionLabel = displayText(sec.name);
-      const itemUnit = displayText(item.unit || "");
+        const lineTotal = (item.qty || 0) * (item.selling_price || 0);
+        roomSubtotal += lineTotal;
+        const descText = displayText(item.description || item.name || "");
+        const notesText = displayText(item.notes || "");
+        const sectionLabel = displayText(sec.name);
+        const itemUnit = displayText(item.unit || "");
 
-      const rowData = [
-        String(item.item_code || ""),
-        sectionLabel.substring(0, 14),
-        descText.substring(0, 35),
-        itemUnit,
-        String(item.qty || 0),
-        formatMoney(item.selling_price),
-        formatMoney(lineTotal),
-        "",
-        notesText.substring(0, 12),
-      ];
+        const rowData = [
+          String(item.item_code || ""),
+          sectionLabel.substring(0, 14),
+          descText.substring(0, 35),
+          itemUnit,
+          String(item.qty || 0),
+          formatMoney(item.selling_price),
+          formatMoney(lineTotal),
+          "",
+          notesText.substring(0, 12),
+        ];
 
-      let rx = 40;
-      rowData.forEach((cell, i) => {
-        doc.text(cell, rx, y, { width: colW[i], align: "center" });
-        rx += colW[i];
-      });
-      y += 14;
+        let rx = 40;
+        rowData.forEach((cell, i) => {
+          doc.text(cell, rx, y, { width: colW[i], align: "center" });
+          rx += colW[i];
+        });
+        y += 14;
+      }
+      return roomSubtotal;
     }
 
-    // Section subtotal
-    const secSub = sectionSubtotals.find((s) => s.code === sec.code);
-    if (secSub) {
+    function renderTableHeader() {
+      doc.rect(40, y - 2, contentW, 18).fill(highlightBg);
+      doc.font(fontBold).fontSize(8).fillColor(darkText);
+      let nhx = 40;
+      headerLabels.forEach((h, i) => {
+        if (i === 7) { nhx += colW[i]; return; }
+        doc.text(h, nhx, y + 2, { width: colW[i], align: "center" });
+        nhx += colW[i];
+      });
+      y += 18;
+      doc.moveTo(40, y).lineTo(right, y).lineWidth(0.5).strokeColor(borderColor).stroke();
+      y += 6;
+    }
+
+    if (sec.rooms && sec.rooms.length > 0) {
+      // Section has rooms — render direct items + room groups
+      let sectionTotal = 0;
+      if (sec.items.length > 0) {
+        sectionTotal += renderItems(sec.items, "المباشر / Direct");
+      }
+      for (const room of sec.rooms) {
+        if (room.items && room.items.length > 0) {
+          sectionTotal += renderItems(room.items, displayText(room.name));
+        }
+      }
+      // Room-aware section subtotal
       doc.font(fontBold).fontSize(9).fillColor(gold);
       doc.text(
-        `\u25B8 Section ${sec.code} Subtotal: ${formatMoney(secSub.subtotal)} JOD`,
+        `\u25B8 Section ${sec.code} Subtotal: ${formatMoney(sectionTotal)} JOD`,
         44,
         y,
         { width: contentW - 8 },
       );
       y += 18;
       doc.font(fontReg).fillColor(darkText);
+    } else {
+      // No rooms — render items directly
+      renderItems(sec.items, null);
+      // Section subtotal
+      const secSub = sectionSubtotals.find((s) => s.code === sec.code);
+      if (secSub) {
+        doc.font(fontBold).fontSize(9).fillColor(gold);
+        doc.text(
+          `\u25B8 Section ${sec.code} Subtotal: ${formatMoney(secSub.subtotal)} JOD`,
+          44,
+          y,
+          { width: contentW - 8 },
+        );
+        y += 18;
+        doc.font(fontReg).fillColor(darkText);
+      }
     }
   }
 

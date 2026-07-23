@@ -57,9 +57,19 @@ router.get("/:id", asyncHandler(async (req, res) => {
     .all(q.id);
 
   for (const sec of sections) {
-    sec.items = await db
-      .prepare("SELECT * FROM items WHERE section_id = ? ORDER BY sort_order ASC")
+    sec.rooms = await db
+      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
       .all(sec.id);
+
+    sec.items = await db
+      .prepare("SELECT * FROM items WHERE section_id = ? AND room_id IS NULL ORDER BY sort_order ASC")
+      .all(sec.id);
+
+    for (const room of sec.rooms) {
+      room.items = await db
+        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
+        .all(room.id);
+    }
   }
 
   let parsedData;
@@ -251,6 +261,11 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     )
     .run(req.params.id);
   await db
+    .prepare(
+      "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
+    )
+    .run(req.params.id);
+  await db
     .prepare("DELETE FROM sections WHERE quote_id = ?")
     .run(req.params.id);
   await db
@@ -279,6 +294,17 @@ router.get("/:id/calculate", asyncHandler(async (req, res) => {
     const items = await db
       .prepare("SELECT * FROM items WHERE section_id = ? ORDER BY sort_order ASC")
       .all(sec.id);
+
+    const rooms = await db
+      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
+      .all(sec.id);
+
+    for (const room of rooms) {
+      const roomItems = await db
+        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
+        .all(room.id);
+      items.push(...roomItems);
+    }
 
     let sectionTotal = 0;
     let sectionCost = 0;

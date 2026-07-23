@@ -63,12 +63,12 @@ router.put("/:quoteId/sections/:id", asyncHandler(async (req, res) => {
   if (!verifyQuoteAccess(quoteId, req.user.id, req.user.role)) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
-  const { code, name, sort_order } = req.body;
+  const { code, name, sort_order, has_rooms } = req.body;
   await db
     .prepare(
-      "UPDATE sections SET code = COALESCE(?, code), name = COALESCE(?, name), sort_order = COALESCE(?, sort_order) WHERE id = ? AND quote_id = ?",
+      "UPDATE sections SET code = COALESCE(?, code), name = COALESCE(?, name), sort_order = COALESCE(?, sort_order), has_rooms = COALESCE(?, has_rooms) WHERE id = ? AND quote_id = ?",
     )
-    .run(code, name, sort_order, req.params.id, quoteId);
+    .run(code, name, sort_order, has_rooms !== undefined ? (has_rooms ? 1 : 0) : null, req.params.id, quoteId);
   res.json({ ok: true });
 }));
 
@@ -78,6 +78,7 @@ router.delete("/:quoteId/sections/:id", asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
   await db.prepare("DELETE FROM items WHERE section_id = ?").run(req.params.id);
+  await db.prepare("DELETE FROM rooms WHERE section_id = ?").run(req.params.id);
   await db
     .prepare("DELETE FROM sections WHERE id = ? AND quote_id = ?")
     .run(req.params.id, quoteId);

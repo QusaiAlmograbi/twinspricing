@@ -14,6 +14,7 @@ const usersRoutes = require("./routes/users");
 const profileRoutes = require("./routes/profile");
 const priceListRoutes = require("./routes/price-list");
 const disciplinesRoutes = require("./routes/disciplines");
+const roomsRoutes = require("./routes/rooms");
 
 if (!process.env.JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
@@ -39,6 +40,7 @@ function createApp() {
   app.use("/api/quotes", quotesRoutes);
   app.use("/api/quotes", sectionsRoutes);
   app.use("/api/sections", itemsRoutes);
+  app.use("/api/sections", roomsRoutes);
   app.use("/api/templates", templatesRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/profile", profileRoutes);

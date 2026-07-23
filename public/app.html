@@ -147,6 +147,49 @@
       }
       .add-section-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
 
+      /* Rooms Nav */
+      .rooms-nav {
+        display: flex; gap: 6px; overflow-x: auto;
+        padding: 4px 2px 8px; margin-bottom: 4px;
+      }
+      .room-tab {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+        padding: 6px 12px; border-radius: 999px; cursor: pointer;
+        background: var(--surface); border: 1px solid var(--pewter);
+        color: var(--ash); font-size: 12px; font-weight: 600;
+        white-space: nowrap; transition: 0.15s;
+      }
+      .room-tab.active {
+        background: var(--champagne); color: var(--bg); border-color: var(--champagne);
+      }
+      .room-tab .count { font-size: 10px; opacity: 0.7; }
+      .room-tab .room-rm {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 16px; height: 16px; border-radius: 50%; font-size: 10px;
+        background: transparent; color: var(--ash); border: none; cursor: pointer;
+        transition: 0.15s; margin-right: 2px;
+      }
+      .room-tab .room-rm:hover { background: #e74c3c; color: #fff; }
+      .add-room-btn {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+        padding: 6px 12px; border-radius: 999px; cursor: pointer;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-size: 12px; font-weight: 700;
+        font-family: inherit; white-space: nowrap; transition: 0.15s;
+      }
+      .add-room-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .enable-rooms-btn {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+        padding: 6px 12px; border-radius: 999px; cursor: pointer;
+        background: transparent; border: 1px dashed var(--pewter);
+        color: var(--gold-dim); font-size: 12px; font-weight: 700;
+        font-family: inherit; white-space: nowrap; transition: 0.15s;
+      }
+      .enable-rooms-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+      .rooms-badge {
+        font-size: 10px; color: var(--gold); margin-left: 4px;
+      }
+
       /* Layout */
       .layout { display: flex; gap: 16px; align-items: flex-start; }
       .main { flex: 1 1 auto; min-width: 0; }
@@ -887,6 +930,7 @@
       };
       let sections = [];
       let activeSectionIdx = 0;
+      let activeRoomIdx = null;
       let currentQuoteId = null;
       let isOwnerOrAdmin = currentUser.role === "owner" || currentUser.role === "admin";
       let allPickerCategories = [];
@@ -1045,7 +1089,7 @@
           const btn = document.createElement("div");
           btn.className = "section-tab" + (idx === activeSectionIdx ? " active" : "");
           const count = (sec.items || []).length;
-          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
+          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ''}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
           btn.onclick = () => { activeSectionIdx = idx; activeCategoryTab = null; renderAll(); };
           nav.appendChild(btn);
         });
@@ -1066,10 +1110,31 @@
         if (!sec) return;
         const allItems = sec.items || [];
 
+        // Room filtering: if section has rooms, filter items by activeRoomIdx
+        let roomFilteredItems = allItems;
+        let roomsHtml = '';
+        if (sec.has_rooms) {
+          const rooms = sec.rooms || [];
+          if (activeRoomIdx === null) {
+            roomFilteredItems = allItems.filter(it => !it.room_id);
+          } else if (rooms[activeRoomIdx]) {
+            const activeRoom = rooms[activeRoomIdx];
+            roomFilteredItems = allItems.filter(it => it.room_id === activeRoom.id);
+          }
+          let roomTabs = `<div class="room-tab${activeRoomIdx === null ? ' active' : ''}" data-room-idx="null">المباشر<span class="count">${allItems.filter(it => !it.room_id).length || ''}</span></div>`;
+          rooms.forEach((room, rIdx) => {
+            const roomItemCount = allItems.filter(it => it.room_id === room.id).length;
+            roomTabs += `<div class="room-tab${activeRoomIdx === rIdx ? ' active' : ''}" data-room-idx="${rIdx}"><span class="room-name-text">${escapeAttr(room.name)}</span><span class="count">${roomItemCount || ''}</span><button class="room-rm" data-room-del="${rIdx}" title="حذف الغرفة">✕</button></div>`;
+          });
+          roomsHtml = `<div class="rooms-nav" id="roomsNav">${roomTabs}<button class="add-room-btn" id="addRoomBtn">+ غرفة</button></div>`;
+        } else {
+          roomsHtml = `<div class="rooms-nav"><button class="enable-rooms-btn" id="enableRoomsBtn">🏠 إضافة غرف</button></div>`;
+        }
+
         // Always show all categories as tabs, filtered by selected discipline if any
         const catsInSection = [];
         const catCounts = {};
-        allItems.forEach(it => {
+        roomFilteredItems.forEach(it => {
           const cid = it.category_id != null ? Number(it.category_id) : null;
           if (!catCounts[cid]) catCounts[cid] = 0;
           catCounts[cid]++;
@@ -1090,14 +1155,14 @@
         if (activeCategoryTab === null) {
           if (selectedDisciplineId) {
             const discCatIds = new Set(filteredCats.map(c => Number(c.id)));
-            items = allItems.filter(it => it.category_id != null && discCatIds.has(Number(it.category_id)));
+            items = roomFilteredItems.filter(it => it.category_id != null && discCatIds.has(Number(it.category_id)));
           } else {
-            items = allItems;
+            items = roomFilteredItems;
           }
         } else if (activeCategoryTab === "__unclassified__") {
-          items = allItems.filter(it => !it.category_id);
+          items = roomFilteredItems.filter(it => !it.category_id);
         } else {
-          items = allItems.filter(it => (it.category_id != null ? Number(it.category_id) : null) === activeCategoryTab);
+          items = roomFilteredItems.filter(it => (it.category_id != null ? Number(it.category_id) : null) === activeCategoryTab);
         }
 
         // Discipline tabs + Category tabs HTML
@@ -1195,6 +1260,7 @@
             <button class="btn-rename" id="renameSecBtn">تعديل الاسم</button>
             <button class="btn-delete-sec" id="deleteSecBtn">حذف القسم</button>
           </div>
+          ${roomsHtml}
           ${discTabsHtml}
           ${catTabsHtml}
           ${searchHtml}
@@ -1214,9 +1280,10 @@
           <div class="section-subtotal" id="secSubtotal"></div>
         </div>`;
 
-        // Section subtotal
-        const secSub = allItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
-        document.getElementById("secSubtotal").textContent = `► إجمالي القسم: ${moneyInt(secSub)}`;
+        // Section subtotal (filtered items)
+        const secSub = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0), 0);
+        const subLabel = sec.has_rooms ? (activeRoomIdx === null ? 'المباشر' : ((sec.rooms || [])[activeRoomIdx]?.name || '')) : 'القسم';
+        document.getElementById("secSubtotal").textContent = `► إجمالي ${subLabel}: ${moneyInt(secSub)}`;
 
         // Discipline tab click events
         document.querySelectorAll("#disciplineTabs .category-tab").forEach(tab => {
@@ -1240,6 +1307,124 @@
             renderAll();
           };
         });
+
+        // Room tab click events
+        if (sec.has_rooms) {
+          document.querySelectorAll("#roomsNav .room-tab").forEach(tab => {
+            tab.onclick = (e) => {
+              if (e.target.classList.contains('room-rm') || e.target.tagName === 'INPUT') return;
+              const val = tab.dataset.roomIdx;
+              activeRoomIdx = val === 'null' ? null : Number(val);
+              renderAll();
+            };
+            tab.ondblclick = async (e) => {
+              if (e.target.classList.contains('room-rm') || e.target.tagName === 'INPUT') return;
+              const rIdx = Number(tab.dataset.roomIdx);
+              const room = (sec.rooms || [])[rIdx];
+              if (!room) return;
+              const nameSpan = tab.querySelector('.room-name-text');
+              if (!nameSpan) return;
+              const oldName = room.name;
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.value = oldName;
+              input.style.cssText = 'width:80px;font-size:12px;border:none;border-radius:4px;padding:1px 4px;background:var(--surface);color:var(--ash);';
+              nameSpan.replaceWith(input);
+              input.focus();
+              input.select();
+              const saveRename = async () => {
+                const newName = input.value.trim();
+                if (newName && newName !== oldName) {
+                  room.name = newName;
+                  if (room.id && sec.id && room.id > 0) {
+                    try { await api(`/sections/${sec.id}/rooms/${room.id}`, { method: "PUT", body: JSON.stringify({ name: newName }) }); } catch {}
+                  }
+                  markDirty();
+                }
+                renderAll();
+              };
+              input.onkeydown = (ev) => {
+                if (ev.key === 'Enter') { ev.preventDefault(); saveRename(); }
+                if (ev.key === 'Escape') { renderAll(); }
+              };
+              input.onblur = saveRename;
+            };
+          });
+          // Room delete buttons
+          document.querySelectorAll("#roomsNav .room-rm").forEach(btn => {
+            btn.onclick = async (e) => {
+              e.stopPropagation();
+              const rIdx = Number(btn.dataset.roomDel);
+              const room = (sec.rooms || [])[rIdx];
+              if (!room) return;
+              if (!confirm(`هل أنت متأكد من حذف غرفة "${room.name}"؟ سيتم نقل البنود إلى "المباشر".`)) return;
+              // Move room items to direct (room_id=null)
+              for (const item of allItems) {
+                if (item.room_id === room.id) {
+                  item.room_id = null;
+                  if (item.id && sec.id) {
+                    try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "PUT", body: JSON.stringify({ room_id: null }) }); } catch {}
+                  }
+                }
+              }
+              // Delete room on server
+              if (room.id && sec.id) {
+                try { await api(`/sections/${sec.id}/rooms/${room.id}`, { method: "DELETE" }); } catch {}
+              }
+              sec.rooms.splice(rIdx, 1);
+              if (activeRoomIdx === rIdx) activeRoomIdx = null;
+              else if (activeRoomIdx > rIdx) activeRoomIdx--;
+              markDirty();
+              renderAll();
+              showToast("تم حذف الغرفة");
+            };
+          });
+          // Add room button
+          const addRoomBtn = document.getElementById("addRoomBtn");
+          if (addRoomBtn) {
+            addRoomBtn.onclick = async () => {
+              const name = prompt("اسم الغرفة الجديدة:");
+              if (!name || !name.trim()) return;
+              const newRoom = { name: name.trim(), sort_order: (sec.rooms || []).length };
+              if (!sec.id) newRoom.id = -(Date.now());
+              if (sec.id) {
+                try {
+                  const res = await api(`/sections/${sec.id}/rooms`, {
+                    method: "POST", body: JSON.stringify({ name: name.trim() }),
+                  });
+                  newRoom.id = res.id;
+                } catch (e) {
+                  showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+                }
+              }
+              if (!sec.rooms) sec.rooms = [];
+              sec.rooms.push(newRoom);
+              activeRoomIdx = sec.rooms.length - 1;
+              markDirty();
+              renderAll();
+              showToast("تمت إضافة الغرفة");
+            };
+          }
+        }
+        // Enable rooms button
+        const enableRoomsBtn = document.getElementById("enableRoomsBtn");
+        if (enableRoomsBtn) {
+          enableRoomsBtn.onclick = async () => {
+            sec.has_rooms = 1;
+            if (!sec.rooms) sec.rooms = [];
+            activeRoomIdx = null;
+            if (currentQuoteId && sec.id) {
+              try {
+                await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+                  method: "PUT", body: JSON.stringify({ code: sec.code, name: sec.name, has_rooms: 1 }),
+                });
+              } catch {}
+            }
+            markDirty();
+            renderAll();
+            showToast("تمت إضافة الغرف — بنودك الحالية موجودة تحت تاب 'المباشر'");
+          };
+        }
 
         // ---- Item Search / Autocomplete ----
         const catSearchInput = document.getElementById("catSearchInput");
@@ -1421,11 +1606,13 @@
 
         // Event: add item (empty)
         document.getElementById("addItemBtn").onclick = async () => {
+          const activeRoom = sec.has_rooms && activeRoomIdx !== null ? (sec.rooms || [])[activeRoomIdx] : null;
           const newItem = {
             item_code: `${sec.code}.${allItems.length + 1}`,
             name: "", description: "", unit: "عدد", qty: 1,
             base_cost: 0, overhead_pct: 35, selling_price: 0, notes: "", image: null,
             category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+            room_id: activeRoom ? activeRoom.id : null,
           };
           if (currentQuoteId && sec.id) {
             try {
@@ -1447,11 +1634,13 @@
         const pickBtn = document.getElementById("pickCatalogBtn");
         if (pickBtn) {
           pickBtn.onclick = async () => {
+            const activeRoom = sec.has_rooms && activeRoomIdx !== null ? (sec.rooms || [])[activeRoomIdx] : null;
             const newItem = {
               item_code: `${sec.code}.${allItems.length + 1}`,
               name: "", description: "", unit: "عدد", qty: 1,
               base_cost: 0, overhead_pct: 35, selling_price: 0, notes: "", image: null,
               category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+              room_id: activeRoom ? activeRoom.id : null,
             };
             if (currentQuoteId && sec.id) {
               try {
@@ -1664,6 +1853,7 @@
         const sec = sections[activeSectionIdx];
         if (!sec) return;
         const allItems = sec.items || [];
+        const activeRoom = sec.has_rooms && activeRoomIdx !== null ? (sec.rooms || [])[activeRoomIdx] : null;
         const newItem = {
           item_code: catItem.item_code || `${sec.code}.${allItems.length + 1}`,
           name: catItem.name || "",
@@ -1676,6 +1866,7 @@
           notes: "",
           image: null,
           category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+          room_id: activeRoom ? activeRoom.id : null,
         };
         if (currentQuoteId && sec.id) {
           try {
@@ -1698,6 +1889,7 @@
         const sec = sections[activeSectionIdx];
         if (!sec) return;
         const allItems = sec.items || [];
+        const activeRoom = sec.has_rooms && activeRoomIdx !== null ? (sec.rooms || [])[activeRoomIdx] : null;
         const newItem = {
           item_code: `${sec.code}.${allItems.length + 1}`,
           name: nameText,
@@ -1710,6 +1902,7 @@
           notes: "",
           image: null,
           category_id: (activeCategoryTab && activeCategoryTab !== '__unclassified__') ? activeCategoryTab : null,
+          room_id: activeRoom ? activeRoom.id : null,
         };
         if (currentQuoteId && sec.id) {
           try {
@@ -1887,7 +2080,7 @@
             });
           }
         } else {
-          const newSec = { code, name, items: [], sort_order: sections.length };
+          const newSec = { code, name, items: [], rooms: [], has_rooms: 0, sort_order: sections.length };
           if (currentQuoteId) {
             const res = await api(`/quotes/${currentQuoteId}/sections`, {
               method: "POST", body: JSON.stringify({ code, name, sort_order: sections.length }),
@@ -1919,7 +2112,7 @@
           document.getElementById("tmplSaveBtn").onclick = async () => {
             const name = document.getElementById("tmplName").value.trim();
             if (!name) { showToast("الاسم مطلوب"); return; }
-            const data = { ...state, sections: sections.map(s => ({ ...s, items: s.items })) };
+            const data = { ...state, sections: sections.map(s => ({ ...s, items: s.items, rooms: s.rooms || [] })) };
             await api("/templates", { method: "POST", body: JSON.stringify({ name, description: document.getElementById("tmplDesc").value, data }) });
             closeTemplateModal();
             showToast("تم حفظ القالب");
@@ -2172,9 +2365,40 @@
               });
               sec.id = res.id;
             }
+            // Save has_rooms flag via section PUT
+            if (sec.id) {
+              await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+                method: "PUT", body: JSON.stringify({ code: sec.code, name: sec.name, sort_order: sec.sort_order, has_rooms: sec.has_rooms ? 1 : 0 }),
+              });
+            }
             sec._fromServer = true;
+            // Save rooms
+            if (sec.has_rooms && sec.id) {
+              for (const room of (sec.rooms || [])) {
+                if (!room.id) {
+                  const res = await api(`/sections/${sec.id}/rooms`, {
+                    method: "POST", body: JSON.stringify({ name: room.name, sort_order: room.sort_order }),
+                  });
+                  room.id = res.id;
+                } else if (room.id < 0) {
+                  const oldId = room.id;
+                  const res = await api(`/sections/${sec.id}/rooms`, {
+                    method: "POST", body: JSON.stringify({ name: room.name, sort_order: room.sort_order }),
+                  });
+                  room.id = res.id;
+                  for (const item of sec.items) {
+                    if (item.room_id === oldId) item.room_id = res.id;
+                  }
+                } else {
+                  await api(`/sections/${sec.id}/rooms/${room.id}`, {
+                    method: "PUT", body: JSON.stringify({ name: room.name, sort_order: room.sort_order }),
+                  });
+                }
+                room._fromServer = true;
+              }
+            }
             for (const item of sec.items) {
-              const itemPayload = { ...item, category_id: item.category_id || null };
+              const itemPayload = { ...item, category_id: item.category_id || null, room_id: item.room_id || null };
               if (!item.id && sec.id) {
                 const res = await api(`/sections/${sec.id}/items`, {
                   method: "POST", body: JSON.stringify(itemPayload),
@@ -2220,9 +2444,21 @@
 
         sections = (quote.sections || []).map(s => ({
           ...s, _fromServer: true,
+          rooms: (s.rooms || []).map(r => ({ ...r, _fromServer: true })),
           items: (s.items || []).map(it => ({ ...it, _fromServer: true, qty: Number(it.qty) || 1, category_id: it.category_id != null ? Number(it.category_id) : null })),
         }));
+        // Also load room items into section items
+        for (const s of sections) {
+          for (const room of (s.rooms || [])) {
+            for (const ri of (room.items || [])) {
+              if (!s.items.some(it => it.id === ri.id)) {
+                s.items.push({ ...ri, _fromServer: true, qty: Number(ri.qty) || 1, category_id: ri.category_id != null ? Number(ri.category_id) : null });
+              }
+            }
+          }
+        }
         activeSectionIdx = 0;
+        activeRoomIdx = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
 
@@ -2277,13 +2513,38 @@
           showToast("جاري حذف التغييرات...");
           for (const sec of sections) {
             if (sec.id && !sec._fromServer) {
-              for (const item of (sec.items || [])) {
+              // New section: delete all items, rooms, then section
+              for (const room of (sec.rooms || [])) {
+                for (const item of (sec.items || []).filter(it => it.room_id === room.id)) {
+                  if (item.id) {
+                    try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
+                  }
+                }
+                if (room.id) {
+                  try { await api(`/sections/${sec.id}/rooms/${room.id}`, { method: "DELETE" }); } catch {}
+                }
+              }
+              for (const item of (sec.items || []).filter(it => !it.room_id)) {
                 if (item.id) {
                   try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
                 }
               }
               try { await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, { method: "DELETE" }); } catch {}
             } else if (sec.id) {
+              // Existing section: delete new rooms
+              for (const room of (sec.rooms || [])) {
+                if (!room._fromServer) {
+                  for (const item of (sec.items || []).filter(it => it.room_id === room.id)) {
+                    if (item.id) {
+                      try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
+                    }
+                  }
+                  if (room.id) {
+                    try { await api(`/sections/${sec.id}/rooms/${room.id}`, { method: "DELETE" }); } catch {}
+                  }
+                }
+              }
+              // Delete new items (not in any room)
               for (const item of (sec.items || [])) {
                 if (item.id && !item._fromServer) {
                   try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
@@ -2309,6 +2570,7 @@
         };
         sections = [];
         activeSectionIdx = 0;
+        activeRoomIdx = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
         document.getElementById("projectName").value = "";
