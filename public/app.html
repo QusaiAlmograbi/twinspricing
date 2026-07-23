@@ -695,7 +695,8 @@
 
         <header class="project-header">
           <div class="eyebrow">TWiNS Interior Design · أداة تسعير احترافية</div>
-          <h1 id="pageTitle">عرض سعر جديد</h1><button id="newQuoteBtn" class="btn-new-quote" title="عرض سعر جديد">+ جديد</button>
+          <h1 id="pageTitle">عرض سعر جديد</h1>
+          <div style="margin-top: 6px;"><button id="newQuoteBtn" class="btn-new-quote" title="عرض سعر جديد">+ جديد</button></div>
           <div class="project-fields">
             <label>رقم المرجع
               <input id="referenceNo" type="text" placeholder="JOF-26-0045-R01" />
@@ -1877,6 +1878,9 @@
         if (editingSectionIdx !== null) {
           const sec = sections[editingSectionIdx];
           sec.code = code; sec.name = name;
+          // ملاحظة: تعديل اسم/كود القسم يُحفَّظ فورًا على السيرفر عبر PUT.
+          // زر "تجاهل" لا يتراجع عن هذا التعديل تحديدًا (فقط عن الأقسام/البنود المُضافة حديثًا).
+          // هذا حد مقبول تم تحديده بوعي بتاريخ 2026-07-22 لأن حالة الاستخدام نادرة.
           if (currentQuoteId && sec.id) {
             await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
               method: "PUT", body: JSON.stringify({ code, name }),
@@ -2112,10 +2116,10 @@
       }
 
       // ---- Data Binding ----
-      document.getElementById("projectName").oninput = (e) => { state.projectName = e.target.value; };
-      document.getElementById("referenceNo").oninput = (e) => { state.referenceNo = e.target.value; };
-      document.getElementById("clientName").oninput = (e) => { state.clientName = e.target.value; };
-      document.getElementById("siteLocation").oninput = (e) => { state.siteLocation = e.target.value; };
+      document.getElementById("projectName").oninput = (e) => { state.projectName = e.target.value; markDirty(); };
+      document.getElementById("referenceNo").oninput = (e) => { state.referenceNo = e.target.value; markDirty(); };
+      document.getElementById("clientName").oninput = (e) => { state.clientName = e.target.value; markDirty(); };
+      document.getElementById("siteLocation").oninput = (e) => { state.siteLocation = e.target.value; markDirty(); };
       document.getElementById("taxPct").oninput = (e) => { state.taxPct = e.target.value; renderTotals(); };
       document.getElementById("discountVal").oninput = (e) => { state.discountVal = e.target.value; renderTotals(); };
       document.getElementById("discountType").onchange = (e) => { state.discountType = e.target.value; renderTotals(); };
@@ -2168,6 +2172,7 @@
               });
               sec.id = res.id;
             }
+            sec._fromServer = true;
             for (const item of sec.items) {
               const itemPayload = { ...item, category_id: item.category_id || null };
               if (!item.id && sec.id) {
@@ -2180,6 +2185,7 @@
                   method: "PUT", body: JSON.stringify(itemPayload),
                 });
               }
+              item._fromServer = true;
             }
           }
 
@@ -2213,8 +2219,8 @@
         } catch { state.paymentTerms = []; }
 
         sections = (quote.sections || []).map(s => ({
-          ...s,
-          items: (s.items || []).map(it => ({ ...it, qty: Number(it.qty) || 1, category_id: it.category_id != null ? Number(it.category_id) : null })),
+          ...s, _fromServer: true,
+          items: (s.items || []).map(it => ({ ...it, _fromServer: true, qty: Number(it.qty) || 1, category_id: it.category_id != null ? Number(it.category_id) : null })),
         }));
         activeSectionIdx = 0;
         activeCategoryTab = null;
@@ -2264,6 +2270,29 @@
             };
           });
         } catch { el.innerHTML = '<p class="empty-note">تعذر تحميل العروض.</p>'; }
+      }
+
+      async function discardAndReset() {
+        if (currentQuoteId) {
+          showToast("جاري حذف التغييرات...");
+          for (const sec of sections) {
+            if (sec.id && !sec._fromServer) {
+              for (const item of (sec.items || [])) {
+                if (item.id) {
+                  try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
+                }
+              }
+              try { await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, { method: "DELETE" }); } catch {}
+            } else if (sec.id) {
+              for (const item of (sec.items || [])) {
+                if (item.id && !item._fromServer) {
+                  try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "DELETE" }); } catch {}
+                }
+              }
+            }
+          }
+        }
+        resetQuote();
       }
 
       function resetQuote() {
@@ -2327,9 +2356,9 @@
       document.getElementById("newQuoteCancel").onclick = () => {
         document.getElementById("newQuoteModal").classList.remove("open");
       };
-      document.getElementById("newQuoteDiscard").onclick = () => {
+      document.getElementById("newQuoteDiscard").onclick = async () => {
         document.getElementById("newQuoteModal").classList.remove("open");
-        resetQuote();
+        await discardAndReset();
       };
       document.getElementById("newQuoteSave").onclick = async () => {
         try {
