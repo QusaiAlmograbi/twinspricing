@@ -1357,14 +1357,14 @@
               const rIdx = Number(btn.dataset.roomDel);
               const room = (sec.rooms || [])[rIdx];
               if (!room) return;
-              if (!confirm(`هل أنت متأكد من حذف غرفة "${room.name}"؟ سيتم نقل البنود إلى "المباشر".`)) return;
-              // Move room items to direct (room_id=null)
-              for (const item of allItems) {
-                if (item.room_id === room.id) {
-                  item.room_id = null;
-                  if (item.id && sec.id) {
-                    try { await api(`/sections/${sec.id}/items/${item.id}`, { method: "PUT", body: JSON.stringify({ room_id: null }) }); } catch {}
+              if (!confirm(`هل أنت متأكد من حذف غرفة "${room.name}"؟ سيتم حذف جميع بنود الغرفة.`)) return;
+              // Delete room items from server and local arrays
+              for (let i = allItems.length - 1; i >= 0; i--) {
+                if (allItems[i].room_id === room.id) {
+                  if (allItems[i].id && sec.id) {
+                    try { await api(`/sections/${sec.id}/items/${allItems[i].id}`, { method: "DELETE" }); } catch {}
                   }
+                  allItems.splice(i, 1);
                 }
               }
               // Delete room on server
