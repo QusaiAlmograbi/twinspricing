@@ -400,6 +400,8 @@ async function initializeDatabase() {
       await ensureColumnIfMissing("quotes", "execution_days", "INTEGER NOT NULL DEFAULT 45");
       await ensureColumnIfMissing("quotes", "validity_days", "INTEGER NOT NULL DEFAULT 30");
       await ensureColumnIfMissing("quotes", "payment_terms", "TEXT NOT NULL DEFAULT '[]'");
+      await ensureColumnIfMissing("quotes", "quote_title", "TEXT NOT NULL DEFAULT ''");
+      await ensureColumnIfMissing("quotes", "price_exclusions", "TEXT NOT NULL DEFAULT ''");
 
       await ensureColumnIfMissing(
         "items",
@@ -612,6 +614,8 @@ async function initializeDatabase() {
     await ensureColumnIfMissing("quotes", "execution_days", "INTEGER NOT NULL DEFAULT 45");
     await ensureColumnIfMissing("quotes", "validity_days", "INTEGER NOT NULL DEFAULT 30");
     await ensureColumnIfMissing("quotes", "payment_terms", "TEXT NOT NULL DEFAULT '[]'");
+    await ensureColumnIfMissing("quotes", "quote_title", "TEXT NOT NULL DEFAULT ''");
+    await ensureColumnIfMissing("quotes", "price_exclusions", "TEXT NOT NULL DEFAULT ''");
 
     await ensureColumnIfMissing(
       "items",

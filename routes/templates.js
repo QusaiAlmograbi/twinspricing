@@ -53,8 +53,8 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
 
   const quoteInfo = await db
     .prepare(
-      `INSERT INTO quotes (user_id, project_name, data, total, reference_no, client_name, site_location, discount_val, discount_type, tax_pct, execution_days, validity_days, payment_terms)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO quotes (user_id, project_name, data, total, reference_no, client_name, site_location, discount_val, discount_type, tax_pct, execution_days, validity_days, payment_terms, quote_title, price_exclusions)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       req.user.id,
@@ -70,6 +70,8 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
       templateData.execution_days || 45,
       templateData.validity_days || 30,
       JSON.stringify(templateData.payment_terms || []),
+      templateData.quote_title || "",
+      templateData.price_exclusions || "",
     );
 
   const newQuoteId = quoteInfo.lastInsertRowid;
