@@ -5016,18 +5016,26 @@
             .join("");
           el.querySelectorAll(".saved-item").forEach((row) => {
             const id = row.getAttribute("data-id");
+            const projName = row.querySelector(".name")?.textContent || "";
             row.querySelector(".load-btn").onclick = () =>
               loadQuote(id)
                 .then(() => showToast("تم فتح العرض"))
                 .catch((e) => showToast(e.message));
-            row.querySelector(".del-q-btn").onclick = async () => {
-              try {
-                await api("/quotes/" + id, { method: "DELETE" });
-                loadSavedList();
-                if (currentQuoteId == id) resetQuote();
-              } catch (e) {
-                showToast(e.message);
-              }
+            row.querySelector(".del-q-btn").onclick = () => {
+              openConfirm(
+                "حذف المشروع",
+                "هل أنت متأكد من حذف مشروع \"" + projName + "\"؟ سيتم حذف جميع الأقسام والبنود.",
+                "حذف",
+                async () => {
+                  try {
+                    await api("/quotes/" + id, { method: "DELETE" });
+                    loadSavedList();
+                    if (currentQuoteId == id) resetQuote();
+                  } catch (e) {
+                    showToast(e.message);
+                  }
+                },
+              );
             };
           });
         } catch {
