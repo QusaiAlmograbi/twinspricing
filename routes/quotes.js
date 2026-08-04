@@ -110,13 +110,16 @@ router.post("/", asyncHandler(async (req, res) => {
     execution_days,
     validity_days,
     payment_terms,
+    quote_title,
+    price_exclusions,
   } = req.body;
 
   const info = await db
     .prepare(
       `INSERT INTO quotes (user_id, project_name, data, total, reference_no, client_name, site_location,
-        discount_val, discount_type, tax_pct, execution_days, validity_days, payment_terms)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        discount_val, discount_type, tax_pct, execution_days, validity_days, payment_terms,
+        quote_title, price_exclusions)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       req.user.id,
@@ -132,6 +135,8 @@ router.post("/", asyncHandler(async (req, res) => {
       execution_days || 45,
       validity_days || 30,
       JSON.stringify(payment_terms || []),
+      quote_title || "",
+      price_exclusions || "",
     );
   res.json({ id: info.lastInsertRowid });
 }));
@@ -214,6 +219,8 @@ router.put("/:id", asyncHandler(async (req, res) => {
     execution_days,
     validity_days,
     payment_terms,
+    quote_title,
+    price_exclusions,
   } = req.body;
 
   await db
@@ -223,6 +230,7 @@ router.put("/:id", asyncHandler(async (req, res) => {
         reference_no = ?, client_name = ?, site_location = ?,
         discount_val = ?, discount_type = ?, tax_pct = ?,
         execution_days = ?, validity_days = ?, payment_terms = ?,
+        quote_title = ?, price_exclusions = ?,
         updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
     )
@@ -241,6 +249,8 @@ router.put("/:id", asyncHandler(async (req, res) => {
       payment_terms !== undefined
         ? JSON.stringify(payment_terms)
         : q.payment_terms,
+      quote_title !== undefined ? quote_title : (q.quote_title || ""),
+      price_exclusions !== undefined ? price_exclusions : (q.price_exclusions || ""),
       req.params.id,
     );
   res.json({ ok: true });
