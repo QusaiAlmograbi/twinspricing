@@ -76,23 +76,42 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
 
   const newQuoteId = quoteInfo.lastInsertRowid;
 
-  // Clone sections and items if they exist
-  if (templateData.sectionIds && templateData.sectionIds.length > 0) {
-    for (const secData of templateData.sections || []) {
+  // Clone sections, rooms, and items if they exist
+  if (templateData.sections && templateData.sections.length > 0) {
+    for (const secData of templateData.sections) {
+      const hasRooms = (secData.rooms || []).length > 0;
       const secInfo = await db
         .prepare(
-          "INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)",
+          "INSERT INTO sections (quote_id, code, name, sort_order, has_rooms) VALUES (?,?,?,?,?)",
         )
-        .run(newQuoteId, secData.code, secData.name, secData.sort_order || 0);
+        .run(newQuoteId, secData.code || "", secData.name || "", secData.sort_order || 0, hasRooms ? 1 : 0);
 
+      const newSectionId = secInfo.lastInsertRowid;
+
+      // Clone rooms and build oldId → newId map
+      const roomIdMap = {};
+      for (const roomData of secData.rooms || []) {
+        const roomInfo = await db
+          .prepare(
+            "INSERT INTO rooms (section_id, name, sort_order) VALUES (?,?,?)",
+          )
+          .run(newSectionId, roomData.name || "", roomData.sort_order || 0);
+        roomIdMap[roomData.id] = roomInfo.lastInsertRowid;
+      }
+
+      // Clone items, updating room_id references
       for (const itemData of secData.items || []) {
+        let newRoomId = null;
+        if (itemData.room_id && roomIdMap[itemData.room_id]) {
+          newRoomId = roomIdMap[itemData.room_id];
+        }
         await db
           .prepare(
-            `INSERT INTO items (section_id, item_code, name, description, unit, qty, image, base_cost, overhead_pct, selling_price, notes, sort_order)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            `INSERT INTO items (section_id, item_code, name, description, unit, qty, image, base_cost, overhead_pct, selling_price, notes, sort_order, room_id, category_id)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           )
           .run(
-            secInfo.lastInsertRowid,
+            newSectionId,
             itemData.item_code || "",
             itemData.name || "",
             itemData.description || "",
@@ -101,11 +120,13 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
             itemData.image || null,
             itemData.base_cost || 0,
             itemData.overhead_pct || 35,
-            (itemData.base_cost || 0) * (1 + (itemData.overhead_pct || 35) / 100),
+            itemData.selling_price || (itemData.base_cost || 0) * (1 + (itemData.overhead_pct || 35) / 100),
             itemData.notes || "",
             itemData.sort_order || 0,
+            newRoomId,
+            itemData.category_id || null,
           );
-        }
+      }
     }
   }
 
