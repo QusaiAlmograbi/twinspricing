@@ -51,6 +51,14 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
     return res.status(500).json({ error: "بيانات الققالب تالفة" });
   }
 
+  // Calculate total from template items
+  let total = 0;
+  for (const sec of (templateData.sections || [])) {
+    for (const item of (sec.items || [])) {
+      total += (Number(item.qty) || 0) * (Number(item.selling_price) || 0);
+    }
+  }
+
   const quoteInfo = await db
     .prepare(
       `INSERT INTO quotes (user_id, project_name, data, total, reference_no, client_name, site_location, discount_val, discount_type, tax_pct, execution_days, validity_days, payment_terms, quote_title, price_exclusions)
@@ -58,9 +66,9 @@ router.post("/:id/clone", asyncHandler(async (req, res) => {
     )
     .run(
       req.user.id,
-      templateData.project_name || "مشروع جديد",
+      template.name || "مشروع جديد",
       JSON.stringify(templateData),
-      0,
+      total,
       templateData.reference_no || null,
       templateData.client_name || null,
       templateData.site_location || null,

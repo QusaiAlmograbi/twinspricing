@@ -4530,6 +4530,7 @@
                 });
                 currentQuoteId = res.id;
                 await loadQuote(currentQuoteId);
+                loadSavedList();
                 closeTemplateModal();
                 showToast("تم تحميل القالب");
               };
