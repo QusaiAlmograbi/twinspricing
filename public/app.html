@@ -4766,11 +4766,37 @@
       };
 
       // ---- Save / Load ----
+      function cleanupEmptyData() {
+        sections.forEach((sec) => {
+          if (!sec.items) sec.items = [];
+          if (!sec.rooms) sec.rooms = [];
+          sec.items = sec.items.filter((it) => {
+            if (it._fromServer) return true;
+            const hasData =
+              (it.name || "").trim() !== "" ||
+              (it.selling_price || 0) > 0 ||
+              (it.base_cost || 0) > 0;
+            if (!hasData && it.id && sec.id) {
+              api(`/sections/${sec.id}/items/${it.id}`, {
+                method: "DELETE",
+              }).catch(() => {});
+            }
+            return hasData;
+          });
+          if (sec.has_rooms) {
+            sec.rooms = sec.rooms.filter((room) =>
+              sec.items.some((it) => it.room_id === room.id),
+            );
+          }
+        });
+        sections = sections.filter((sec) => sec.items.length > 0);
+      }
       async function saveQuote() {
         const btn = document.getElementById("saveQuoteBtn");
         btn.disabled = true;
         btn.textContent = "جاري الحفظ...";
         try {
+          cleanupEmptyData();
           let subtotal = 0;
           sections.forEach((sec) => {
             (sec.items || []).forEach((it) => {
@@ -4907,6 +4933,7 @@
           hasUnsavedWork = false;
           showToast("تم حفظ العرض");
           loadSavedList();
+          renderAll();
         } catch (e) {
           showToast(e.message || "تعذر الحفظ");
         } finally {
