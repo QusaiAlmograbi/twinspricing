@@ -4467,6 +4467,7 @@
               <button id="tmplCancel" class="btn-secondary" style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);">إلغاء</button>
               <button id="tmplSaveBtn" class="btn-save">حفظ</button>
             </div>`;
+          modal.classList.add("open");
           document.getElementById("tmplCancel").onclick = closeTemplateModal;
           document.getElementById("tmplSaveBtn").onclick = async () => {
             const name = document.getElementById("tmplName").value.trim();
