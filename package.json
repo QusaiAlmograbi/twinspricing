@@ -7,6 +7,9 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node --test",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
     "db:init": "node scripts/init-postgres.js",
     "db:migrate": "node scripts/migrate-sqlite-to-postgres.js"
   },
@@ -15,9 +18,13 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.3.0",
     "bidi-js": "^1.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.19.1",
     "pg": "^8.22.0",
@@ -25,5 +32,10 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "devDependencies": {
+    "eslint": "^10.8.0",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.9.6"
   }
 }

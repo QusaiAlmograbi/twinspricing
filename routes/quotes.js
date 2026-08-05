@@ -2,6 +2,7 @@ const express = require("express");
 const db = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
+const { quoteRules, handleValidation } = require("../utils/validate");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -56,19 +57,32 @@ router.get("/:id", asyncHandler(async (req, res) => {
     .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
     .all(q.id);
 
+  const sectionIds = sections.map((s) => s.id);
+
+  const allRooms = sectionIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .all(...sectionIds)
+    : [];
+
+  const sectionItems = sectionIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC`)
+        .all(...sectionIds)
+    : [];
+
+  const roomIds = allRooms.map((r) => r.id);
+  const roomItems = roomIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .all(...roomIds)
+    : [];
+
   for (const sec of sections) {
-    sec.rooms = await db
-      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
-      .all(sec.id);
-
-    sec.items = await db
-      .prepare("SELECT * FROM items WHERE section_id = ? AND room_id IS NULL ORDER BY sort_order ASC")
-      .all(sec.id);
-
+    sec.rooms = allRooms.filter((r) => r.section_id === sec.id);
+    sec.items = sectionItems.filter((i) => i.section_id === sec.id);
     for (const room of sec.rooms) {
-      room.items = await db
-        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
-        .all(room.id);
+      room.items = roomItems.filter((i) => i.room_id === room.id);
     }
   }
 
@@ -96,7 +110,7 @@ router.get("/:id", asyncHandler(async (req, res) => {
   });
 }));
 
-router.post("/", asyncHandler(async (req, res) => {
+router.post("/", quoteRules, handleValidation, asyncHandler(async (req, res) => {
   const {
     project_name,
     data,

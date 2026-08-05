@@ -797,7 +797,6 @@ async function seedDefaultTemplates() {
 }
 
 async function seedDefaultPriceList() {
-  console.log("[seed] seedDefaultPriceList: checking if price_categories has data...");
   const existing = await db.prepare("SELECT id FROM price_categories LIMIT 1").get();
   if (existing) {
     console.log("[seed] price_categories already has data, skipping seed.");
@@ -942,7 +941,6 @@ async function seedDefaultPriceList() {
         "INSERT INTO price_categories (name, sort_order) VALUES (?, ?)"
       ).run(cat.name, cat.sort_order);
       catIdMap[i] = info.lastInsertRowid;
-      console.log(`[seed] inserted category "${cat.name}" with id=${catIdMap[i]}`);
     } catch (err) {
       console.error(`[seed] FAILED to insert category "${cat.name}":`, err.message || err);
     }
@@ -974,8 +972,6 @@ async function seedDefaultPriceList() {
 }
 
 async function smartMergeDefaultPriceList({ force = false } = {}) {
-  console.log("[seed] smartMergeDefaultPriceList: checking versions...");
-
   let storedVersion = 0;
   try {
     const row = await db.prepare("SELECT value FROM app_settings WHERE key = 'data_version'").get();
@@ -983,8 +979,6 @@ async function smartMergeDefaultPriceList({ force = false } = {}) {
   } catch {
     // app_settings table might not exist yet on first run
   }
-
-  console.log(`[seed] Code version: ${CURRENT_DATA_VERSION}, Stored version: ${storedVersion}, Force: ${force}`);
 
   if (!force && storedVersion >= CURRENT_DATA_VERSION) {
     console.log("[seed] Data is up to date, no merge needed.");
@@ -1126,7 +1120,6 @@ async function smartMergeDefaultPriceList({ force = false } = {}) {
       ).run(cat.name, cat.sort_order);
       catIdMap[i] = info.lastInsertRowid;
       catsAdded++;
-      console.log(`[seed] merge: added category "${cat.name}" id=${catIdMap[i]}`);
     }
   }
 
@@ -1199,10 +1192,8 @@ async function migrateDisciplines() {
     ).get();
 
     if (unclassified) {
-      console.log("[db] migrateDisciplines: cleaning up 'Unclassified' discipline...");
       await db.prepare("DELETE FROM discipline_sections WHERE discipline_id = ?").run(unclassified.id);
       await db.prepare("DELETE FROM disciplines WHERE id = ?").run(unclassified.id);
-      console.log("[db] migrateDisciplines: removed 'Unclassified' discipline and its section links.");
     }
   } catch (err) {
     console.error("[db] migrateDisciplines error:", err.message || err);
@@ -1239,7 +1230,16 @@ async function ensureSeeded() {
   }
 }
 
+const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function validateIdentifier(name, label) {
+  if (!IDENTIFIER_REGEX.test(name)) {
+    throw new Error(`Invalid ${label}: "${name}". Only letters, numbers, and underscores are allowed, and it must start with a letter or underscore.`);
+  }
+}
+
 async function tableColumns(tableName) {
+  validateIdentifier(tableName, "table name");
   if (isSqlite()) {
     const db = getSqliteDb();
     const info = db.prepare(`PRAGMA table_info(${tableName})`).all();
@@ -1254,6 +1254,8 @@ async function tableColumns(tableName) {
 }
 
 async function ensureColumnIfMissing(tableName, columnName, definition) {
+  validateIdentifier(tableName, "table name");
+  validateIdentifier(columnName, "column name");
   const columns = await tableColumns(tableName);
   if (!columns.some((column) => column.name === columnName)) {
     await exec(

@@ -1,11 +1,22 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 const db = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
+const { validatePassword } = require("../utils/validatePassword");
+const { registerRules, loginRules, handleValidation } = require("../utils/validate");
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "تم تجاوز الحد المسموح من المحاولات، حاول مرة أخرى بعد 15 دقيقة" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function parsePermissions(value) {
   if (!value) return {};
@@ -17,15 +28,32 @@ function parsePermissions(value) {
   }
 }
 
-router.post("/register", asyncHandler(async (req, res) => {
+function setTokenCookie(res, token) {
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
+
+function clearTokenCookie(res) {
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
+router.post("/register", authLimiter, registerRules, handleValidation, asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "الرجاء تعبئة كل الحقول" });
-  }
-  if (password.length < 6) {
-    return res
-      .status(400)
-      .json({ error: "كلمة المرور لازم تكون 6 أحرف على الأقل" });
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
   }
   const cleanEmail = email.toLowerCase().trim();
   const existing = await db
@@ -41,7 +69,7 @@ router.post("/register", asyncHandler(async (req, res) => {
   const hasOwner = !!ownerRow;
   const role = hasOwner ? "designer" : "owner";
   const status = hasOwner ? "pending" : "approved";
-  const password_hash = bcrypt.hashSync(password, 10);
+  const password_hash = await bcrypt.hash(password, 10);
 
   const info = await db
     .prepare(
@@ -58,9 +86,10 @@ router.post("/register", asyncHandler(async (req, res) => {
       permissions: {},
     };
     const token = jwt.sign(user, process.env.JWT_SECRET, {
-      expiresIn: "30d",
+      expiresIn: "7d",
     });
-    return res.json({ token, user });
+    setTokenCookie(res, token);
+    return res.json({ user });
   }
 
   res.json({
@@ -69,13 +98,13 @@ router.post("/register", asyncHandler(async (req, res) => {
   });
 }));
 
-router.post("/login", asyncHandler(async (req, res) => {
+router.post("/login", authLimiter, loginRules, handleValidation, asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || "").toLowerCase().trim();
   const user = await db
     .prepare("SELECT * FROM users WHERE email = ?")
     .get(cleanEmail);
-  if (!user || !bcrypt.compareSync(password || "", user.password_hash)) {
+  if (!user || !(await bcrypt.compare(password || "", user.password_hash))) {
     return res.status(401).json({ error: "الإيميل أو كلمة المرور غير صحيحة" });
   }
   if (user.role !== "owner") {
@@ -97,12 +126,18 @@ router.post("/login", asyncHandler(async (req, res) => {
     role: user.role,
     permissions: parsePermissions(user.permissions),
   };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
-  res.json({ token, user: payload });
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+  setTokenCookie(res, token);
+  res.json({ user: payload });
 }));
 
 router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+router.post("/logout", (req, res) => {
+  clearTokenCookie(res);
+  res.json({ ok: true });
 });
 
 module.exports = router;

@@ -2377,21 +2377,19 @@
         "#8A6512",
       ];
 
-      const token = localStorage.getItem("token");
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      if (!token || !currentUser) window.location.href = "/index.html";
+      if (!currentUser) window.location.href = "/index.html";
 
       async function api(path, options = {}) {
         const res = await fetch("/api" + path, {
           ...options,
+          credentials: "same-origin",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
             ...(options.headers || {}),
           },
         });
         if (res.status === 401) {
-          localStorage.removeItem("token");
           localStorage.removeItem("user");
           window.location.href = "/index.html";
           throw new Error("unauthorized");
@@ -5463,22 +5461,29 @@
       document.getElementById("saveQuoteBtn").onclick = saveQuote;
       document.getElementById("printBtn").onclick = () => window.print();
       window.addEventListener("beforeprint", renderPrintTemplate);
-      document.getElementById("exportPdfBtn").onclick = () => {
+      document.getElementById("exportPdfBtn").onclick = async () => {
         if (!currentQuoteId) {
           showToast("لازم تحفظ العرض أولاً");
           return;
         }
-        window.open(
-          `/api/quotes/${currentQuoteId}/pdf?token=${token}`,
-          "_blank",
-        );
+        try {
+          const res = await fetch(`/api/quotes/${currentQuoteId}/pdf`, {
+            credentials: "same-origin",
+          });
+          if (!res.ok) throw new Error("فشل تحميل PDF");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank");
+        } catch (e) {
+          showToast("صار خطأ أثناء تحميل PDF");
+        }
       };
       document.getElementById("saveTemplateBtn").onclick = () =>
         openTemplateModal("save");
       document.getElementById("loadTemplateBtn").onclick = () =>
         openTemplateModal("load");
       function doLogout() {
-        localStorage.removeItem("token");
+        fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
         localStorage.removeItem("user");
         window.location.href = "/index.html";
       }

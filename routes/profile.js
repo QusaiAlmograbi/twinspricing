@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
+const { validatePassword } = require("../utils/validatePassword");
+const { profileNameRules, passwordRules, handleValidation } = require("../utils/validate");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -32,11 +34,8 @@ router.get("/", asyncHandler(async (req, res) => {
   });
 }));
 
-router.patch("/name", asyncHandler(async (req, res) => {
+router.patch("/name", profileNameRules, handleValidation, asyncHandler(async (req, res) => {
   const { name } = req.body;
-  if (!name || !name.trim()) {
-    return res.status(400).json({ error: "الرجاء إدخال الاسم" });
-  }
 
   const trimmed = name.trim();
   const currentUser = await db
@@ -73,6 +72,13 @@ router.post("/avatar", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "الرجاء إرفاق صورة بصيغة صحيحة" });
   }
 
+  const MAX_AVATAR_BYTES = 200 * 1024;
+  const base64Data = avatar.split(",")[1] || "";
+  const decodedSize = Math.ceil((base64Data.length * 3) / 4);
+  if (decodedSize > MAX_AVATAR_BYTES) {
+    return res.status(400).json({ error: "الصورة كبيرة جداً، الحد الأقصى 200KB" });
+  }
+
   await db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(avatar, req.user.id);
   res.json({ ok: true, avatar });
 }));
@@ -82,17 +88,13 @@ router.delete("/avatar", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-router.post("/password", asyncHandler(async (req, res) => {
+router.post("/password", passwordRules, handleValidation, asyncHandler(async (req, res) => {
   const { current_password, new_password } = req.body;
-  if (!current_password || !new_password) {
+  const passwordError = validatePassword(new_password);
+  if (passwordError) {
     return res
       .status(400)
-      .json({ error: "الرجاء تعبئة كلمة المرور الحالية والجديدة" });
-  }
-  if (new_password.length < 6) {
-    return res
-      .status(400)
-      .json({ error: "كلمة المرور الجديدة لازم تكون 6 أحرف على الأقل" });
+      .json({ error: passwordError });
   }
 
   const user = await db
@@ -102,13 +104,13 @@ router.post("/password", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "المستخدم غير موجود" });
   }
 
-  if (!bcrypt.compareSync(current_password, user.password_hash)) {
+  if (!(await bcrypt.compare(current_password, user.password_hash))) {
     return res
       .status(400)
       .json({ error: "كلمة المرور الحالية غير صحيحة" });
   }
 
-  const hash = bcrypt.hashSync(new_password, 10);
+  const hash = await bcrypt.hash(new_password, 10);
   await db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, req.user.id);
   res.json({ ok: true });
 }));

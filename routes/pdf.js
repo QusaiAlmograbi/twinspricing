@@ -50,8 +50,8 @@ function formatDate(dateStr) {
 function authViaQueryOrHeader(req, res, next) {
   const header = req.headers.authorization || "";
   const headerToken = header.startsWith("Bearer ") ? header.slice(7) : null;
-  const queryToken = req.query.token || null;
-  const token = headerToken || queryToken;
+  const cookieToken = req.cookies && req.cookies.token;
+  const token = cookieToken || headerToken;
   if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول" });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -92,17 +92,32 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
     .all(q.id);
 
+  const sectionIds = sections.map((s) => s.id);
+
+  const allRooms = sectionIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .all(...sectionIds)
+    : [];
+
+  const sectionItems = sectionIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC`)
+        .all(...sectionIds)
+    : [];
+
+  const roomIds = allRooms.map((r) => r.id);
+  const roomItems = roomIds.length > 0
+    ? await db
+        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .all(...roomIds)
+    : [];
+
   for (const sec of sections) {
-    sec.rooms = await db
-      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
-      .all(sec.id);
-    sec.items = await db
-      .prepare("SELECT * FROM items WHERE section_id = ? AND room_id IS NULL ORDER BY sort_order ASC")
-      .all(sec.id);
+    sec.rooms = allRooms.filter((r) => r.section_id === sec.id);
+    sec.items = sectionItems.filter((i) => i.section_id === sec.id);
     for (const room of sec.rooms) {
-      room.items = await db
-        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
-        .all(room.id);
+      room.items = roomItems.filter((i) => i.room_id === room.id);
     }
   }
 
@@ -178,6 +193,15 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
 
   let pageNum = 1;
 
+  // Company info from environment variables
+  const companyName = process.env.COMPANY_NAME || "TWiNS";
+  const companyTagline = process.env.COMPANY_TAGLINE || "INTERIOR DESIGN";
+  const companyAddress = process.env.COMPANY_ADDRESS || "Kalbouneh Plaza \u2014 King Abdullah St, Amman, Jordan";
+  const companyWebsite = process.env.COMPANY_WEBSITE || "www.twinsinteriordesign.com";
+  const companyEmail = process.env.COMPANY_EMAIL || "contact@twinsinteriordesign.com";
+  const companyPhone = process.env.COMPANY_PHONE || "+962 788 3480 77";
+  const companyInstagram = process.env.COMPANY_INSTAGRAM || "twins_interiordesign";
+
   function addFooter() {
     const totalPages = doc.bufferedPageRange();
     for (let i = totalPages.start; i < totalPages.start + totalPages.count; i++) {
@@ -185,7 +209,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
       doc.font(fontReg).fontSize(7).fillColor(lightText);
       const refText = q.reference_no || "N/A";
       doc.text(
-        `TWiNS Interior Design \u2014 Ref: ${refText} \u2014 Page ${i + 1} of ${totalPages.count}`,
+        `${companyName} ${companyTagline} \u2014 Ref: ${refText} \u2014 Page ${i + 1} of ${totalPages.count}`,
         40,
         doc.page.height - 24,
         { width: contentW, align: "center" },
@@ -197,19 +221,19 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
 
   // Company Header
   doc.font(fontBold).fontSize(22).fillColor(gold);
-  doc.text("TWiNS", 40, 30, { align: "center", width: contentW });
+  doc.text(companyName, 40, 30, { align: "center", width: contentW });
   doc.font(fontBold).fontSize(11).fillColor(lightText);
-  doc.text("INTERIOR DESIGN", 40, 52, { align: "center", width: contentW, characterSpacing: 2 });
+  doc.text(companyTagline, 40, 52, { align: "center", width: contentW, characterSpacing: 2 });
 
   // Contact Info
   doc.font(fontReg).fontSize(7.5).fillColor(lightText);
   doc.text(
-    "Kalbouneh Plaza \u2014 King Abdullah St, Amman, Jordan",
+    companyAddress,
     40, 68,
     { align: "center", width: contentW },
   );
   doc.text(
-    "Website: www.twinsinteriordesign.com  |  Email: contact@twinsinteriordesign.com  |  Phone|WhatsApp: +962 788 3480 77  |  Instagram: twins_interiordesign",
+    `Website: ${companyWebsite}  |  Email: ${companyEmail}  |  Phone|WhatsApp: ${companyPhone}  |  Instagram: ${companyInstagram}`,
     40, 80,
     { align: "center", width: contentW },
   );
@@ -257,7 +281,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   // Columns from RIGHT to LEFT
   const colPos = [right];
   const colWidths = [];
-  // # (28), Section (65), Description (flex), Unit (30), Qty (28), UnitPrice (38), Total (38), Notes (55)
+  // # (28), Section (60), Description (flex), Unit (32), Qty (30), UnitPrice (40), Total (40), Notes (110)
   const colDefs = [
     { label: "#", w: 28 },
     { label: "القسم", w: 60 },
@@ -266,7 +290,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     { label: "الكمية", w: 30 },
     { label: "سعر الوحدة", w: 40 },
     { label: "الإجمالي", w: 40 },
-    { label: "ملاحظات", w: 52 },
+    { label: "ملاحظات", w: 110 },
   ];
 
   // Calculate flex column width
@@ -301,7 +325,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   y = drawTableHeader(y);
 
   // ── Items ──
-  function renderItemRow(item, sectionLabelEn, atY) {
+  function renderItemRow(item, sectionLabelEn, atY, rowIndex) {
     if (atY > 720) {
       doc.addPage();
       atY = 42;
@@ -309,7 +333,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
       atY = drawTableHeader(atY);
     }
 
-    const lineTotal = (item.qty || 0) * (item.selling_price || 0);
+    const lineTotal = (Number(item.qty) || 0) * (Number(item.selling_price) || 0);
     const descText = displayText(item.description || item.name || "");
     const notesText = displayText(item.notes || "");
     const secLabel = displayText(sectionLabelEn);
@@ -318,23 +342,39 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
 
     const values = [
       itemCode,
-      secLabel.substring(0, 12),
-      descText.substring(0, 55),
+      secLabel,
+      descText,
       itemUnit,
       String(item.qty || 0),
       formatMoney(item.selling_price),
       formatMoney(lineTotal),
-      notesText.substring(0, 14),
+      notesText,
     ];
 
+    // Calculate dynamic row height
+    doc.font(fontReg).fontSize(7.5);
+    let maxH = 14;
+    for (let i = 0; i < values.length; i++) {
+      const h = doc.heightOfString(String(values[i]), { width: colWidths[i] });
+      if (h > maxH) maxH = h;
+    }
+    const rowH = maxH + 4;
+
+    // Alternating row background + subtle border
+    const rowBg = rowIndex % 2 === 0 ? "#FFFFFF" : tableRowEven;
+    doc.rect(40, atY - 2, contentW, rowH).fill(rowBg);
+    doc.rect(40, atY - 2, contentW, rowH).lineWidth(0.3).strokeColor(borderColor).stroke();
+
+    // Draw values
     doc.font(fontReg).fontSize(7.5).fillColor(darkText);
     let rx = right;
     for (let i = 0; i < values.length; i++) {
       const w = colWidths[i];
-      doc.text(values[i], rx - w, atY, { width: w, align: "center" });
+      const align = (i === 2 || i === 7) ? "right" : "center";
+      doc.text(String(values[i]), rx - w, atY, { width: w, align });
       rx -= w;
     }
-    return atY + 13;
+    return atY + rowH;
   }
 
   function renderSectionHeader(sec, atY) {
@@ -352,29 +392,54 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     return atY + 17;
   }
 
+  function renderRoomHeader(roomName, atY) {
+    if (atY > 720) {
+      doc.addPage();
+      atY = 42;
+      addFooter();
+      atY = drawTableHeader(atY);
+    }
+    doc.rect(40, atY - 2, contentW, 15).fill(sectionBg);
+    doc.font(fontBold).fontSize(8).fillColor(darkText);
+    const roomHeaderText = `\u200F${displayText(roomName)}`;
+    doc.text(roomHeaderText, 44, atY + 1, { width: contentW - 8, align: "right" });
+    return atY + 17;
+  }
+
   for (const sec of sections) {
     y = renderSectionHeader(sec, y);
-    const allItems = [...(sec.items || [])];
-    for (const room of sec.rooms || []) {
-      const roomLabel = displayText(room.name);
-      if (room.items && room.items.length > 0) {
-        for (const item of room.items) {
-          allItems.push(item);
+    const secNameEn = getSectionNameEn(sec.name);
+    let rowIndex = 0;
+
+    if (!sec.has_rooms) {
+      const allItems = [...(sec.items || [])];
+      for (const item of allItems) {
+        y = renderItemRow(item, secNameEn, y, rowIndex++);
+      }
+    } else {
+      const directItems = (sec.items || []).filter((it) => !it.room_id);
+      if (directItems.length > 0) {
+        for (const item of directItems) {
+          y = renderItemRow(item, secNameEn, y, rowIndex++);
         }
       }
-      // Add room label as first "item" if has items
+      for (const room of sec.rooms || []) {
+        const roomItems = (sec.items || []).filter((it) => it.room_id === room.id);
+        if (roomItems.length > 0) {
+          y = renderRoomHeader(room.name, y);
+          for (const item of roomItems) {
+            y = renderItemRow(item, secNameEn, y, rowIndex++);
+          }
+        }
+      }
     }
-    const secNameEn = getSectionNameEn(sec.name);
-    for (const item of allItems) {
-      y = renderItemRow(item, secNameEn, y);
-    }
+
     // Section subtotal
     const secSub = sectionSubtotals.find((s) => s.code === sec.code);
     if (secSub) {
       y += 2;
       doc.font(fontBold).fontSize(8.5).fillColor(gold);
       const subText = `\u25BA مجموع ${sectionLabel(sec.name)}\u200F`;
-      // subtotal text on left (RTL so left-aligned content)
       doc.text(subText, 40, y, { width: contentW - 120, align: "right" });
       doc.text(`${formatMoney(secSub.subtotal)} JOD`, right - 110, y, { width: 110, align: "left" });
       y += 16;
@@ -468,9 +533,10 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     const pct = `${term.percentage}%`;
     const desc = displayText(term.trigger_description || "");
     doc.text(pct, ptColStarts[0], y, { width: ptWidths[0], align: "center" });
-    doc.text(desc.substring(0, 55), ptColStarts[1], y, { width: ptWidths[1], align: "center" });
+    doc.text(desc.substring(0, 80), ptColStarts[1], y, { width: ptWidths[1], align: "center" });
     doc.text(`${formatMoney(amount)} JOD`, ptColStarts[2], y, { width: ptWidths[2] + ptWidths[3], align: "center" });
-    y += 14;
+    const descH = doc.heightOfString(desc.substring(0, 80), { width: ptWidths[1] });
+    y += Math.max(descH + 4, 14);
   }
 
   // ── Execution, Exclusions, Validity ──
