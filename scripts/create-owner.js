@@ -1,13 +1,24 @@
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
+const readline = require("readline");
 const db = require("../db");
+
+function ask(question) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); }));
+}
 
 async function createOwner() {
   await db.initializeDatabase();
 
-  const name = "Qusai Almograbi";
-  const email = "mograbiqusai6@gmail.com";
-  const password = "Qmograbi05";
+  const name = process.env.OWNER_NAME || await ask("Owner name: ");
+  const email = process.env.OWNER_EMAIL || await ask("Owner email: ");
+  const password = process.env.OWNER_PASSWORD || await ask("Owner password: ");
+
+  if (!name || !email || !password) {
+    console.error("Name, email, and password are required.");
+    process.exit(1);
+  }
 
   const existing = await db
     .prepare("SELECT id, role FROM users WHERE email = ?")

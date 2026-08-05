@@ -1,25 +1,10 @@
 const express = require("express");
 const db = require("../db");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, verifySectionAccess } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(requireAuth);
-
-function verifySectionAccess(sectionId, userId, role) {
-  if (role === "owner" || role === "admin") return true;
-  return db
-    .prepare(
-      `SELECT 1 FROM sections s
-       JOIN quotes q ON q.id = s.quote_id
-       WHERE s.id = ? AND q.user_id = ?
-       UNION
-       SELECT 1 FROM sections s
-       JOIN project_access pa ON pa.quote_id = s.quote_id
-       WHERE s.id = ? AND pa.user_id = ?`,
-    )
-    .get(sectionId, userId, sectionId, userId);
-}
 
 router.get("/:sectionId/rooms", asyncHandler(async (req, res) => {
   const sectionId = Number(req.params.sectionId);

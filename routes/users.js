@@ -2,6 +2,7 @@ const express = require("express");
 const db = require("../db");
 const { requireAuth, requireOwner, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
+const { userRoleRules, handleValidation } = require("../utils/validate");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -98,11 +99,8 @@ router.post("/:id/reject", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-router.patch("/:id/role", requireOwner, asyncHandler(async (req, res) => {
+router.patch("/:id/role", requireOwner, userRoleRules, handleValidation, asyncHandler(async (req, res) => {
   const { role, permissions } = req.body;
-  if (!["admin", "owner", "designer"].includes(role)) {
-    return res.status(400).json({ error: "صلاحية غير صحيحة" });
-  }
 
   const targetId = Number(req.params.id);
   if (targetId === req.user.id) {
@@ -150,12 +148,6 @@ router.delete("/:id", requireOwner, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "المستخدم غير موجود" });
   }
 
-  await db
-    .prepare(
-      "DELETE FROM project_access WHERE user_id = ? OR quote_id IN (SELECT id FROM quotes WHERE user_id = ?)",
-    )
-    .run(targetId, targetId);
-  await db.prepare("DELETE FROM quotes WHERE user_id = ?").run(targetId);
   await db.prepare("DELETE FROM users WHERE id = ?").run(targetId);
   res.json({ ok: true });
 }));

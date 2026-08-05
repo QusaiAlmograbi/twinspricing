@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../db");
-const { seedDefaultPriceList, smartMergeDefaultPriceList } = require("../db");
+const { smartMergeDefaultPriceList } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -337,7 +337,6 @@ router.delete("/:categoryId", asyncHandler(async (req, res) => {
   await db.prepare("DELETE FROM price_items WHERE category_id = ?").run(categoryId);
   // Delete the category itself
   await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
-  console.log(`[delete-category] Deleted category ${categoryId} and its items`);
   res.json({ ok: true, deletedCategoryId: categoryId });
 }));
 

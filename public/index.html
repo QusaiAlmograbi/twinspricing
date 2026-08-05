@@ -287,7 +287,7 @@
       const registerHint = document.getElementById("registerHint");
 
       // إذا في جلسة مسجلة مسبقاً، حوّل مباشرة للأداة
-      if (localStorage.getItem("token")) window.location.href = "/app";
+      if (localStorage.getItem("user")) window.location.href = "/app";
 
       document.getElementById("switchLink").onclick = () => {
         mode = mode === "login" ? "register" : "login";
@@ -337,7 +337,6 @@
             return;
           }
 
-          localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
           window.location.href = "/app";
         } catch (err) {

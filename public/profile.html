@@ -460,21 +460,19 @@
       });
       document.getElementById("themeToggle").textContent = savedTheme === "dark" ? "☀" : "☾";
 
-      const token = localStorage.getItem("token");
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      if (!token || !currentUser) window.location.href = "/index.html";
+      if (!currentUser) window.location.href = "/index.html";
 
       async function api(path, options = {}) {
         const res = await fetch("/api" + path, {
           ...options,
+          credentials: "same-origin",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
             ...(options.headers || {}),
           },
         });
         if (res.status === 401) {
-          localStorage.removeItem("token");
           localStorage.removeItem("user");
           window.location.href = "/index.html";
           throw new Error("unauthorized");

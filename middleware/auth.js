@@ -11,7 +11,9 @@ function isAdminOrOwner(role) {
 
 async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const headerToken = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const cookieToken = req.cookies && req.cookies.token;
+  const token = cookieToken || headerToken;
   if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول" });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -66,10 +68,26 @@ function requireOwner(req, res, next) {
   next();
 }
 
+function verifySectionAccess(sectionId, userId, role) {
+  if (role === "owner" || role === "admin") return true;
+  return db
+    .prepare(
+      `SELECT 1 FROM sections s
+       JOIN quotes q ON q.id = s.quote_id
+       WHERE s.id = ? AND q.user_id = ?
+       UNION
+       SELECT 1 FROM sections s
+       JOIN project_access pa ON pa.quote_id = s.quote_id
+       WHERE s.id = ? AND pa.user_id = ?`,
+    )
+    .get(sectionId, userId, sectionId, userId);
+}
+
 module.exports = {
   requireAuth,
   requireAdmin,
   requireOwner,
   isAdminOrOwner,
   isOwner,
+  verifySectionAccess,
 };

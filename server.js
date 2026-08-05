@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const db = require("./db");
@@ -32,7 +34,41 @@ function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
-  app.use(cors());
+
+  if (process.env.NODE_ENV === "production") {
+    app.use((req, res, next) => {
+      if (req.headers["x-forwarded-proto"] === "http") {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+      }
+      next();
+    });
+  }
+
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : ["http://localhost:3000"];
+
+  app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }));
+  app.use(cookieParser());
   app.use(express.json({ limit: "10mb" }));
 
   app.use("/api/auth", authRoutes);
@@ -75,7 +111,8 @@ function createApp() {
   );
 
   app.use((err, req, res, next) => {
-    console.error("Unhandled error:", err);
+    console.error(`[${new Date().toISOString()}] ${req.method} ${req.url}:`, err.message);
+    console.error(err.stack);
     res.status(500).json({ error: "Internal server error" });
   });
 

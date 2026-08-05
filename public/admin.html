@@ -510,23 +510,22 @@
         themeBtn.textContent = next === "dark" ? "☀" : "☾";
       };
 
-      const token = localStorage.getItem("token");
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      if (!token || !currentUser) window.location.href = "/index.html";
+      if (!currentUser) window.location.href = "/index.html";
       if (currentUser.role !== "admin" && currentUser.role !== "owner")
         window.location.href = "/app";
 
       async function api(path, options = {}) {
         const res = await fetch("/api" + path, {
           ...options,
+          credentials: "same-origin",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
             ...(options.headers || {}),
           },
         });
         if (res.status === 401) {
-          localStorage.clear();
+          localStorage.removeItem("user");
           window.location.href = "/index.html";
           throw new Error();
         }
@@ -549,6 +548,10 @@
         box.className = "msg " + (ok ? "ok" : "err") + " show";
         box.style.display = "block";
         setTimeout(() => (box.style.display = "none"), 4000);
+      }
+
+      function escapeHtml(s) {
+        return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
       document.getElementById("seedPriceListBtn").onclick = async () => {
@@ -584,8 +587,8 @@
               if (canManageUsers) {
                 return `
       <tr data-id="${u.id}">
-        <td>${u.name}</td>
-        <td style="color:var(--ash)">${u.email}</td>
+        <td>${escapeHtml(u.name)}</td>
+        <td style="color:var(--ash)">${escapeHtml(u.email)}</td>
         <td>
           <select class="role-select">
             <option value="designer" ${u.role === "designer" ? "selected" : ""}>مصمم</option>
@@ -601,8 +604,8 @@
               }
               return `
       <tr>
-        <td>${u.name}</td>
-        <td style="color:var(--ash)">${u.email}</td>
+        <td>${escapeHtml(u.name)}</td>
+        <td style="color:var(--ash)">${escapeHtml(u.email)}</td>
         <td><span class="role-pill role-${u.role}">${u.role === "owner" ? "مالك" : u.role === "admin" ? "مدير" : "مصمم"}</span></td>
         <td>${statusPill(u.status || "approved")}</td>
         <td>غير متاح</td>
@@ -659,7 +662,7 @@
           quoteSelect.innerHTML = quotes
             .map(
               (q) =>
-                `<option value="${q.id}">${q.project_name} · ${new Date(
+                `<option value="${q.id}">${escapeHtml(q.project_name)} · ${new Date(
                   q.updated_at,
                 ).toLocaleDateString("ar-JO")}</option>`,
             )
@@ -667,7 +670,7 @@
           const designers = users.filter((u) => u.role === "designer");
           designerSelect.innerHTML = designers
             .map(
-              (u) => `<option value="${u.id}">${u.name} — ${u.email}</option>`,
+              (u) => `<option value="${u.id}">${escapeHtml(u.name)} — ${escapeHtml(u.email)}</option>`,
             )
             .join("");
 
@@ -724,8 +727,8 @@
               (u) => `
       <div class="pending-row" data-id="${u.id}">
         <div class="pending-info">
-          <div class="name">${u.name}</div>
-          <div class="meta">${u.email} · ${u.role === "admin" ? "مدير" : "مصمم"} · ${new Date(u.created_at).toLocaleDateString("ar-JO")}</div>
+          <div class="name">${escapeHtml(u.name)}</div>
+          <div class="meta">${escapeHtml(u.email)} · ${u.role === "admin" ? "مدير" : "مصمم"} · ${new Date(u.created_at).toLocaleDateString("ar-JO")}</div>
         </div>
         <div class="pending-actions">
           <button class="approve-btn" data-id="${u.id}">موافقة</button>
