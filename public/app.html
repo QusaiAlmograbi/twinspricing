@@ -4534,9 +4534,21 @@
               };
             });
             body.querySelectorAll(".tmpl-del-btn").forEach((btn) => {
-              btn.onclick = async () => {
-                await api(`/templates/${btn.dataset.id}`, { method: "DELETE" });
-                btn.closest(".saved-item").remove();
+              btn.onclick = () => {
+                openConfirm(
+                  "حذف القالب",
+                  "هل أنت متأكد من حذف هذا القالب؟",
+                  "حذف",
+                  async () => {
+                    try {
+                      await api(`/templates/${btn.dataset.id}`, { method: "DELETE" });
+                      btn.closest(".saved-item").remove();
+                      showToast("تم حذف القالب");
+                    } catch (e) {
+                      showToast(e.message);
+                    }
+                  },
+                );
               };
             });
           });
