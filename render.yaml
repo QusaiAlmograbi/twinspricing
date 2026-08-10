@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: interior-pricing-app
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://interior-pricing-app.onrender.com
+      - key: COMPANY_NAME
+        value: TWiNS
+      - key: COMPANY_TAGLINE
+        value: INTERIOR DESIGN
+      - key: COMPANY_ADDRESS
+        value: "Kalbouneh Plaza — King Abdullah St, Amman, Jordan"
+      - key: COMPANY_WEBSITE
+        value: www.twinsinteriordesign.com
+      - key: COMPANY_EMAIL
+        value: contact@twinsinteriordesign.com
+      - key: COMPANY_PHONE
+        value: "+962 788 3480 77"
+      - key: COMPANY_INSTAGRAM
+        value: twins_interiordesign
