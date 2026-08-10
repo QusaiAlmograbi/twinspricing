@@ -418,7 +418,7 @@
       };
 
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-      if (!currentUser) window.location.href = "/index.html";
+      if (!currentUser) window.location.href = "/";
       const isOwnerOrAdmin = currentUser.role === "owner" || currentUser.role === "admin";
 
       async function api(path, options = {}) {
@@ -429,7 +429,7 @@
         });
         if (res.status === 401) {
           localStorage.removeItem("user");
-          window.location.href = "/index.html";
+          window.location.href = "/";
           throw new Error("unauthorized");
         }
         const data = await res.json().catch(() => ({}));
@@ -929,7 +929,7 @@
         document.getElementById("logoutBtn").onclick = () => {
           fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
           localStorage.removeItem("user");
-          window.location.href = "/index.html";
+          window.location.href = "/";
         };
         await loadDisciplines();
         await loadUnlinkedCategories();
