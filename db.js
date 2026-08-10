@@ -536,6 +536,13 @@ async function initializeDatabase() {
 
     // --- New tables for pricing system ---
     await exec(`
+      CREATE TABLE IF NOT EXISTS price_categories (
+        id BIGSERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        source TEXT NOT NULL DEFAULT 'default'
+      );
+
       CREATE TABLE IF NOT EXISTS sections (
         id BIGSERIAL PRIMARY KEY,
         quote_id BIGINT NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
@@ -568,13 +575,6 @@ async function initializeDatabase() {
         data TEXT NOT NULL,
         created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
         is_default INTEGER NOT NULL DEFAULT 0
-      );
-
-      CREATE TABLE IF NOT EXISTS price_categories (
-        id BIGSERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        source TEXT NOT NULL DEFAULT 'default'
       );
 
       CREATE TABLE IF NOT EXISTS price_items (
