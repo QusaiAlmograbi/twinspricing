@@ -891,6 +891,17 @@
         opacity: 0.6;
         cursor: default;
       }
+      .auto-save-indicator {
+        font-size: 12px;
+        color: var(--ash);
+        margin-inline-start: 8px;
+        transition: opacity 0.3s;
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+      .auto-save-indicator.saving { color: var(--gold); }
+      .auto-save-indicator.saved  { color: #4caf50; }
+      .auto-save-indicator.error  { color: #f44336; font-weight: 500; }
       .btn-secondary {
         background: none;
         border: 1px solid var(--pewter) !important;
@@ -2130,6 +2141,7 @@
             </div>
 
             <div class="actions">
+              <span id="autoSaveIndicator" class="auto-save-indicator"></span>
               <button id="saveQuoteBtn" class="btn-save">حفظ العرض</button>
               <button id="printBtn" class="btn-secondary">طباعة</button>
               <button id="exportPdfBtn" class="btn-secondary">PDF</button>
@@ -2431,9 +2443,14 @@
       let activeCategoryTab = null;
       let allItemsOpen = false;
       let hasUnsavedWork = false;
+      // Fix #1: shared save lock — both manual & auto-save use the same flag
+      // to prevent race conditions (double-create of same section/item in DB)
+      let isSavingToServer = false;
+
       function markDirty() {
         hasUnsavedWork = true;
         scheduleDraftSave();
+        scheduleAutoSave();
       }
 
       // ---- Auto-draft (local recovery layer) ----
@@ -2508,6 +2525,329 @@
       }
       function disableDraftFallback() {
         window.removeEventListener("beforeunload", draftFallbackHandler);
+      }
+
+      // =====================================================
+      // AUTO-SAVE TO SERVER (persistence layer)
+      // =====================================================
+      // Fix #1: isSavingToServer — shared lock with saveQuote()
+      // Fix #2: inline filter (no cleanSections copy), reduced timeouts
+      // Fix #3: retry with exponential backoff (2 retries after initial fail)
+      // Fix #4: AbortController timeout per request
+      // Fix #5: hasUnsavedWork = false after full success
+      // Fix #6: try/catch per stage for partial save handling
+
+      let autoSaveTimer = null;
+      let autoSaveInProgress = false;
+      let lastAutoSaveJson = null;
+      const AUTO_SAVE_DEBOUNCE = 5000;
+      const AUTO_SAVE_TIMEOUT_FIRST = 30000;
+      const AUTO_SAVE_TIMEOUT = 15000;
+      const AUTO_SAVE_RETRY_DELAYS = [5000, 15000];
+      const AUTO_SAVE_TOTAL_TIMEOUT = 90000;
+
+      function scheduleAutoSave() {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(autoSaveToServer, AUTO_SAVE_DEBOUNCE);
+      }
+
+      // Fix #4: fetch with AbortController timeout
+      function apiWithTimeout(path, options, timeoutMs) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        return api(path, { ...options, signal: controller.signal })
+          .finally(() => clearTimeout(timer));
+      }
+
+      // Fix #3: retry with exponential backoff
+      async function apiWithRetry(path, options, isFirstAttempt) {
+        const delays = AUTO_SAVE_RETRY_DELAYS;
+        let lastErr;
+        for (let attempt = 0; attempt <= delays.length; attempt++) {
+          try {
+            const timeout = attempt === 0 && isFirstAttempt
+              ? AUTO_SAVE_TIMEOUT_FIRST
+              : AUTO_SAVE_TIMEOUT;
+            return await apiWithTimeout(path, options || {}, timeout);
+          } catch (err) {
+            lastErr = err;
+            if (err.message === "unauthorized") throw err;
+            if (attempt < delays.length) {
+              await new Promise((r) => setTimeout(r, delays[attempt]));
+            }
+          }
+        }
+        throw lastErr;
+      }
+
+      async function autoSaveToServer() {
+        // Fix #1: shared lock — don't interfere with manual save
+        if (isSavingToServer) return;
+        if (!currentUser) return;
+        if (!currentQuoteId && !state.projectName && sections.length === 0) return;
+
+        // Skip if nothing changed since last successful save
+        const snapshot = JSON.stringify({ state, sections });
+        if (snapshot === lastAutoSaveJson) return;
+
+        // Acquire shared lock
+        autoSaveInProgress = true;
+        isSavingToServer = true;
+        showAutoSaveIndicator("saving");
+
+        let fullSuccess = false;
+        const totalTimer = setTimeout(() => {
+          showAutoSaveIndicator("error");
+        }, AUTO_SAVE_TOTAL_TIMEOUT);
+
+        try {
+          // Fix #2: filter saveable sections using original references
+          // sections.filter() returns the same object references —
+          // modifying sec.id here changes sections[] directly
+          const saveableSections = sections.filter((sec) => {
+            return (sec.items || []).some(
+              (it) =>
+                it._fromServer ||
+                (it.name || "").trim() !== "" ||
+                (Number(it.selling_price) || 0) > 0 ||
+                (Number(it.base_cost) || 0) > 0
+            );
+          });
+
+          if (saveableSections.length === 0 && !state.projectName) return;
+
+          // Calculate totals from saveable items only
+          let subtotal = 0;
+          saveableSections.forEach((sec) => {
+            (sec.items || [])
+              .filter(
+                (it) =>
+                  it._fromServer ||
+                  (it.name || "").trim() !== "" ||
+                  (Number(it.selling_price) || 0) > 0 ||
+                  (Number(it.base_cost) || 0) > 0
+              )
+              .forEach((it) => {
+                subtotal +=
+                  (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+              });
+          });
+          let discount =
+            state.discountType === "pct"
+              ? (subtotal * Number(state.discountVal)) / 100
+              : Number(state.discountVal);
+          const afterDiscount = Math.max(subtotal - discount, 0);
+          const vat = (afterDiscount * Number(state.taxPct)) / 100;
+          const grandTotal = afterDiscount + vat;
+
+          const body = {
+            project_name: state.projectName || "مشروع بدون اسم",
+            data: state,
+            total: grandTotal,
+            reference_no: state.referenceNo,
+            client_name: state.clientName,
+            site_location: state.siteLocation,
+            discount_val: state.discountVal,
+            discount_type: state.discountType,
+            tax_pct: state.taxPct,
+            execution_days: state.executionDays,
+            validity_days: state.validityDays,
+            payment_terms: state.paymentTerms,
+            quote_title: state.quoteTitle,
+            price_exclusions: state.priceExclusions,
+          };
+
+          // Fix #6: each stage in its own try/catch
+          // Stage 1: save quote
+          try {
+            if (currentQuoteId) {
+              await apiWithRetry("/quotes/" + currentQuoteId, {
+                method: "PUT",
+                body: JSON.stringify(body),
+              }, true);
+            } else {
+              const res = await apiWithRetry("/quotes", {
+                method: "POST",
+                body: JSON.stringify(body),
+              }, true);
+              currentQuoteId = res.id;
+            }
+          } catch (err) {
+            throw new Error("Quote save failed: " + err.message);
+          }
+
+          // Stage 2: save sections, rooms, items
+          // saveableSections contains original references — sec.id = res.id modifies sections[]
+          for (const sec of saveableSections) {
+            // Section
+            try {
+              if (!sec.id && currentQuoteId) {
+                const res = await apiWithRetry(
+                  `/quotes/${currentQuoteId}/sections`,
+                  {
+                    method: "POST",
+                    body: JSON.stringify({
+                      code: sec.code,
+                      name: sec.name,
+                      sort_order: sec.sort_order,
+                    }),
+                  },
+                  false
+                );
+                sec.id = res.id;
+              }
+              if (sec.id) {
+                await apiWithRetry(
+                  `/quotes/${currentQuoteId}/sections/${sec.id}`,
+                  {
+                    method: "PUT",
+                    body: JSON.stringify({
+                      code: sec.code,
+                      name: sec.name,
+                      sort_order: sec.sort_order,
+                      has_rooms: sec.has_rooms ? 1 : 0,
+                    }),
+                  },
+                  false
+                );
+              }
+              sec._fromServer = true;
+            } catch (err) {
+              throw new Error(
+                "Section \"" + sec.name + "\" save failed: " + err.message
+              );
+            }
+
+            // Rooms
+            if (sec.has_rooms && sec.id) {
+              for (const room of sec.rooms || []) {
+                try {
+                  if (!room.id) {
+                    const res = await apiWithRetry(
+                      "/sections/" + sec.id + "/rooms",
+                      {
+                        method: "POST",
+                        body: JSON.stringify({
+                          name: room.name,
+                          sort_order: room.sort_order,
+                        }),
+                      },
+                      false
+                    );
+                    room.id = res.id;
+                  } else if (room.id < 0) {
+                    const oldId = room.id;
+                    const res = await apiWithRetry(
+                      "/sections/" + sec.id + "/rooms",
+                      {
+                        method: "POST",
+                        body: JSON.stringify({
+                          name: room.name,
+                          sort_order: room.sort_order,
+                        }),
+                      },
+                      false
+                    );
+                    room.id = res.id;
+                    for (const item of sec.items) {
+                      if (item.room_id === oldId) item.room_id = res.id;
+                    }
+                  } else {
+                    await apiWithRetry(
+                      "/sections/" + sec.id + "/rooms/" + room.id,
+                      {
+                        method: "PUT",
+                        body: JSON.stringify({
+                          name: room.name,
+                          sort_order: room.sort_order,
+                        }),
+                      },
+                      false
+                    );
+                  }
+                  room._fromServer = true;
+                } catch (err) {
+                  throw new Error(
+                    "Room \"" + room.name + "\" save failed: " + err.message
+                  );
+                }
+              }
+            }
+
+            // Items
+            for (const item of sec.items) {
+              try {
+                const itemPayload = {
+                  ...item,
+                  category_id: item.category_id || null,
+                  room_id: item.room_id || null,
+                };
+                if (!item.id && sec.id) {
+                  const res = await apiWithRetry(
+                    "/sections/" + sec.id + "/items",
+                    {
+                      method: "POST",
+                      body: JSON.stringify(itemPayload),
+                    },
+                    false
+                  );
+                  item.id = res.id;
+                } else if (item.id && sec.id) {
+                  await apiWithRetry(
+                    "/sections/" + sec.id + "/items/" + item.id,
+                    {
+                      method: "PUT",
+                      body: JSON.stringify(itemPayload),
+                    },
+                    false
+                  );
+                }
+                item._fromServer = true;
+              } catch (err) {
+                throw new Error(
+                  "Item \"" + (item.name || item.item_code) + "\" save failed: " +
+                    err.message
+                );
+              }
+            }
+          }
+
+          // All stages succeeded
+          fullSuccess = true;
+          lastAutoSaveJson = JSON.stringify({ state, sections });
+          clearDraft();
+          // Fix #5: after full success, no unsaved work
+          hasUnsavedWork = false;
+          showAutoSaveIndicator("saved");
+        } catch (err) {
+          console.error("[auto-save] Failed:", err.message);
+          showAutoSaveIndicator("error");
+        } finally {
+          clearTimeout(totalTimer);
+          autoSaveInProgress = false;
+          // Fix #1: release shared lock
+          isSavingToServer = false;
+        }
+      }
+
+      function showAutoSaveIndicator(status) {
+        const el = document.getElementById("autoSaveIndicator");
+        if (!el) return;
+        clearTimeout(el._hideTimer);
+        if (status === "saving") {
+          el.textContent = "\u062c\u0627\u0631\u064a \u0627\u0644\u062d\u0641\u0638...";
+          el.className = "auto-save-indicator saving";
+        } else if (status === "saved") {
+          el.textContent = "\u0645\u062d\u0641\u0648\u0638 \u062a\u0644\u0627\u0626\u064a\u0627\u064b";
+          el.className = "auto-save-indicator saved";
+          el._hideTimer = setTimeout(() => {
+            el.textContent = "";
+            el.className = "auto-save-indicator";
+          }, 3000);
+        } else if (status === "error") {
+          el.textContent = "\u0641\u0634\u0644 \u0627\u0644\u062d\u0641\u0638 \u0627\u0644\u062a\u0644\u0627\u0626\u064a\u062e\u064a \u2014 \u062c\u0631\u0651\u0628 \u062d\u0641\u0638 \u064a\u062f\u0648\u064a";
+          el.className = "auto-save-indicator error";
+        }
       }
 
       function money(n) {
@@ -4811,8 +5151,17 @@
       }
       async function saveQuote() {
         const btn = document.getElementById("saveQuoteBtn");
+
+        // Fix #1: cancel pending auto-save and wait for in-flight one
+        clearTimeout(autoSaveTimer);
+        while (autoSaveInProgress) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+
+        // Fix #1: acquire shared lock
+        isSavingToServer = true;
         btn.disabled = true;
-        btn.textContent = "جاري الحفظ...";
+        btn.textContent = "\u062c\u0627\u0631\u064a \u0627\u0644\u062d\u0641\u0638...";
         try {
           cleanupEmptyData();
           let subtotal = 0;
@@ -4831,7 +5180,7 @@
           const grandTotal = afterDiscount + vat;
 
           const body = {
-            project_name: state.projectName || "مشروع بدون اسم",
+            project_name: state.projectName || "\u0645\u0634\u0631\u0648\u0639 \u0628\u062f\u0648\u0646 \u0627\u0633\u0645",
             data: state,
             total: grandTotal,
             reference_no: state.referenceNo,
@@ -4946,17 +5295,22 @@
           }
 
           document.getElementById("pageTitle").textContent =
-            state.projectName || "عرض سعر";
+            state.projectName || "\u0639\u0631\u0636 \u0633\u0639\u0631";
           clearDraft();
           hasUnsavedWork = false;
-          showToast("تم حفظ العرض");
+          // Sync auto-save state so it doesn't re-save unchanged data
+          lastAutoSaveJson = JSON.stringify({ state, sections });
+          showAutoSaveIndicator("saved");
+          showToast("\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0639\u0631\u0636");
           loadSavedList();
           renderAll();
         } catch (e) {
-          showToast(e.message || "تعذر الحفظ");
+          showToast(e.message || "\u062a\u0639\u0630\u0631 \u0627\u0644\u062d\u0641\u0638");
         } finally {
           btn.disabled = false;
-          btn.textContent = "حفظ العرض";
+          btn.textContent = "\u062d\u0641\u0638 \u0627\u0644\u0639\u0631\u0636";
+          // Fix #1: release shared lock
+          isSavingToServer = false;
         }
       }
 
