@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../db");
-const { requireAuth, requireOwner, isAdminOrOwner } = require("../middleware/auth");
+const { requireAuth, requireOwner, isAdminOrOwner, invalidateUserCache } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { userRoleRules, handleValidation } = require("../utils/validate");
 
@@ -66,6 +66,7 @@ router.post("/:id/approve", asyncHandler(async (req, res) => {
       "UPDATE users SET status = 'approved', approved_by = ?, approved_at = datetime('now') WHERE id = ?",
     )
     .run(req.user.id, targetId);
+  invalidateUserCache(targetId);
   res.json({ ok: true });
 }));
 
@@ -96,6 +97,7 @@ router.post("/:id/reject", asyncHandler(async (req, res) => {
   await db
     .prepare("UPDATE users SET status = 'rejected' WHERE id = ?")
     .run(targetId);
+  invalidateUserCache(targetId);
   res.json({ ok: true });
 }));
 
@@ -132,6 +134,7 @@ router.patch("/:id/role", requireOwner, userRoleRules, handleValidation, asyncHa
   await db
     .prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`)
     .run(...values);
+  invalidateUserCache(targetId);
   res.json({ ok: true });
 }));
 
@@ -149,6 +152,7 @@ router.delete("/:id", requireOwner, asyncHandler(async (req, res) => {
   }
 
   await db.prepare("DELETE FROM users WHERE id = ?").run(targetId);
+  invalidateUserCache(targetId);
   res.json({ ok: true });
 }));
 

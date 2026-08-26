@@ -29,6 +29,9 @@ function getPool() {
 
     pool = new Pool({
       connectionString: config.databaseUrl,
+      max: 50,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
       ssl:
         process.env.NODE_ENV === "production"
           ? { rejectUnauthorized: false }
@@ -433,6 +436,18 @@ async function initializeDatabase() {
         );
       `);
 
+      // Performance indexes
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_quotes_user_id ON quotes(user_id);
+        CREATE INDEX IF NOT EXISTS idx_quotes_updated_at ON quotes(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_sections_quote_id ON sections(quote_id);
+        CREATE INDEX IF NOT EXISTS idx_items_section_id ON items(section_id);
+        CREATE INDEX IF NOT EXISTS idx_items_room_id ON items(room_id);
+        CREATE INDEX IF NOT EXISTS idx_rooms_section_id ON rooms(section_id);
+        CREATE INDEX IF NOT EXISTS idx_project_access_quote_id ON project_access(quote_id);
+        CREATE INDEX IF NOT EXISTS idx_project_access_user_id ON project_access(user_id);
+      `);
+
       console.log("[db] SQLite tables created, seeding defaults...");
       await seedDefaultTemplates();
       await smartMergeDefaultPriceList();
@@ -645,6 +660,18 @@ async function initializeDatabase() {
         sort_order INTEGER NOT NULL DEFAULT 0,
         UNIQUE(discipline_id, section_id)
       );
+      `);
+
+    // Performance indexes
+    await exec(`
+      CREATE INDEX IF NOT EXISTS idx_quotes_user_id ON quotes(user_id);
+      CREATE INDEX IF NOT EXISTS idx_quotes_updated_at ON quotes(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_sections_quote_id ON sections(quote_id);
+      CREATE INDEX IF NOT EXISTS idx_items_section_id ON items(section_id);
+      CREATE INDEX IF NOT EXISTS idx_items_room_id ON items(room_id);
+      CREATE INDEX IF NOT EXISTS idx_rooms_section_id ON rooms(section_id);
+      CREATE INDEX IF NOT EXISTS idx_project_access_quote_id ON project_access(quote_id);
+      CREATE INDEX IF NOT EXISTS idx_project_access_user_id ON project_access(user_id);
     `);
 
     console.log("[db] PostgreSQL tables created, seeding defaults...");
