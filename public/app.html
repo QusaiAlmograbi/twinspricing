@@ -3050,6 +3050,41 @@
         nav.appendChild(addBtn);
       }
 
+      // ملاحظة: هذه الدالة منسوخة أيضًا في routes/pdf.js. أي تعديل على منطق الترقيم هنا يجب أن يُطبّق هناك أيضًا لضمان تطابق الشاشة مع الطباعة مع PDF.
+      function buildDisplayNumberMap(sec) {
+        const map = {};
+        const code = sec.code || "";
+        const allItems = sec.items || [];
+        const rooms = sec.rooms || [];
+        let seq = 0;
+        if (sec.has_rooms) {
+          const directItems = allItems.filter((it) => !it.room_id);
+          seq++;
+          let sub = 0;
+          for (const d of directItems) {
+            sub++;
+            map[d.id] = `${code} ${seq}.${sub}`;
+          }
+          for (const room of rooms) {
+            seq++;
+            const roomItems = allItems.filter(
+              (it) => it.room_id === room.id,
+            );
+            sub = 0;
+            for (const ri of roomItems) {
+              sub++;
+              map[ri.id] = `${code} ${seq}.${sub}`;
+            }
+          }
+        } else {
+          for (const it of allItems) {
+            seq++;
+            map[it.id] = `${code} ${seq}.1`;
+          }
+        }
+        return map;
+      }
+
       function renderMainPanel() {
         const panel = document.getElementById("mainPanel");
         if (sections.length === 0) {
@@ -4157,7 +4192,23 @@
         let rows = "";
         let hasAny = false;
         sections.forEach((sec, secIdx) => {
-          (sec.items || []).forEach((it, itemIdx) => {
+          const allItems = sec.items || [];
+          let orderedItems = [];
+          if (sec.has_rooms) {
+            const directItems = allItems
+              .map((it, idx) => ({ it, idx }))
+              .filter(({ it }) => !it.room_id);
+            orderedItems.push(...directItems);
+            for (const room of sec.rooms || []) {
+              const roomItems = allItems
+                .map((it, idx) => ({ it, idx }))
+                .filter(({ it }) => Number(it.room_id) === Number(room.id));
+              orderedItems.push(...roomItems);
+            }
+          } else {
+            orderedItems = allItems.map((it, idx) => ({ it, idx }));
+          }
+          orderedItems.forEach(({ it, idx: itemIdx }) => {
             hasAny = true;
             const total =
               (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
@@ -4521,11 +4572,14 @@
         markDirty();
         renderAllItemsRows();
         renderAll();
-        const rows = document.querySelectorAll(
-          '#allItemsBody tr[data-sec="' + secIdx + '"]',
+        const newItemIdx = allItems.length - 1;
+        const newRow = document.querySelector(
+          '#allItemsBody tr[data-sec="' + secIdx + '"][data-idx="' + newItemIdx + '"]',
         );
-        const lastRow = rows[rows.length - 1];
-        if (lastRow) lastRow.querySelector(".f-name").focus();
+        if (newRow) {
+          newRow.querySelector(".f-name").focus();
+          newRow.scrollIntoView({ block: "center" });
+        }
       }
 
       function recalcItem(item) {
