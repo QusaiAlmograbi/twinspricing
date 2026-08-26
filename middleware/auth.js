@@ -1,6 +1,13 @@
 const jwt = require("jsonwebtoken");
 const db = require("../db");
 
+const userCache = new Map();
+const USER_CACHE_TTL = 60000;
+
+function invalidateUserCache(userId) {
+  userCache.delete(userId);
+}
+
 function isOwner(role) {
   return role === "owner";
 }
@@ -17,9 +24,20 @@ async function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول" });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await db
-      .prepare("SELECT id, role, status FROM users WHERE id = ?")
-      .get(decoded.id);
+
+    let user;
+    const cached = userCache.get(decoded.id);
+    if (cached && cached.expiry > Date.now()) {
+      user = cached.user;
+    } else {
+      user = await db
+        .prepare("SELECT id, role, status FROM users WHERE id = ?")
+        .get(decoded.id);
+      if (user) {
+        userCache.set(decoded.id, { user, expiry: Date.now() + USER_CACHE_TTL });
+      }
+    }
+
     if (!user) {
       return res
         .status(401)
@@ -90,4 +108,5 @@ module.exports = {
   isAdminOrOwner,
   isOwner,
   verifySectionAccess,
+  invalidateUserCache,
 };

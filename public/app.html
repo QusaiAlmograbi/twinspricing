@@ -5180,7 +5180,7 @@
           const grandTotal = afterDiscount + vat;
 
           const body = {
-            project_name: state.projectName || "\u0645\u0634\u0631\u0648\u0639 \u0628\u062f\u0648\u0646 \u0627\u0633\u0645",
+            project_name: state.projectName || "\u0645\u0634\u0631\u0648\u0639 \u0628\u062f\u0648\u0666 \u0627\u0633\u0645",
             data: state,
             total: grandTotal,
             reference_no: state.referenceNo,
@@ -5196,6 +5196,8 @@
             price_exclusions: state.priceExclusions,
           };
 
+          // --- Wave 0: Quote (sequential — generates quoteId) ---
+          const _t0Q = performance.now();
           if (currentQuoteId) {
             await api("/quotes/" + currentQuoteId, {
               method: "PUT",
@@ -5208,100 +5210,167 @@
             });
             currentQuoteId = res.id;
           }
+          const _quoteTime = performance.now() - _t0Q;
 
-          // Save sections & items
+          // --- Wave 1: Sections (parallel) ---
+          const _t0Sec = performance.now();
+          const secResults = await Promise.allSettled(
+            sections.map(async (sec) => {
+              if (!sec.id && currentQuoteId) {
+                const res = await api(`/quotes/${currentQuoteId}/sections`, {
+                  method: "POST",
+                  body: JSON.stringify({
+                    code: sec.code,
+                    name: sec.name,
+                    sort_order: sec.sort_order,
+                  }),
+                });
+                sec.id = res.id;
+              }
+              if (sec.id) {
+                await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    code: sec.code,
+                    name: sec.name,
+                    sort_order: sec.sort_order,
+                    has_rooms: sec.has_rooms ? 1 : 0,
+                  }),
+                });
+              }
+              sec._fromServer = true;
+              return { label: sec.name || sec.code };
+            })
+          );
+          const _secTime = performance.now() - _t0Sec;
+
+          // --- Wave 2: Rooms (parallel, across all sections) ---
+          const _t0Room = performance.now();
+          const roomPromises = [];
           for (const sec of sections) {
-            if (!sec.id && currentQuoteId) {
-              const res = await api(`/quotes/${currentQuoteId}/sections`, {
-                method: "POST",
-                body: JSON.stringify({
-                  code: sec.code,
-                  name: sec.name,
-                  sort_order: sec.sort_order,
-                }),
-              });
-              sec.id = res.id;
-            }
-            // Save has_rooms flag via section PUT
-            if (sec.id) {
-              await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
-                method: "PUT",
-                body: JSON.stringify({
-                  code: sec.code,
-                  name: sec.name,
-                  sort_order: sec.sort_order,
-                  has_rooms: sec.has_rooms ? 1 : 0,
-                }),
-              });
-            }
-            sec._fromServer = true;
-            // Save rooms
             if (sec.has_rooms && sec.id) {
               for (const room of sec.rooms || []) {
-                if (!room.id) {
-                  const res = await api(`/sections/${sec.id}/rooms`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                      name: room.name,
-                      sort_order: room.sort_order,
-                    }),
-                  });
-                  room.id = res.id;
-                } else if (room.id < 0) {
-                  const oldId = room.id;
-                  const res = await api(`/sections/${sec.id}/rooms`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                      name: room.name,
-                      sort_order: room.sort_order,
-                    }),
-                  });
-                  room.id = res.id;
-                  for (const item of sec.items) {
-                    if (item.room_id === oldId) item.room_id = res.id;
+                roomPromises.push((async () => {
+                  let remap = null;
+                  if (!room.id) {
+                    const res = await api(`/sections/${sec.id}/rooms`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        name: room.name,
+                        sort_order: room.sort_order,
+                      }),
+                    });
+                    room.id = res.id;
+                  } else if (room.id < 0) {
+                    const oldId = room.id;
+                    const res = await api(`/sections/${sec.id}/rooms`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        name: room.name,
+                        sort_order: room.sort_order,
+                      }),
+                    });
+                    room.id = res.id;
+                    remap = { oldId, newId: res.id, sec };
+                  } else {
+                    await api(`/sections/${sec.id}/rooms/${room.id}`, {
+                      method: "PUT",
+                      body: JSON.stringify({
+                        name: room.name,
+                        sort_order: room.sort_order,
+                      }),
+                    });
                   }
-                } else {
-                  await api(`/sections/${sec.id}/rooms/${room.id}`, {
-                    method: "PUT",
-                    body: JSON.stringify({
-                      name: room.name,
-                      sort_order: room.sort_order,
-                    }),
-                  });
-                }
-                room._fromServer = true;
+                  room._fromServer = true;
+                  return { label: room.name, remap };
+                })());
               }
-            }
-            for (const item of sec.items) {
-              const itemPayload = {
-                ...item,
-                category_id: item.category_id || null,
-                room_id: item.room_id || null,
-              };
-              if (!item.id && sec.id) {
-                const res = await api(`/sections/${sec.id}/items`, {
-                  method: "POST",
-                  body: JSON.stringify(itemPayload),
-                });
-                item.id = res.id;
-              } else if (item.id && sec.id) {
-                await api(`/sections/${sec.id}/items/${item.id}`, {
-                  method: "PUT",
-                  body: JSON.stringify(itemPayload),
-                });
-              }
-              item._fromServer = true;
             }
           }
+          const roomResults = await Promise.allSettled(roomPromises);
+          for (const r of roomResults) {
+            if (r.status === "fulfilled" && r.value.remap) {
+              const { oldId, newId, sec } = r.value.remap;
+              for (const item of sec.items) {
+                if (item.room_id === oldId) item.room_id = newId;
+              }
+            }
+          }
+          const _roomTime = performance.now() - _t0Room;
 
-          document.getElementById("pageTitle").textContent =
-            state.projectName || "\u0639\u0631\u0636 \u0633\u0639\u0631";
-          clearDraft();
-          hasUnsavedWork = false;
-          // Sync auto-save state so it doesn't re-save unchanged data
-          lastAutoSaveJson = JSON.stringify({ state, sections });
-          showAutoSaveIndicator("saved");
-          showToast("\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0639\u0631\u0636");
+          // --- Wave 3: Items (parallel, across all sections) ---
+          const _t0Item = performance.now();
+          const itemPromises = [];
+          for (const sec of sections) {
+            if (!sec.id) continue;
+            for (const item of sec.items) {
+              itemPromises.push((async () => {
+                const itemPayload = {
+                  ...item,
+                  category_id: item.category_id || null,
+                  room_id: item.room_id || null,
+                };
+                if (!item.id) {
+                  const res = await api(`/sections/${sec.id}/items`, {
+                    method: "POST",
+                    body: JSON.stringify(itemPayload),
+                  });
+                  item.id = res.id;
+                } else {
+                  await api(`/sections/${sec.id}/items/${item.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify(itemPayload),
+                  });
+                }
+                item._fromServer = true;
+                return { label: item.name || item.item_code || `#${item.id}` };
+              })());
+            }
+          }
+          const itemResults = await Promise.allSettled(itemPromises);
+          const _itemTime = performance.now() - _t0Item;
+
+          // --- Collect failures from all waves ---
+          const allFailed = [
+            ...secResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "section", ...r.reason })),
+            ...roomResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "room", ...r.reason })),
+            ...itemResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "item", ...r.reason })),
+          ];
+          const allOk = allFailed.length === 0;
+
+          const _totalTime = performance.now() - _t0Q;
+          console.log(
+            `[save] Quote:${_quoteTime.toFixed(0)}ms | Sec:${_secTime.toFixed(0)}ms(${secResults.length}) | Room:${_roomTime.toFixed(0)}ms(${roomResults.length}) | Item:${_itemTime.toFixed(0)}ms(${itemResults.length}) | Total:${_totalTime.toFixed(0)}ms | Failed:${allFailed.length}`
+          );
+
+          if (allOk) {
+            document.getElementById("pageTitle").textContent =
+              state.projectName || "\u0639\u0631\u0636 \u0633\u0639\u0631";
+            clearDraft();
+            hasUnsavedWork = false;
+            lastAutoSaveJson = JSON.stringify({ state, sections });
+            showAutoSaveIndicator("saved");
+            showToast("\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0639\u0631\u0636");
+          } else {
+            const saved =
+              (secResults.length - secResults.filter(r => r.status === "rejected").length) +
+              (roomResults.length - roomResults.filter(r => r.status === "rejected").length) +
+              (itemResults.length - itemResults.filter(r => r.status === "rejected").length);
+            const total = secResults.length + roomResults.length + itemResults.length;
+            const names = allFailed.map(f => f.label || f.wave).join(", ");
+            showToast(
+              `\u062a\u0645 \u062d\u0641\u0638 ${saved} \u0645\u0646 ${total} \u060c \u0641\u0634\u0644 \u062d\u0641\u0638: ${names}`
+            );
+            // Mark failed items so retry only resends them
+            for (const sec of sections) {
+              for (const item of (sec.items || [])) {
+                if (!item._fromServer) item._saveFailed = true;
+              }
+              for (const room of (sec.rooms || [])) {
+                if (!room._fromServer) room._saveFailed = true;
+              }
+            }
+          }
           loadSavedList();
           renderAll();
         } catch (e) {
