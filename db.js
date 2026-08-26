@@ -1310,3 +1310,4 @@ module.exports.initializeDatabase = initializeDatabase;
 module.exports.ensureSeeded = ensureSeeded;
 module.exports.seedDefaultPriceList = seedDefaultPriceList;
 module.exports.smartMergeDefaultPriceList = smartMergeDefaultPriceList;
+module.exports.getPool = getPool;

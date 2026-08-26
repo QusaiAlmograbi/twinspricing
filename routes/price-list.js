@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { getPool } = require("../db");
 const { smartMergeDefaultPriceList } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
@@ -334,9 +335,19 @@ router.delete("/:categoryId", asyncHandler(async (req, res) => {
   }
 
   // Delete items manually first (don't rely solely on CASCADE)
-  await db.prepare("DELETE FROM price_items WHERE category_id = ?").run(categoryId);
-  // Delete the category itself
-  await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM price_items WHERE category_id = $1", [categoryId]);
+    await client.query("DELETE FROM price_categories WHERE id = $1", [categoryId]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
   res.json({ ok: true, deletedCategoryId: categoryId });
 }));
 

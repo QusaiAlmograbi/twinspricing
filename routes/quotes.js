@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { getPool } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { quoteRules, handleValidation } = require("../utils/validate");
@@ -278,24 +279,29 @@ router.delete("/:id", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role) && q.user_id !== req.user.id) {
     return res.status(403).json({ error: "ما عندك صلاحية لحذف هذا العرض" });
   }
-  // Cascade: delete items in sections of this quote
-  await db
-    .prepare(
-      "DELETE FROM items WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
-    )
-    .run(req.params.id);
-  await db
-    .prepare(
-      "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
-    )
-    .run(req.params.id);
-  await db
-    .prepare("DELETE FROM sections WHERE quote_id = ?")
-    .run(req.params.id);
-  await db
-    .prepare("DELETE FROM project_access WHERE quote_id = ?")
-    .run(req.params.id);
-  await db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
+  const quoteId = req.params.id;
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      "DELETE FROM items WHERE section_id IN (SELECT id FROM sections WHERE quote_id = $1)",
+      [quoteId]
+    );
+    await client.query(
+      "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = $1)",
+      [quoteId]
+    );
+    await client.query("DELETE FROM sections WHERE quote_id = $1", [quoteId]);
+    await client.query("DELETE FROM project_access WHERE quote_id = $1", [quoteId]);
+    await client.query("DELETE FROM quotes WHERE id = $1", [quoteId]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
   res.json({ ok: true });
 }));
 

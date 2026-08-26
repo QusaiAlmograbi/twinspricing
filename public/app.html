@@ -2634,11 +2634,11 @@
           });
           let discount =
             state.discountType === "pct"
-              ? (subtotal * Number(state.discountVal)) / 100
+              ? Math.round((subtotal * Number(state.discountVal)) / 100 * 100) / 100
               : Number(state.discountVal);
           const afterDiscount = Math.max(subtotal - discount, 0);
-          const vat = (afterDiscount * Number(state.taxPct)) / 100;
-          const grandTotal = afterDiscount + vat;
+          const vat = Math.round((afterDiscount * Number(state.taxPct)) / 100 * 100) / 100;
+          const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
 
           const body = {
             project_name: state.projectName || "مشروع بدون اسم",
@@ -2880,10 +2880,12 @@
         return n.toLocaleString("en-US", opts);
       }
       function escapeAttr(s) {
-        return (s || "")
+        return String(s)
           .replace(/&/g, "&amp;")
           .replace(/"/g, "&quot;")
-          .replace(/</g, "&lt;");
+          .replace(/'/g, "&#39;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
       }
 
       function compressImage(file) {
@@ -4587,7 +4589,7 @@
       function recalcItem(item) {
         const base = Number(item.base_cost) || 0;
         const pct = Number(item.overhead_pct) || 0;
-        item.selling_price = base * (1 + pct / 100);
+        item.selling_price = Math.round(base * (1 + pct / 100) * 100) / 100;
       }
 
       function renderTotals() {
@@ -4620,10 +4622,10 @@
         const discountVal = Number(state.discountVal) || 0;
         const taxPct = Number(state.taxPct) || 16;
         let discount =
-          discountType === "pct" ? (subtotal * discountVal) / 100 : discountVal;
+          discountType === "pct" ? Math.round((subtotal * discountVal) / 100 * 100) / 100 : discountVal;
         const afterDiscount = Math.max(subtotal - discount, 0);
-        const vat = (afterDiscount * taxPct) / 100;
-        const grandTotal = afterDiscount + vat;
+        const vat = Math.round((afterDiscount * taxPct) / 100 * 100) / 100;
+        const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
         const profitMargin =
           estimatedCost > 0
             ? ((grandTotal / estimatedCost - 1) * 100).toFixed(1)
@@ -5229,11 +5231,11 @@
           });
           let discount =
             state.discountType === "pct"
-              ? (subtotal * Number(state.discountVal)) / 100
+              ? Math.round((subtotal * Number(state.discountVal)) / 100 * 100) / 100
               : Number(state.discountVal);
           const afterDiscount = Math.max(subtotal - discount, 0);
-          const vat = (afterDiscount * Number(state.taxPct)) / 100;
-          const grandTotal = afterDiscount + vat;
+          const vat = Math.round((afterDiscount * Number(state.taxPct)) / 100 * 100) / 100;
+          const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
 
           const body = {
             project_name: state.projectName || "\u0645\u0634\u0631\u0648\u0639 \u0628\u062f\u0648\u0666 \u0627\u0633\u0645",
@@ -5735,10 +5737,10 @@
         const discountVal = Number(state.discountVal) || 0;
         const taxPct = Number(state.taxPct) || 16;
         let discount =
-          discountType === "pct" ? (subtotal * discountVal) / 100 : discountVal;
+          discountType === "pct" ? Math.round((subtotal * discountVal) / 100 * 100) / 100 : discountVal;
         const afterDiscount = Math.max(subtotal - discount, 0);
-        const vat = (afterDiscount * taxPct) / 100;
-        const grandTotal = afterDiscount + vat;
+        const vat = Math.round((afterDiscount * taxPct) / 100 * 100) / 100;
+        const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
 
         const today = new Date();
         const dateStr = today.toLocaleDateString("en-GB"); // DD/MM/YYYY
@@ -5797,11 +5799,11 @@
               (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
             const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td>${displayMap[it.id] || it.item_code || ""}</td>
-              <td>${secNameEn.substring(0, 12)}</td>
+              <td>${escapeAttr(displayMap[it.id] || it.item_code || "")}</td>
+              <td>${escapeAttr(secNameEn.substring(0, 12))}</td>
               <td>${escapeAttr(it.description || it.name || "")}</td>
-              <td>${it.unit || ""}</td>
-              <td>${it.qty || 0}</td>
+              <td>${escapeAttr(it.unit || "")}</td>
+              <td>${escapeAttr(String(it.qty || 0))}</td>
               <td>${fmt(it.selling_price)}</td>
               <td>${fmt(lineTotal)}</td>
               <td>${escapeAttr(it.notes || "")}</td>
@@ -5816,7 +5818,7 @@
           if (showHeader) {
             const headerRow = document.createElement("tr");
             headerRow.className = "pt-sec-header pt-room-header";
-            headerRow.innerHTML = `<td colspan="8">${label}</td>`;
+            headerRow.innerHTML = `<td colspan="8">${escapeAttr(label)}</td>`;
             tbody.appendChild(headerRow);
           }
 
@@ -5829,7 +5831,7 @@
           );
           const subRow = document.createElement("tr");
           subRow.className = "pt-sec-subtotal pt-room-subtotal";
-          subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${label}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(sub)} JOD</td>`;
+          subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(label)}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(sub)} JOD</td>`;
           tbody.appendChild(subRow);
         }
 
@@ -5838,7 +5840,7 @@
           // Section header row
           const secHeader = document.createElement("tr");
           secHeader.className = "pt-sec-header";
-          secHeader.innerHTML = `<td colspan="8">القسم ${sec.code} : ${sectionLabel(sec.name)}</td>`;
+          secHeader.innerHTML = `<td colspan="8">القسم ${escapeAttr(sec.code)} : ${escapeAttr(sectionLabel(sec.name))}</td>`;
           tbody.appendChild(secHeader);
 
           const allItems = sec.items || [];
@@ -5864,7 +5866,7 @@
           if (secSub && secSub.subtotal > 0) {
             const subRow = document.createElement("tr");
             subRow.className = "pt-sec-subtotal";
-            subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${sectionLabel(sec.name)}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(secSub.subtotal)} JOD</td>`;
+            subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(sectionLabel(sec.name))}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(secSub.subtotal)} JOD</td>`;
             tbody.appendChild(subRow);
           }
         }
@@ -5908,7 +5910,7 @@
         for (const term of terms) {
           const amount = (grandTotal * (term.percentage || 0)) / 100;
           const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${term.percentage}%</td><td>${term.trigger_description || ""}</td><td>${fmt(amount)} JOD</td>`;
+          tr.innerHTML = `<td>${term.percentage}%</td><td>${escapeAttr(term.trigger_description || "")}</td><td>${fmt(amount)} JOD</td>`;
           payBody.appendChild(tr);
         }
 
@@ -5918,7 +5920,7 @@
           "لا تشمل الأسعار: المطبخ، الحمامات، التكييف، الأجهزة الكهربائية. السعر النهائي يُؤكّد بعد القياس الفعلي";
         document.getElementById("pt-details").innerHTML = `
           <p>• مدة التنفيذ المتوقعة: ${state.executionDays || 45} يوم عمل من تاريخ توقيع العقد ودفع الدفعة الأولى.</p>
-          <p>• ${exclusions}</p>
+          <p>• ${escapeAttr(exclusions)}</p>
           <p>• صلاحية العرض: ${state.validityDays || 30} يوماً من تاريخ الإصدار.</p>
         `;
 

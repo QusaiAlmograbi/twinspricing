@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { getPool } = require("../db");
 const { requireAuth, verifySectionAccess } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -62,10 +63,20 @@ router.delete("/:sectionId/rooms/:id", asyncHandler(async (req, res) => {
   if (!verifySectionAccess(sectionId, req.user.id, req.user.role)) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
   }
-  await db.prepare("DELETE FROM items WHERE room_id = ?").run(req.params.id);
-  await db
-    .prepare("DELETE FROM rooms WHERE id = ? AND section_id = ?")
-    .run(req.params.id, sectionId);
+  const roomId = req.params.id;
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM items WHERE room_id = $1", [roomId]);
+    await client.query("DELETE FROM rooms WHERE id = $1 AND section_id = $2", [roomId, sectionId]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
   res.json({ ok: true });
 }));
 
