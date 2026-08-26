@@ -42,6 +42,14 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
   const overheadPct = Number(overhead_pct) || 35;
   const sellingPrice = baseCost * (1 + overheadPct / 100);
 
+  const hasData =
+    (name || "").trim() !== "" ||
+    sellingPrice > 0 ||
+    baseCost > 0;
+  if (!hasData) {
+    return res.status(400).json({ error: "البند يجب أن يحتوي على اسم أو سعر" });
+  }
+
   const maxOrder = await db
     .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM items WHERE section_id = ?")
     .get(sectionId);
