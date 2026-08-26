@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { getPool } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -77,11 +78,21 @@ router.delete("/:quoteId/sections/:id", asyncHandler(async (req, res) => {
   if (!verifyQuoteAccess(quoteId, req.user.id, req.user.role)) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
-  await db.prepare("DELETE FROM items WHERE section_id = ?").run(req.params.id);
-  await db.prepare("DELETE FROM rooms WHERE section_id = ?").run(req.params.id);
-  await db
-    .prepare("DELETE FROM sections WHERE id = ? AND quote_id = ?")
-    .run(req.params.id, quoteId);
+  const sectionId = req.params.id;
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM items WHERE section_id = $1", [sectionId]);
+    await client.query("DELETE FROM rooms WHERE section_id = $1", [sectionId]);
+    await client.query("DELETE FROM sections WHERE id = $1 AND quote_id = $2", [sectionId, quoteId]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
   res.json({ ok: true });
 }));
 
