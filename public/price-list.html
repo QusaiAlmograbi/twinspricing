@@ -338,6 +338,7 @@
             <div id="unlinkedWrap" style="margin-top:16px;border-top:1px solid var(--pewter);padding-top:14px;">
               <h2>جميع الأقسام <span id="unlinkedCount" style="font-size:12px;color:var(--ash);font-weight:400;"></span></h2>
               <div class="cat-list" id="unlinkedCatList"></div>
+              <button class="add-cat-btn" id="addUnlinkedCatBtn">+ قسم جديد</button>
             </div>
           </aside>
           <main class="main-panel" id="mainPanel">
@@ -659,6 +660,7 @@
               ${isOwnerOrAdmin ? `
               <div class="cat-actions">
                 <button data-action="link" title="إضافة لتصنيف">↗</button>
+                <button class="del" data-action="delete" title="حذف القسم">✕</button>
               </div>` : ''}
             </div>
           </div>
@@ -695,6 +697,22 @@
               } catch (err) {
                 showToast(err.message || "صار في خطأ");
               }
+            }
+          };
+          const delBtn = row.querySelector("[data-action='delete']");
+          if (delBtn) delBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const cat = unlinkedCategories.find(c => Number(c.id) === Number(id));
+            if (!cat) return;
+            if (!confirm(`هل أنت متأكد من حذف القسم "${cat.name}"؟\n\nسيتم حذف القسم وجميع بنوده نهائياً.`)) return;
+            try {
+              await api(`/price-list/${cat.id}`, { method: "DELETE" });
+              if (activeCategoryId === cat.id) { activeCategoryId = null; items = []; renderMain(); }
+              await loadUnlinkedCategories();
+              await loadDisciplines();
+              showToast("تم حذف القسم");
+            } catch (err) {
+              showToast(err.message || "صار في خطأ");
             }
           };
         });
@@ -919,6 +937,7 @@
 
       document.getElementById("addDiscBtn").onclick = () => openDisciplineModal();
       document.getElementById("addCatBtn").onclick = () => openCatModal();
+      document.getElementById("addUnlinkedCatBtn").onclick = () => openCatModal();
 
       // ---- Init ----
       (async function init() {

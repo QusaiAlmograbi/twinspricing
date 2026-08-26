@@ -1,6 +1,5 @@
 const express = require("express");
 const db = require("../db");
-const { getPool } = require("../db");
 const { smartMergeDefaultPriceList } = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
@@ -334,20 +333,8 @@ router.delete("/:categoryId", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "القسم غير موجود" });
   }
 
-  // Delete items manually first (don't rely solely on CASCADE)
-  const pool = getPool();
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query("DELETE FROM price_items WHERE category_id = $1", [categoryId]);
-    await client.query("DELETE FROM price_categories WHERE id = $1", [categoryId]);
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  await db.prepare("DELETE FROM price_items WHERE category_id = ?").run(categoryId);
+  await db.prepare("DELETE FROM price_categories WHERE id = ?").run(categoryId);
   res.json({ ok: true, deletedCategoryId: categoryId });
 }));
 
