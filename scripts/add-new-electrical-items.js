@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+/**
+ * Migration: Add new electrical items with ELC-XXX codes
+ * Usage: node scripts/add-new-electrical-items.js
+ */
+const db = require("../db");
+
+async function migrate() {
+  console.log("[migration] Adding new electrical items with ELC-XXX codes...");
+
+  // Find the electrical category
+  const category = await db.prepare("SELECT id FROM price_categories WHERE name = 'الأعمال الكهربائية'").get();
+  if (!category) {
+    console.error("[migration] Category 'الأعمال الكهربائية' not found!");
+    process.exit(1);
+  }
+  const categoryId = category.id;
+
+  const items = [
+    { code: "ELC-001", name: "نقطة ابريز كاملة", unit: "وحدة", selling_price: 36.00 },
+    { code: "ELC-002", name: "نقل نقطة ابريز", unit: "وحدة", selling_price: 18.00 },
+    { code: "ELC-003", name: "نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { code: "ELC-004", name: "نقل نقطة اباجور كاملة", unit: "وحدة", selling_price: 48.00 },
+    { code: "ELC-005", name: "نقطة سبوت لايت", unit: "وحدة", selling_price: 24.00 },
+    { code: "ELC-006", name: "مفتاح انارة", unit: "وحدة", selling_price: 10.80 },
+    { code: "ELC-007", name: "نقطة ماجنتيك لايت", unit: "وحدة", selling_price: 26.40 },
+    { code: "ELC-008", name: "نقطة انارة مخفية", unit: "وحدة", selling_price: 30.00 },
+    { code: "ELC-009", name: "نقطة مكيف 1 طن", unit: "وحدة", selling_price: 96.00 },
+    { code: "ELC-010", name: "نقطة مكيف 1.5 طن", unit: "وحدة", selling_price: 180.00 },
+    { code: "ELC-011", name: "نقل حساس غاز مع سلك ومواسير", unit: "وحدة", selling_price: 42.00 },
+    { code: "ELC-012", name: "نقل ثيرموستات مع سلك ومواسير", unit: "وحدة", selling_price: 48.00 },
+    { code: "ELC-013", name: "نقطة ثيرموستات تكييف", unit: "وحدة", selling_price: 72.00 },
+    { code: "ELC-014", name: "نقطة انارة جدارية", unit: "وحدة", selling_price: 24.00 },
+    { code: "ELC-015", name: "نقطة انارة ثريا", unit: "وحدة", selling_price: 30.00 },
+    { code: "ELC-016", name: "تركيب ليد بروفايل لايت", unit: "م.ط", selling_price: 6.00 },
+    { code: "ELC-017", name: "نقطة للشاشات", unit: "وحدة", selling_price: 78.00 },
+    { code: "ELC-018", name: "نقطة مع كيبل للشاشات", unit: "وحدة", selling_price: 30.00 },
+    { code: "ELC-019", name: "تجميع لوحات وتوزيع أحمال", unit: "وحدة", selling_price: 144.00 },
+    { code: "ELC-020", name: "تغيير أسلاك أباريز وتوصيل مواسير أرضية", unit: "وحدة", selling_price: 30.00 },
+    { code: "ELC-021", name: "توريد وتركيب سكة إنارة تراك ماجنتيك", unit: "م.ط", selling_price: 12.00 },
+    { code: "ELC-022", name: "توريد وتركيب محول إنارة تراك ماجنتيك", unit: "عدد", selling_price: 19.20 },
+    { code: "ELC-023", name: "تأسيس وتمديد 8 نقاط كاميرات وتوصيلهم لـ 3 شاشات", unit: "عدد", selling_price: 600.00 },
+  ];
+
+  const overheadPct = 35;
+  let inserted = 0;
+
+  for (const item of items) {
+    const sp = item.selling_price;
+    const baseCost = sp / (1 + overheadPct / 100);
+    try {
+      await db.prepare(
+        `INSERT INTO price_items (category_id, item_code, name, description, unit, base_cost, overhead_pct, selling_price, source)
+         VALUES (?, ?, ?, '', ?, ?, ?, ?, 'default')`
+      ).run(categoryId, item.code, item.name, item.unit, Math.round(baseCost * 1000) / 1000, overheadPct, sp);
+      inserted++;
+    } catch (err) {
+      console.error(`[migration] FAILED to insert item "${item.code} ${item.name}":`, err.message || err);
+    }
+  }
+
+  console.log(`[migration] Done: ${inserted}/${items.length} items inserted.`);
+}
+
+migrate().then(() => process.exit(0)).catch(err => {
+  console.error("[migration] Error:", err);
+  process.exit(1);
+});
