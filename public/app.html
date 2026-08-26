@@ -2776,6 +2776,20 @@
 
             // Items
             for (const item of sec.items) {
+              const itemHasData =
+                (item.name || "").trim() !== "" ||
+                (Number(item.selling_price) || 0) > 0 ||
+                (Number(item.base_cost) || 0) > 0;
+              if (!itemHasData) {
+                if (item.id && sec.id) {
+                  apiWithRetry(
+                    "/sections/" + sec.id + "/items/" + item.id,
+                    { method: "DELETE" },
+                    false
+                  ).catch(() => {});
+                }
+                continue;
+              }
               try {
                 const itemPayload = {
                   ...item,
@@ -2809,6 +2823,19 @@
                     err.message
                 );
               }
+            }
+          }
+
+          // Remove empty items from sections after save
+          for (const sec of sections) {
+            if (sec.items) {
+              sec.items = sec.items.filter((it) => {
+                const hasData =
+                  (it.name || "").trim() !== "" ||
+                  (Number(it.selling_price) || 0) > 0 ||
+                  (Number(it.base_cost) || 0) > 0;
+                return hasData || it._fromServer;
+              });
             }
           }
 
@@ -3739,15 +3766,21 @@
             room_id: activeRoom ? activeRoom.id : null,
           };
           if (currentQuoteId && sec.id) {
-            try {
-              const res = await api(`/sections/${sec.id}/items`, {
-                method: "POST",
-                body: JSON.stringify(newItem),
-              });
-              newItem.id = res.id;
-              newItem.selling_price = res.selling_price;
-            } catch (e) {
-              showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+            const hasData =
+              (newItem.name || "").trim() !== "" ||
+              (Number(newItem.selling_price) || 0) > 0 ||
+              (Number(newItem.base_cost) || 0) > 0;
+            if (hasData) {
+              try {
+                const res = await api(`/sections/${sec.id}/items`, {
+                  method: "POST",
+                  body: JSON.stringify(newItem),
+                });
+                newItem.id = res.id;
+                newItem.selling_price = res.selling_price;
+              } catch (e) {
+                showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+              }
             }
           }
           allItems.push(newItem);
@@ -3780,18 +3813,6 @@
               : null,
               room_id: activeRoom ? activeRoom.id : null,
             };
-            if (currentQuoteId && sec.id) {
-              try {
-                const res = await api(`/sections/${sec.id}/items`, {
-                  method: "POST",
-                  body: JSON.stringify(newItem),
-                });
-                newItem.id = res.id;
-                newItem.selling_price = res.selling_price;
-              } catch (e) {
-                showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
-              }
-            }
             allItems.push(newItem);
             markDirty();
             renderAll();
@@ -4559,17 +4580,23 @@
           room_id: room ? room.id : null,
         };
         if (currentQuoteId && sec.id) {
-          try {
-            const res = await api(`/sections/${sec.id}/items`, {
-              method: "POST",
-              body: JSON.stringify(newItem),
-            });
-            newItem.id = res.id;
-            newItem.selling_price = res.selling_price;
-          } catch (e) {
-            showToast(
-              "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
-            );
+          const hasData =
+            (newItem.name || "").trim() !== "" ||
+            (Number(newItem.selling_price) || 0) > 0 ||
+            (Number(newItem.base_cost) || 0) > 0;
+          if (hasData) {
+            try {
+              const res = await api(`/sections/${sec.id}/items`, {
+                method: "POST",
+                body: JSON.stringify(newItem),
+              });
+              newItem.id = res.id;
+              newItem.selling_price = res.selling_price;
+            } catch (e) {
+              showToast(
+                "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
+              );
+            }
           }
         }
         allItems.push(newItem);
@@ -5116,7 +5143,7 @@
         }
       }
 
-      function fillItemFromCatalog(idx, catItem) {
+      async function fillItemFromCatalog(idx, catItem) {
         if (!sections[activeSectionIdx]) return;
         const sec = sections[activeSectionIdx];
         const item = sec.items[idx];
@@ -5133,6 +5160,28 @@
         if (!item.category_id && pickerActiveCatId) {
           item.category_id = pickerActiveCatId;
         }
+        if (currentQuoteId && sec.id && !item.id) {
+          try {
+            const res = await api(`/sections/${sec.id}/items`, {
+              method: "POST",
+              body: JSON.stringify(item),
+            });
+            item.id = res.id;
+            item.selling_price = res.selling_price;
+          } catch (e) {
+            showToast("تعذر الحفظ على السيرفر: " + e.message);
+          }
+        } else if (currentQuoteId && sec.id && item.id) {
+          try {
+            await api(`/sections/${sec.id}/items/${item.id}`, {
+              method: "PUT",
+              body: JSON.stringify(item),
+            });
+          } catch (e) {
+            showToast("تعذر تحديث البند على السيرفر: " + e.message);
+          }
+        }
+        markDirty();
         renderAll();
         showToast("تم تعبئة البند من الكتالوج");
       }
@@ -5187,15 +5236,15 @@
           if (!sec.items) sec.items = [];
           if (!sec.rooms) sec.rooms = [];
           sec.items = sec.items.filter((it) => {
-            if (it._fromServer) return true;
             const hasData =
               (it.name || "").trim() !== "" ||
-              (it.selling_price || 0) > 0 ||
-              (it.base_cost || 0) > 0;
+              (Number(it.selling_price) || 0) > 0 ||
+              (Number(it.base_cost) || 0) > 0;
             if (!hasData && it.id && sec.id) {
               api(`/sections/${sec.id}/items/${it.id}`, {
                 method: "DELETE",
               }).catch(() => {});
+              return false;
             }
             return hasData;
           });
@@ -5362,6 +5411,18 @@
           for (const sec of sections) {
             if (!sec.id) continue;
             for (const item of sec.items) {
+              const itemHasData =
+                (item.name || "").trim() !== "" ||
+                (Number(item.selling_price) || 0) > 0 ||
+                (Number(item.base_cost) || 0) > 0;
+              if (!itemHasData) {
+                if (item.id) {
+                  api(`/sections/${sec.id}/items/${item.id}`, {
+                    method: "DELETE",
+                  }).catch(() => {});
+                }
+                continue;
+              }
               itemPromises.push((async () => {
                 const itemPayload = {
                   ...item,
