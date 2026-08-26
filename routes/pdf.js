@@ -325,7 +325,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   y = drawTableHeader(y);
 
   // ── Items ──
-  function renderItemRow(item, sectionLabelEn, atY, rowIndex) {
+  function renderItemRow(item, sectionLabelEn, atY, rowIndex, displayMap = {}) {
     if (atY > 720) {
       doc.addPage();
       atY = 42;
@@ -338,7 +338,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     const notesText = displayText(item.notes || "");
     const secLabel = displayText(sectionLabelEn);
     const itemUnit = displayText(item.unit || "");
-    const itemCode = String(item.item_code || "");
+    const itemCode = displayMap[item.id] || String(item.item_code || "");
 
     const values = [
       itemCode,
@@ -406,21 +406,55 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     return atY + 17;
   }
 
+  // ملاحظة: هذه الدالة منسوخة أيضًا في public/app.html. أي تعديل على منطق الترقيم هنا يجب أن يُطبّق هناك أيضًا لضمان تطابق الشاشة مع الطباعة مع PDF.
+  function buildDisplayNumberMap(sec) {
+    const map = {};
+    const code = sec.code || "";
+    const allItems = sec.items || [];
+    const rooms = sec.rooms || [];
+    let seq = 0;
+    if (sec.has_rooms) {
+      const directItems = allItems.filter((it) => !it.room_id);
+      seq++;
+      let sub = 0;
+      for (const d of directItems) {
+        sub++;
+        map[d.id] = `${code} ${seq}.${sub}`;
+      }
+      for (const room of rooms) {
+        seq++;
+        const roomItems = allItems.filter((it) => it.room_id === room.id);
+        sub = 0;
+        for (const ri of roomItems) {
+          sub++;
+          map[ri.id] = `${code} ${seq}.${sub}`;
+        }
+      }
+    } else {
+      for (const it of allItems) {
+        seq++;
+        map[it.id] = `${code} ${seq}.1`;
+      }
+    }
+    return map;
+  }
+
   for (const sec of sections) {
     y = renderSectionHeader(sec, y);
     const secNameEn = getSectionNameEn(sec.name);
     let rowIndex = 0;
+    const displayMap = buildDisplayNumberMap(sec);
 
     if (!sec.has_rooms) {
       const allItems = [...(sec.items || [])];
       for (const item of allItems) {
-        y = renderItemRow(item, secNameEn, y, rowIndex++);
+        y = renderItemRow(item, secNameEn, y, rowIndex++, displayMap);
       }
     } else {
       const directItems = (sec.items || []).filter((it) => !it.room_id);
       if (directItems.length > 0) {
         for (const item of directItems) {
-          y = renderItemRow(item, secNameEn, y, rowIndex++);
+          y = renderItemRow(item, secNameEn, y, rowIndex++, displayMap);
         }
       }
       for (const room of sec.rooms || []) {
@@ -428,7 +462,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
         if (roomItems.length > 0) {
           y = renderRoomHeader(room.name, y);
           for (const item of roomItems) {
-            y = renderItemRow(item, secNameEn, y, rowIndex++);
+            y = renderItemRow(item, secNameEn, y, rowIndex++, displayMap);
           }
         }
       }

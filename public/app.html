@@ -3236,6 +3236,7 @@
           </div>`;
         }
 
+        const displayMap = buildDisplayNumberMap(sec);
         let rows = "";
         items.forEach((it, itemIdx) => {
           const origIdx = allItems.indexOf(it);
@@ -3253,7 +3254,7 @@
             : "";
 
           rows += `<tr data-idx="${origIdx}">
-            <td class="col-code">${escapeAttr(it.item_code)}</td>
+            <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
             <td class="col-name" style="position:relative"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند" autocomplete="off" /><div class="fname-autocomplete" id="fnameAc_${origIdx}"></div></td>
             <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
             ${imgCell}
@@ -4193,6 +4194,7 @@
         let hasAny = false;
         sections.forEach((sec, secIdx) => {
           const allItems = sec.items || [];
+          const displayMap = buildDisplayNumberMap(sec);
           let orderedItems = [];
           if (sec.has_rooms) {
             const directItems = allItems
@@ -4231,7 +4233,7 @@
               : "";
             rows += `<tr data-sec="${secIdx}" data-idx="${itemIdx}">
               <td class="col-origin"><span class="origin-sec">${escapeAttr(sec.name)}</span>${roomName ? ` <span class="origin-sep">—</span> <span class="origin-room${roomName === "مباشر" ? " origin-direct" : ""}">${escapeAttr(roomName)}</span>` : ""}</td>
-              <td class="col-code">${escapeAttr(it.item_code)}</td>
+              <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
               <td class="col-name" style="position:relative"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند" autocomplete="off" /><div class="fname-autocomplete" id="fnameAc_S${secIdx}_I${itemIdx}"></div></td>
               <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
               ${imgCell}
@@ -5789,13 +5791,13 @@
         tbody.appendChild(thRow);
 
         // Render plain item rows (no room block wrapper)
-        function renderItemRows(items, secNameEn) {
+        function renderItemRows(items, secNameEn, displayMap = {}) {
           for (const it of items) {
             const lineTotal =
               (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
             const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td>${it.item_code || ""}</td>
+              <td>${displayMap[it.id] || it.item_code || ""}</td>
               <td>${secNameEn.substring(0, 12)}</td>
               <td>${escapeAttr(it.description || it.name || "")}</td>
               <td>${it.unit || ""}</td>
@@ -5809,7 +5811,7 @@
         }
 
         // Render a room/direct block: header (same weight as section header) + items + gold subtotal
-        function renderRoomBlock(label, items, secNameEn, showHeader = true) {
+        function renderRoomBlock(label, items, secNameEn, showHeader = true, displayMap = {}) {
           if (!items.length) return; // skip empty blocks entirely
           if (showHeader) {
             const headerRow = document.createElement("tr");
@@ -5818,7 +5820,7 @@
             tbody.appendChild(headerRow);
           }
 
-          renderItemRows(items, secNameEn);
+          renderItemRows(items, secNameEn, displayMap);
 
           const sub = items.reduce(
             (s, it) =>
@@ -5840,19 +5842,20 @@
           tbody.appendChild(secHeader);
 
           const allItems = sec.items || [];
+          const displayMap = buildDisplayNumberMap(sec);
           if (!sec.has_rooms) {
             // No rooms: print items directly without a room label (current behavior)
-            renderItemRows(allItems, secNameEn);
+            renderItemRows(allItems, secNameEn, displayMap);
           } else {
             // "المباشر" first: items not tied to any named room
             const directItems = allItems.filter((it) => !it.room_id);
             if (directItems.length)
-              renderRoomBlock("المباشر", directItems, secNameEn, false);
+              renderRoomBlock("المباشر", directItems, secNameEn, false, displayMap);
             // Then each room in tab order
             for (const room of sec.rooms || []) {
               const roomItems = allItems.filter((it) => it.room_id === room.id);
               if (roomItems.length)
-                renderRoomBlock(room.name, roomItems, secNameEn);
+                renderRoomBlock(room.name, roomItems, secNameEn, true, displayMap);
             }
           }
 
