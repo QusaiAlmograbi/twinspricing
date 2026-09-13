@@ -6,3 +6,9 @@ cookies.txt
 data/*.db
 data/*.db-wal
 data/*.db-shm
+
+/.opencode/plans/
+/test/driver-d23-live.js
+
+.env.*
+!.env.example
