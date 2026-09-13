@@ -1,6 +1,11 @@
 const express = require("express");
 const db = require("../db");
-const { getPool } = require("../db");
+const {
+  isSqlite,
+  withSqliteTransaction,
+  withPostgresTransaction,
+  createClientPrep,
+} = require("../db");
 const { requireAuth, isAdminOrOwner } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { quoteRules, handleValidation } = require("../utils/validate");
@@ -280,27 +285,31 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "ما عندك صلاحية لحذف هذا العرض" });
   }
   const quoteId = req.params.id;
-  const pool = getPool();
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(
-      "DELETE FROM items WHERE section_id IN (SELECT id FROM sections WHERE quote_id = $1)",
-      [quoteId]
-    );
-    await client.query(
-      "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = $1)",
-      [quoteId]
-    );
-    await client.query("DELETE FROM sections WHERE quote_id = $1", [quoteId]);
-    await client.query("DELETE FROM project_access WHERE quote_id = $1", [quoteId]);
-    await client.query("DELETE FROM quotes WHERE id = $1", [quoteId]);
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
+  if (isSqlite()) {
+    withSqliteTransaction(() => {
+      db.prepare(
+        "DELETE FROM items WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
+      ).run(quoteId);
+      db.prepare(
+        "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
+      ).run(quoteId);
+      db.prepare("DELETE FROM sections WHERE quote_id = ?").run(quoteId);
+      db.prepare("DELETE FROM project_access WHERE quote_id = ?").run(quoteId);
+      db.prepare("DELETE FROM quotes WHERE id = ?").run(quoteId);
+    });
+  } else {
+    await withPostgresTransaction(async (client) => {
+      const prep = createClientPrep(client);
+      await prep(
+        "DELETE FROM items WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
+      ).run(quoteId);
+      await prep(
+        "DELETE FROM rooms WHERE section_id IN (SELECT id FROM sections WHERE quote_id = ?)",
+      ).run(quoteId);
+      await prep("DELETE FROM sections WHERE quote_id = ?").run(quoteId);
+      await prep("DELETE FROM project_access WHERE quote_id = ?").run(quoteId);
+      await prep("DELETE FROM quotes WHERE id = ?").run(quoteId);
+    });
   }
   res.json({ ok: true });
 }));

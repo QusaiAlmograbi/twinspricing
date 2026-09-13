@@ -9,6 +9,7 @@ const { asyncHandler } = require("../utils/asyncHandler");
 const arabicReshaper = require("arabic-reshaper");
 const bidi = require("bidi-js");
 
+const { isAdminOrOwner } = require("../middleware/auth");
 const router = express.Router();
 
 // ── Arabic text helpers ──
@@ -87,6 +88,17 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
+
+  const hasAccess = await db
+    .prepare("SELECT 1 FROM project_access WHERE quote_id = ? AND user_id = ?")
+    .get(q.id, req.user.id);
+  if (
+    !isAdminOrOwner(req.user.role) &&
+    q.user_id !== req.user.id &&
+    !hasAccess
+  ) {
+    return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
+  }
 
   const sections = await db
     .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")

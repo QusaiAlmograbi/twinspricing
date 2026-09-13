@@ -3,12 +3,14 @@ const db = require("../db");
 const { requireAuth, verifySectionAccess } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 
+const MAX_BATCH_ITEMS = 200;
+
 const router = express.Router();
 router.use(requireAuth);
 
 router.get("/:sectionId/items", asyncHandler(async (req, res) => {
   const sectionId = Number(req.params.sectionId);
-  if (!verifySectionAccess(sectionId, req.user.id, req.user.role)) {
+  if (!(await verifySectionAccess(sectionId, req.user.id, req.user.role))) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
   }
   const items = await db
@@ -19,7 +21,7 @@ router.get("/:sectionId/items", asyncHandler(async (req, res) => {
 
 router.post("/:sectionId/items", asyncHandler(async (req, res) => {
   const sectionId = Number(req.params.sectionId);
-  if (!verifySectionAccess(sectionId, req.user.id, req.user.role)) {
+  if (!(await verifySectionAccess(sectionId, req.user.id, req.user.role))) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
   }
 
@@ -79,9 +81,105 @@ router.post("/:sectionId/items", asyncHandler(async (req, res) => {
   res.json({ id: info.lastInsertRowid, selling_price: sellingPrice });
 }));
 
+router.post("/:sectionId/items/batch", asyncHandler(async (req, res) => {
+  const sectionId = Number(req.params.sectionId);
+  if (!(await verifySectionAccess(sectionId, req.user.id, req.user.role))) {
+    return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
+  }
+
+  const items = req.body && req.body.items;
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ error: "الحمولة يجب أن تكون مصفوفة من البنود" });
+  }
+  if (items.length === 0) {
+    return res.status(400).json({ error: "لا يوجد بنود للإضافة" });
+  }
+  if (items.length > MAX_BATCH_ITEMS) {
+    return res
+      .status(400)
+      .json({ error: `الحد الأقصى ${MAX_BATCH_ITEMS} بند في الطلب الواحد` });
+  }
+
+  const baseOrder = await db
+    .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM items WHERE section_id = ?")
+    .get(sectionId);
+  const base = Number(baseOrder.next_order);
+
+  const results = [];
+  for (let idx = 0; idx < items.length; idx++) {
+    const raw = items[idx];
+    try {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        results.push({ index: idx, error: "بند غير صالح" });
+        continue;
+      }
+
+      const {
+        item_code,
+        name,
+        description,
+        unit,
+        qty,
+        image,
+        base_cost,
+        overhead_pct,
+        notes,
+        sort_order,
+        category_id,
+        room_id,
+      } = raw;
+
+      const baseCost = Number(base_cost) || 0;
+      const overheadPct = Number(overhead_pct) || 35;
+      const sellingPrice = baseCost * (1 + overheadPct / 100);
+
+      const hasData =
+        (name || "").trim() !== "" ||
+        sellingPrice > 0 ||
+        baseCost > 0;
+      if (!hasData) {
+        results.push({ index: idx, error: "البند يجب أن يحتوي على اسم أو سعر" });
+        continue;
+      }
+
+      const info = await db
+        .prepare(
+          `INSERT INTO items (section_id, item_code, name, description, unit, qty, image, base_cost, overhead_pct, selling_price, notes, sort_order, category_id, room_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          sectionId,
+          item_code || "",
+          name || "",
+          description || "",
+          unit || "عدد",
+          Number(qty) || 1,
+          image || null,
+          baseCost,
+          overheadPct,
+          sellingPrice,
+          notes || "",
+          sort_order ?? base + idx,
+          category_id || null,
+          room_id || null,
+        );
+
+      results.push({
+        index: idx,
+        id: info.lastInsertRowid,
+        selling_price: sellingPrice,
+      });
+    } catch (err) {
+      results.push({ index: idx, error: err.message });
+    }
+  }
+
+  res.json({ results });
+}));
+
 router.put("/:sectionId/items/:id", asyncHandler(async (req, res) => {
   const sectionId = Number(req.params.sectionId);
-  if (!verifySectionAccess(sectionId, req.user.id, req.user.role)) {
+  if (!(await verifySectionAccess(sectionId, req.user.id, req.user.role))) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
   }
 
@@ -154,7 +252,7 @@ router.put("/:sectionId/items/:id", asyncHandler(async (req, res) => {
 
 router.delete("/:sectionId/items/:id", asyncHandler(async (req, res) => {
   const sectionId = Number(req.params.sectionId);
-  if (!verifySectionAccess(sectionId, req.user.id, req.user.role)) {
+  if (!(await verifySectionAccess(sectionId, req.user.id, req.user.role))) {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا القسم" });
   }
   await db
@@ -164,3 +262,4 @@ router.delete("/:sectionId/items/:id", asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.MAX_BATCH_ITEMS = MAX_BATCH_ITEMS;

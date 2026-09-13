@@ -86,9 +86,9 @@ function requireOwner(req, res, next) {
   next();
 }
 
-function verifySectionAccess(sectionId, userId, role) {
+async function verifySectionAccess(sectionId, userId, role) {
   if (role === "owner" || role === "admin") return true;
-  return db
+  const row = await db
     .prepare(
       `SELECT 1 FROM sections s
        JOIN quotes q ON q.id = s.quote_id
@@ -99,6 +99,7 @@ function verifySectionAccess(sectionId, userId, role) {
        WHERE s.id = ? AND pa.user_id = ?`,
     )
     .get(sectionId, userId, sectionId, userId);
+  return !!row;
 }
 
 module.exports = {

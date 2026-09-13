@@ -446,6 +446,7 @@ async function initializeDatabase() {
         CREATE INDEX IF NOT EXISTS idx_rooms_section_id ON rooms(section_id);
         CREATE INDEX IF NOT EXISTS idx_project_access_quote_id ON project_access(quote_id);
         CREATE INDEX IF NOT EXISTS idx_project_access_user_id ON project_access(user_id);
+      CREATE INDEX IF NOT EXISTS idx_price_items_category_id ON price_items(category_id);
       `);
 
       console.log("[db] SQLite tables created, seeding defaults...");
@@ -672,6 +673,7 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_rooms_section_id ON rooms(section_id);
       CREATE INDEX IF NOT EXISTS idx_project_access_quote_id ON project_access(quote_id);
       CREATE INDEX IF NOT EXISTS idx_project_access_user_id ON project_access(user_id);
+      CREATE INDEX IF NOT EXISTS idx_price_items_category_id ON price_items(category_id);
     `);
 
     console.log("[db] PostgreSQL tables created, seeding defaults...");
@@ -1293,6 +1295,56 @@ async function ensureColumnIfMissing(tableName, columnName, definition) {
   return false;
 }
 
+function withSqliteTransaction(fn) {
+  const sqliteDb = getSqliteDb();
+  return sqliteDb.transaction(fn)();
+}
+
+async function withPostgresTransaction(fn) {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+function createClientPrep(client) {
+  return (query) => {
+    const baseQuery = pgNormalize(query);
+    const sql = replaceQuestionMarks(baseQuery);
+    return {
+      async get(...params) {
+        const result = await client.query(sql, params);
+        return result.rows[0];
+      },
+      async all(...params) {
+        const result = await client.query(sql, params);
+        return result.rows;
+      },
+      async run(...params) {
+        let statement = sql;
+        if (/^insert\s+/i.test(statement) && !/\breturning\b/i.test(statement)) {
+          statement = `${statement} RETURNING id`;
+        }
+        const result = await client.query(statement, params);
+        const lastInsertRowid = result.rows?.[0]?.id ?? null;
+        return {
+          lastInsertRowid,
+          rowCount: result.rowCount || 0,
+        };
+      },
+    };
+  };
+}
+
 const db = {
   prepare,
   exec,
@@ -1311,3 +1363,7 @@ module.exports.ensureSeeded = ensureSeeded;
 module.exports.seedDefaultPriceList = seedDefaultPriceList;
 module.exports.smartMergeDefaultPriceList = smartMergeDefaultPriceList;
 module.exports.getPool = getPool;
+module.exports.isSqlite = isSqlite;
+module.exports.withSqliteTransaction = withSqliteTransaction;
+module.exports.withPostgresTransaction = withPostgresTransaction;
+module.exports.createClientPrep = createClientPrep;
