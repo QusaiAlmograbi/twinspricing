@@ -6020,8 +6020,31 @@
       // ---- Catalog Picker ----
       let pickerActiveCatId = null;
       let pickerCurrentItemIdx = null; // which item row is being filled
+      // Session identity: bumped on every open/close/category/search change so
+      // stale async responses (older session) can never render results.
+      let pickerSession = 0;
+
+      // Catalog metadata readiness (shared by both pickers). allDisciplines and
+      // allPickerCategories are only treated as a usable cache once annotation
+      // of per-category _disciplineId has fully completed. Interrupted/stale
+      // initialization leaves this false so a reopen retries the annotation
+      // instead of trusting a partially-populated array.
+      let pickerMetaReady = false;
+
+      // Lifecycle invalidation: bumps the session (invalidating in-flight
+      // responses AND any pending debounce timer that captured an older
+      // session) so a stale timer can never start a request or write the DOM.
+      function invalidatePicker() {
+        pickerSession++;
+        clearTimeout(pickerSearchTimeout);
+      }
+      function invalidateBulkPicker() {
+        bulkPickerSession++;
+        clearTimeout(bulkSearchTimeout);
+      }
 
       function openPicker(itemIdx, preselectedCategoryId) {
+        invalidatePicker();
         pickerCurrentItemIdx = itemIdx;
         pickerActiveCatId = null;
         document.getElementById("pickerSearch").value = "";
@@ -6031,6 +6054,7 @@
         document.getElementById("pickerModal").classList.add("open");
       }
       function closePicker() {
+        invalidatePicker();
         document.getElementById("pickerModal").classList.remove("open");
         pickerCurrentItemIdx = null;
       }
@@ -6056,6 +6080,10 @@
       let bulkPickerSections = [];
       let bulkPickerSectionId = null;
       let bulkPickerSectionName = null;
+      // Session identity: bumped on every open/close/navigation/search/category
+      // change so stale async responses (older session) can never render into a
+      // newer picker session or switch panes after navigation changed.
+      let bulkPickerSession = 0;
 
       function clearBulkBasket() {
         bulkSelectedIds = new Set();
@@ -6083,6 +6111,7 @@
 
       async function openBulkPicker() {
         // DO NOT clear bulkSelectedIds / bulkSelectedItems — basket persists across modal sessions
+        invalidateBulkPicker();
         bulkPickerView = "specialties";
         bulkPickerDisciplineId = null;
         bulkPickerDisciplineName = null;
@@ -6099,6 +6128,7 @@
       function closeBulkPicker() {
         document.getElementById("bulkPickerModal").classList.remove("open");
         // DO NOT clear basket — persists across modal sessions
+        invalidateBulkPicker();
         bulkPickerView = "specialties";
         bulkPickerDisciplineId = null;
         bulkPickerDisciplineName = null;
@@ -6160,31 +6190,48 @@
       // ---- Specialties View + Accordion ----
       async function renderBulkSpecialties() {
         const listEl = document.getElementById("bulkDiscList");
+        const session = bulkPickerSession;
         try {
-          if (allDisciplines.length === 0) {
-            const discData = await api("/disciplines");
-            allDisciplines = discData.disciplines || [];
-          }
-          if (allPickerCategories.length === 0) {
-            const data = await api("/price-list");
-            allPickerCategories = data.categories || [];
+          if (!pickerMetaReady) {
+            if (allDisciplines.length === 0) {
+              const discData = await api("/disciplines");
+              if (session !== bulkPickerSession) return;
+              allDisciplines = discData.disciplines || [];
+            }
+            if (allPickerCategories.length === 0) {
+              const data = await api("/price-list");
+              if (session !== bulkPickerSession) return;
+              allPickerCategories = data.categories || [];
+            }
+            // Annotate categories with discipline IDs. Idempotent — safe to
+            // retry after an interrupted initialization recovers on reopen.
             const catToDiscMap = {};
             for (const disc of allDisciplines) {
+              let secData;
               try {
-                const secData = await api(`/disciplines/${disc.id}/sections`);
-                (secData.sections || []).forEach((sec) => {
-                  if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
-                });
+                secData = await api(`/disciplines/${disc.id}/sections`);
               } catch {
-                /* skip */
+                // A failed annotation request must never establish readiness.
+                // Leave the cache unmarked so a reopen retries initialization.
+                return;
               }
+              if (session !== bulkPickerSession) return;
+              (secData.sections || []).forEach((sec) => {
+                if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
+              });
             }
+            // Revalidate ownership before publishing shared metadata — a stale
+            // continuation must not mutate categories or mark the cache ready.
+            if (session !== bulkPickerSession) return;
             allPickerCategories.forEach((cat) => {
               cat._disciplineId =
                 catToDiscMap[cat.id] != null ? Number(catToDiscMap[cat.id]) : null;
             });
+            // Only a fully-completed annotation marks the cache usable.
+            pickerMetaReady = true;
           }
 
+          if (session !== bulkPickerSession) return;
           if (allDisciplines.length === 0) {
             listEl.innerHTML =
               '<div class="bp-empty-msg">لا توجد تخصصات. أضف تخصصات من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</div>';
@@ -6204,6 +6251,7 @@
             </div>`;
           }
           listEl.innerHTML = html;
+          if (session !== bulkPickerSession) return;
 
           // Bind discipline header clicks (accordion)
           listEl.querySelectorAll(".bp-discipline-header").forEach((hdr) => {
@@ -6218,11 +6266,14 @@
             await loadBulkDisciplineSections(Number(bulkPickerDisciplineId));
           }
         } catch {
+          if (session !== bulkPickerSession) return;
           listEl.innerHTML = '<div class="bp-empty-msg">صار في خطأ في تحميل التخصصات</div>';
         }
       }
 
       async function toggleBulkDiscipline(discId) {
+        invalidateBulkPicker();
+        const session = bulkPickerSession;
         if (Number(bulkPickerDisciplineId) === Number(discId)) {
           bulkPickerDisciplineId = null;
           bulkPickerSections = [];
@@ -6233,6 +6284,13 @@
         const disc = allDisciplines.find((d) => Number(d.id) === Number(discId));
         bulkPickerDisciplineName = disc ? disc.name : "";
         await loadBulkDisciplineSections(discId);
+        // The loader discards stale responses itself; this outer continuation
+        // must additionally confirm it still owns the modal session, the
+        // specialties pane, and this discipline before restoring a visible
+        // pane — otherwise it would resurrect a stale view.
+        if (session !== bulkPickerSession) return;
+        if (bulkPickerView !== "specialties") return;
+        if (Number(bulkPickerDisciplineId) !== Number(discId)) return;
         renderAccordionAfterToggle();
       }
 
@@ -6245,8 +6303,10 @@
       }
 
       async function loadBulkDisciplineSections(discId) {
+        const session = bulkPickerSession;
         try {
           const data = await api(`/disciplines/${discId}/sections`);
+          if (session !== bulkPickerSession) return;
           bulkPickerSections = data.sections || [];
           const secWrap = document.querySelector(`.bp-discipline-sections[data-disc-id="${discId}"]`);
           if (!secWrap) return;
@@ -6270,12 +6330,14 @@
             };
           });
         } catch {
+          if (session !== bulkPickerSession) return;
           const secWrap = document.querySelector(`.bp-discipline-sections[data-disc-id="${discId}"]`);
           if (secWrap) secWrap.innerHTML = '<div class="bp-empty-msg">تعذر تحميل الأقسام</div>';
         }
       }
 
       function openBulkSectionItems(secId, secName, discName) {
+        invalidateBulkPicker();
         bulkPickerView = "items";
         bulkPickerSectionId = secId;
         bulkPickerSectionName = secName;
@@ -6285,6 +6347,7 @@
       }
 
       function goBackToSpecialties() {
+        invalidateBulkPicker();
         bulkPickerView = "specialties";
         bulkPickerDisciplineId = null;
         bulkPickerSections = [];
@@ -6312,29 +6375,48 @@
 
       // ---- Items View ----
       let bulkSearchTimeout;
-      document.getElementById("bulkPickerSearch").oninput = () => {
+
+      function scheduleBulkSearch() {
         clearTimeout(bulkSearchTimeout);
-        bulkSearchTimeout = setTimeout(() => loadBulkSectionItems(), 300);
+        const session = bulkPickerSession; // ownership captured at schedule time
+        bulkSearchTimeout = setTimeout(() => {
+          // A stale timer that survived invalidation must not start a request,
+          // render rows, or bind handlers.
+          if (session !== bulkPickerSession) return;
+          loadBulkSectionItems();
+        }, 300);
+      }
+      document.getElementById("bulkPickerSearch").oninput = () => {
+        invalidateBulkPicker(); // every keystroke invalidates in-flight requests/timers
+        scheduleBulkSearch();
       };
 
       document.getElementById("bulkBackBtn").onclick = () => goBackToSpecialties();
 
       async function loadBulkSectionItems() {
         if (!bulkPickerSectionId) return;
+        const session = bulkPickerSession;
         const q = document.getElementById("bulkPickerSearch").value.trim();
         const queryStr = q ? "?q=" + encodeURIComponent(q) : "";
         const resultsEl = document.getElementById("bulkPickerResults");
+        // Clear/replace old results with loading state immediately when a new
+        // request begins — even if the previous request is still in-flight.
+        resultsEl.innerHTML = '<div class="picker-empty">جاري التحميل...</div>';
         try {
           const data = await api("/price-list/" + bulkPickerSectionId + "/items" + queryStr);
+          if (session !== bulkPickerSession) return; // stale — drop entirely
           const items = data.items || [];
           if (items.length === 0) {
             resultsEl.innerHTML = '<div class="picker-empty">ما في نتائج</div>';
             return;
           }
+          // Basket keys are numeric; normalize raw API item ids when comparing.
+          // Raw catalog objects (it) are preserved as-is — only the Set/Map
+          // identity lookups use Number().
           resultsEl.innerHTML = items
             .map((it) => {
-              const checked = bulkSelectedIds.has(it.id) ? "checked" : "";
-              const selectedClass = bulkSelectedIds.has(it.id) ? " bp-selected" : "";
+              const checked = bulkSelectedIds.has(Number(it.id)) ? "checked" : "";
+              const selectedClass = bulkSelectedIds.has(Number(it.id)) ? " bp-selected" : "";
               const price =
                 Number(it.selling_price) > 0
                   ? Number(it.selling_price).toFixed(2) + " د.أ"
@@ -6352,6 +6434,7 @@
               );
             })
             .join("");
+          if (session !== bulkPickerSession) return; // final paranoia before binding handlers
           resultsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
             cb.addEventListener("change", function () {
               const id = Number(this.dataset.id);
@@ -6382,17 +6465,20 @@
             });
           });
         } catch {
+          if (session !== bulkPickerSession) return;
           resultsEl.innerHTML = '<div class="picker-empty">صار في خطأ</div>';
         }
       }
 
       // ---- Review View ----
       function openBulkReview() {
+        invalidateBulkPicker();
         bulkPickerView = "review";
         renderBulkView();
       }
 
       function goBackFromReview() {
+        invalidateBulkPicker();
         bulkPickerView = bulkPickerSectionId !== null ? "items" : "specialties";
         renderBulkView();
       }
@@ -6426,6 +6512,7 @@
       }
 
       function removeBulkItem(id) {
+        invalidateBulkPicker();
         bulkSelectedIds.delete(id);
         bulkSelectedItems.delete(id);
         updateBulkSelectionBar();
@@ -6438,6 +6525,7 @@
       }
 
       function clearBulkBasketFromUI() {
+        invalidateBulkPicker();
         clearBulkBasket();
         bulkPickerView = "specialties";
         renderBulkView();
@@ -6576,8 +6664,8 @@
                   });
                   allItems.push(newItem);
                   markItemDirty(newItem);
-                  bulkSelectedIds.delete(catItem.id);
-                  bulkSelectedItems.delete(catItem.id);
+                  bulkSelectedIds.delete(Number(catItem.id));
+                  bulkSelectedItems.delete(Number(catItem.id));
                   succeeded++;
                 } else {
                   // keep in basket for retry
@@ -6614,8 +6702,8 @@
               };
               allItems.push(newItem);
               markItemDirty(newItem);
-              bulkSelectedIds.delete(catItem.id);
-              bulkSelectedItems.delete(catItem.id);
+              bulkSelectedIds.delete(Number(catItem.id));
+              bulkSelectedItems.delete(Number(catItem.id));
               succeeded++;
             }
           }
@@ -6646,32 +6734,47 @@
       }
 
       async function loadPickerCategories(preselectedCategoryId) {
+        const session = pickerSession;
         try {
-          if (allDisciplines.length === 0) {
-            const discData = await api("/disciplines");
-            allDisciplines = discData.disciplines || [];
-          }
-          if (allPickerCategories.length === 0) {
-            const data = await api("/price-list");
-            allPickerCategories = data.categories || [];
-            // Annotate categories with discipline IDs
+          if (!pickerMetaReady) {
+            if (allDisciplines.length === 0) {
+              const discData = await api("/disciplines");
+              if (session !== pickerSession) return;
+              allDisciplines = discData.disciplines || [];
+            }
+            if (allPickerCategories.length === 0) {
+              const data = await api("/price-list");
+              if (session !== pickerSession) return;
+              allPickerCategories = data.categories || [];
+            }
+            // Annotate categories with discipline IDs. Idempotent — safe to
+            // retry after an interrupted initialization recovers on reopen.
             const catToDiscMap = {};
             for (const disc of allDisciplines) {
+              let secData;
               try {
-                const secData = await api(`/disciplines/${disc.id}/sections`);
-                (secData.sections || []).forEach((sec) => {
-                  if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
-                });
+                secData = await api(`/disciplines/${disc.id}/sections`);
               } catch {
-                /* skip */
+                // A failed annotation request must never establish readiness.
+                // Leave the cache unmarked so a reopen retries initialization.
+                return;
               }
+              if (session !== pickerSession) return;
+              (secData.sections || []).forEach((sec) => {
+                if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
+              });
             }
+            // Revalidate ownership before publishing shared metadata — a stale
+            // continuation must not mutate categories or mark the cache ready.
+            if (session !== pickerSession) return;
             allPickerCategories.forEach((cat) => {
               cat._disciplineId =
                 catToDiscMap[cat.id] != null
                   ? Number(catToDiscMap[cat.id])
                   : null;
             });
+            // Only a fully-completed annotation marks the cache usable.
+            pickerMetaReady = true;
             console.log(
               "[DBG-1] catToDiscMap built:",
               JSON.stringify(catToDiscMap),
@@ -6685,6 +6788,7 @@
               })),
             );
           }
+          if (session !== pickerSession) return;
           renderPickerCategories();
           if (preselectedCategoryId) {
             pickerActiveCatId = preselectedCategoryId;
@@ -6692,6 +6796,7 @@
             loadPickerItems();
           }
         } catch {
+          if (session !== pickerSession) return;
           document.getElementById("pickerCats").innerHTML =
             '<span style="color:var(--ash);font-size:12px;">تعذر تحميل الأقسام</span>';
         }
@@ -6721,6 +6826,7 @@
         el.innerHTML = html;
         el.querySelectorAll(".picker-cat-btn").forEach((btn) => {
           btn.onclick = () => {
+            invalidatePicker(); // category change invalidates any in-flight results
             pickerActiveCatId = Number(btn.dataset.id);
             renderPickerCategories();
             document.getElementById("pickerSearch").value = "";
@@ -6730,20 +6836,45 @@
       }
 
       let pickerSearchTimeout;
-      document.getElementById("pickerSearch").oninput = () => {
+
+      function schedulePickerSearch() {
         clearTimeout(pickerSearchTimeout);
-        pickerSearchTimeout = setTimeout(() => loadPickerItems(), 300);
+        const session = pickerSession; // ownership captured at schedule time
+        pickerSearchTimeout = setTimeout(() => {
+          // A stale timer that survived invalidation must not start a request,
+          // render rows, or bind handlers.
+          if (session !== pickerSession) return;
+          loadPickerItems();
+        }, 300);
+      }
+      document.getElementById("pickerSearch").oninput = () => {
+        if (pickerMetaReady && pickerActiveCatId != null) {
+          // Items view is active — every keystroke invalidates in-flight
+          // requests/timers the normal way.
+          invalidatePicker();
+          schedulePickerSearch();
+        } else {
+          // Metadata initialization is still in flight. Do NOT invalidate:
+          // bumping the session would strand in-flight initialization and
+          // suspend the picker. Only cancel any scheduled (unowned) search.
+          clearTimeout(pickerSearchTimeout);
+        }
       };
 
       async function loadPickerItems() {
         if (!pickerActiveCatId) return;
+        const session = pickerSession;
         const q = document.getElementById("pickerSearch").value.trim();
         const queryStr = q ? `?q=${encodeURIComponent(q)}` : "";
         const resultsEl = document.getElementById("pickerResults");
+        // Clear/replace old results with loading state immediately when a new
+        // request begins — even if the previous request is still in-flight.
+        resultsEl.innerHTML = '<div class="picker-empty">جاري التحميل...</div>';
         try {
           const data = await api(
             `/price-list/${pickerActiveCatId}/items${queryStr}`,
           );
+          if (session !== pickerSession) return; // stale — drop entirely
           const items = data.items || [];
           if (items.length === 0) {
             resultsEl.innerHTML = '<div class="picker-empty">ما في نتائج</div>';
@@ -6766,6 +6897,7 @@
           `,
             )
             .join("");
+          if (session !== pickerSession) return; // final paranoia before binding handlers
           resultsEl.querySelectorAll(".picker-item").forEach((el) => {
             el.onclick = () => {
               const id = Number(el.dataset.id);
@@ -6776,6 +6908,7 @@
             };
           });
         } catch {
+          if (session !== pickerSession) return;
           resultsEl.innerHTML = '<div class="picker-empty">صار في خطأ</div>';
         }
       }
