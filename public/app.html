@@ -314,7 +314,7 @@
         color: #fff;
       }
       .room-edit {
-        display: none;
+        display: inline-block;
         background: none;
         border: none;
         color: var(--pewter);
@@ -322,9 +322,6 @@
         font-size: 11px;
         padding: 0 2px;
         line-height: 1;
-      }
-      .room-tab:hover .room-edit {
-        display: inline-block;
       }
       .room-edit:hover {
         color: var(--gold);
@@ -458,6 +455,26 @@
       }
       .btn-delete-sec:hover {
         opacity: 0.8;
+      }
+      .btn-copy-direct-sec {
+        background: var(--surface-raised);
+        border: 1px solid var(--pewter) !important;
+        color: var(--ash);
+      }
+      .btn-copy-direct-sec:hover {
+        border-color: var(--gold-dim) !important;
+        color: var(--gold);
+      }
+      .room-copy {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0 2px;
+        color: var(--ash);
+      }
+      .room-copy:hover {
+        color: var(--gold);
       }
 
       /* Items Table */
@@ -1336,6 +1353,446 @@
         border-color: var(--gold);
       }
 
+      /* Bulk Picker Modal */
+      .bulk-picker-modal {
+        max-width: 700px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .bulk-picker-modal > h3,
+      .bulk-picker-modal > label,
+      .bulk-picker-modal > .bulk-picker-select,
+      .bulk-picker-modal > .picker-search,
+      .bulk-picker-modal > .bulk-add-btn,
+      .bulk-picker-modal > .bp-target-context,
+      .bulk-picker-modal > .bp-selection-bar {
+        flex: 0 0 auto;
+      }
+      .bulk-picker-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ash);
+        margin-bottom: 4px;
+        display: block;
+      }
+      .bulk-picker-select {
+        font-family: inherit;
+        font-size: 13px;
+        padding: 8px 12px;
+        border: 1px solid var(--pewter);
+        border-radius: 8px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+        width: 100%;
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+      .bulk-picker-results {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin-bottom: 12px;
+      }
+      .bulk-picker-results::-webkit-scrollbar { width: 5px; }
+      .bulk-picker-results::-webkit-scrollbar-track { background: transparent; }
+      .bulk-picker-results::-webkit-scrollbar-thumb { background: var(--pewter); border-radius: 3px; }
+      .bulk-picker-modal .bulk-picker-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        margin-bottom: 0;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: 0.12s;
+      }
+      .bulk-picker-modal .bulk-picker-item.bp-selected {
+        background: var(--gold-glow);
+        border-color: var(--gold-dim);
+      }
+      .bulk-picker-modal .bulk-picker-item:hover {
+        background: var(--gold-glow);
+        border-color: var(--gold-dim);
+      }
+      .bulk-picker-modal .bulk-picker-item input[type="checkbox"] {
+        accent-color: var(--gold);
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin: 0;
+      }
+      .bulk-picker-modal .bulk-picker-item .bp-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .bulk-picker-modal .bulk-picker-item .bp-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--champagne);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .bulk-picker-modal .bulk-picker-item .bp-code {
+        font-size: 11px;
+        color: var(--gold);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .bulk-picker-modal .bulk-picker-item .bp-unit {
+        font-size: 11px;
+        color: var(--ash);
+        white-space: nowrap;
+        justify-self: end;
+      }
+      .bulk-picker-modal .bulk-picker-item .bp-price {
+        font-size: 12px;
+        color: var(--champagne);
+        font-weight: 700;
+        white-space: nowrap;
+        justify-self: end;
+      }
+      .bulk-add-btn {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--gold-dim);
+        background: var(--gold-glow);
+        color: var(--gold);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .bulk-add-btn:hover:not(:disabled) {
+        background: var(--gold-glow-strong);
+        border-color: var(--gold);
+      }
+      .bulk-add-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* ---- Bulk Picker: Target Context ---- */
+      .bp-target-context {
+        font-size: 12px;
+        color: var(--ash);
+        padding: 6px 0;
+        margin-bottom: 6px;
+        border-bottom: 1px solid var(--pewter);
+        line-height: 1.5;
+      }
+      .bp-target-label {
+        font-weight: 600;
+      }
+      .bp-target-value {
+        color: var(--gold);
+        font-weight: 700;
+        margin-right: 6px;
+        direction: rtl;
+      }
+
+      /* ---- Bulk Picker: Subheader (breadcrumb + back) ---- */
+      .bp-subheader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--pewter);
+        flex-shrink: 0;
+        min-width: 0;
+      }
+
+      /* ---- Bulk Picker: Back Button ---- */
+      .bp-back-btn {
+        background: none;
+        border: none;
+        color: var(--gold);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 4px 0;
+        margin-bottom: 4px;
+        display: inline-block;
+      }
+      .bp-back-btn:hover {
+        color: var(--gold-dim);
+      }
+      .bp-subheader .bp-back-btn {
+        background: transparent;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        font-size: 12.5px;
+        padding: 4px 12px;
+        flex-shrink: 0;
+        line-height: 1.4;
+      }
+      .bp-subheader .bp-back-btn:hover {
+        border-color: var(--gold-dim);
+        background: var(--gold-glow);
+        color: var(--gold);
+      }
+
+      /* ---- Bulk Picker: Breadcrumb ---- */
+      .bp-breadcrumb {
+        font-size: 12px;
+        color: var(--ash);
+        line-height: 1.6;
+        direction: rtl;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .bp-bc-link {
+        color: var(--gold);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .bp-bc-link:hover {
+        text-decoration: underline;
+      }
+      .bp-bc-sep {
+        margin: 0 4px;
+        color: var(--ash);
+      }
+      .bp-bc-current {
+        color: var(--champagne);
+        font-weight: 600;
+      }
+
+      /* ---- Bulk Picker: View Containers ---- */
+      .bp-specialty-view,
+      .bp-item-view,
+      .bp-review-view {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .bp-item-view {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .bp-specialty-view::-webkit-scrollbar,
+      .bp-item-view::-webkit-scrollbar,
+      .bp-review-view::-webkit-scrollbar { width: 5px; }
+      .bp-specialty-view::-webkit-scrollbar-track,
+      .bp-item-view::-webkit-scrollbar-track,
+      .bp-review-view::-webkit-scrollbar-track { background: transparent; }
+      .bp-specialty-view::-webkit-scrollbar-thumb,
+      .bp-item-view::-webkit-scrollbar-thumb,
+      .bp-review-view::-webkit-scrollbar-thumb { background: var(--pewter); border-radius: 3px; }
+
+      /* ---- Bulk Picker: Accordion ---- */
+      .bp-discipline {
+        border-bottom: 1px solid var(--pewter);
+      }
+      .bp-discipline:last-child {
+        border-bottom: none;
+      }
+      .bp-discipline-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 6px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.12s;
+        user-select: none;
+      }
+      .bp-discipline-header:hover {
+        background: var(--gold-glow);
+      }
+      .bp-disc-arrow {
+        font-size: 12px;
+        color: var(--gold);
+        width: 14px;
+        text-align: center;
+        flex-shrink: 0;
+        transition: transform 0.15s;
+      }
+      .bp-disc-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--champagne);
+        flex: 1;
+      }
+      .bp-disc-count {
+        font-size: 11px;
+        color: var(--ash);
+        flex-shrink: 0;
+      }
+      .bp-discipline-sections {
+        padding: 0 0 6px 28px;
+      }
+      .bp-section-item {
+        padding: 8px 10px;
+        font-size: 13px;
+        color: var(--champagne);
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.12s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .bp-section-item:hover {
+        background: var(--gold-glow);
+      }
+      .bp-section-item .bp-sec-count {
+        font-size: 11px;
+        color: var(--ash);
+        flex-shrink: 0;
+      }
+      .bp-empty-msg {
+        font-size: 12px;
+        color: var(--ash);
+        padding: 10px 6px;
+      }
+
+      /* ---- Bulk Picker: Item Row (Grid: checkbox | name/code | unit | price) ---- */
+      .bulk-picker-modal .bulk-picker-item .bp-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .bulk-picker-modal .bulk-picker-item {
+        padding: 10px 12px;
+      }
+
+      /* ---- Bulk Picker: Selection Bar ---- */
+      .bp-selection-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-top: 1px solid var(--pewter);
+        margin-top: 4px;
+        flex-shrink: 0;
+      }
+      .bp-sel-count {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--gold);
+      }
+      .bp-delete-all-btn {
+        background: none;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .bp-delete-all-btn:hover {
+        background: var(--danger-tint);
+      }
+
+      /* ---- Bulk Picker: Review View ---- */
+      .bp-review-group-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--gold);
+        padding: 8px 0 2px;
+        border-top: 1px solid var(--pewter);
+        margin-top: 4px;
+      }
+      .bp-review-group-name:first-child {
+        border-top: none;
+        margin-top: 0;
+      }
+      .bp-review-section-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ash);
+        padding: 4px 0 2px 12px;
+      }
+      .bp-review-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+      }
+      .bp-review-item:hover {
+        background: var(--gold-glow);
+      }
+      .bp-review-item-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        flex: 1;
+      }
+      .bp-review-item-name {
+        color: var(--champagne);
+        font-weight: 600;
+      }
+      .bp-review-item-meta {
+        font-size: 11px;
+        color: var(--ash);
+      }
+      .bp-review-item-price {
+        color: var(--gold);
+        font-weight: 700;
+        font-size: 12px;
+        margin: 0 10px;
+        white-space: nowrap;
+      }
+      .bp-review-delete-btn {
+        background: none;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+        border-radius: 4px;
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: 0.12s;
+      }
+      .bp-review-delete-btn:hover {
+        background: var(--danger-tint);
+        border-color: var(--danger);
+      }
+
+      /* ---- Bulk Picker: Search in items view ---- */
+      .bp-search-wrap {
+        position: relative;
+        margin-bottom: 8px;
+      }
+      .bp-search-wrap .picker-search {
+        width: 100%;
+      }
+
+      /* ---- Bulk Picker: Items scrollable area ---- */
+      .bp-items-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin-bottom: 4px;
+      }
+
       /* Quick-add Category Buttons */
       .quick-add-cats {
         display: flex;
@@ -1427,6 +1884,11 @@
         gap: 6px;
         margin-bottom: 10px;
         position: relative;
+      }
+      .cat-actions-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
       }
       .cat-search-input {
         flex: 1;
@@ -2292,6 +2754,61 @@
       </div>
     </div>
 
+    <!-- Copy Room Modal -->
+    <div class="modal-overlay" id="copyRoomModal">
+      <div class="modal">
+        <h3>نسخ الغرفة إلى قسم آخر</h3>
+        <p class="section-sub">اختر القسم الهدف لنسخ الغرفة وجميع البنود الموجودة بداخلها.</p>
+        <label
+          >القسم الهدف
+          <select id="copyRoomTargetSection">
+            <option value="" disabled selected>اختر القسم...</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button
+            id="copyRoomCancel"
+            class="btn-secondary"
+            style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);"
+          >إلغاء</button>
+          <button id="copyRoomSave" class="btn-save">نسخ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy Direct Modal -->
+    <div class="modal-overlay" id="copyDirectModal">
+      <div class="modal">
+        <h3>إنشاء قسم جديد ونسخ المباشر</h3>
+        <p class="section-sub">سيتم إنشاء قسم جديد ونسخ جميع البنود الموجودة في المباشر.</p>
+        <label
+          >اسم القسم الجديد
+          <input
+            id="copyDirectSecName"
+            type="text"
+            placeholder="مثال: الطابق الثالث"
+          />
+        </label>
+        <label
+          >كود القسم الجديد
+          <input
+            id="copyDirectSecCode"
+            type="text"
+            placeholder="مثال: FL-003"
+            maxlength="5"
+          />
+        </label>
+        <div class="modal-actions">
+          <button
+            id="copyDirectCancel"
+            class="btn-secondary"
+            style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);"
+          >إلغاء</button>
+          <button id="copyDirectSave" class="btn-save">نسخ</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Template Modal -->
     <div class="modal-overlay" id="templateModal">
       <div class="modal">
@@ -2314,6 +2831,58 @@
         <div class="picker-results" id="pickerResults">
           <div class="picker-empty">اختر قسم أولاً للبحث عن بنود</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Bulk Add Items Modal -->
+    <div class="modal-overlay" id="bulkPickerModal">
+      <div class="modal bulk-picker-modal">
+        <h3>إضافة بنود</h3>
+        <div class="bp-target-context" id="bulkTargetCtx">
+          <span class="bp-target-label">سيتم إضافة البنود إلى: </span>
+          <span class="bp-target-value" id="bulkTargetValue">—</span>
+        </div>
+
+        <!-- Specialty View -->
+        <div id="bulkSpecialtyView" class="bp-specialty-view">
+          <div id="bulkDiscList"></div>
+        </div>
+
+        <!-- Items View -->
+        <div id="bulkItemView" class="bp-item-view" style="display:none">
+          <div class="bp-subheader">
+            <div id="bulkBreadcrumb" class="bp-breadcrumb"></div>
+            <button class="bp-back-btn" id="bulkBackBtn" type="button">‹ رجوع</button>
+          </div>
+          <div class="bp-search-wrap">
+            <input
+              id="bulkPickerSearch"
+              class="picker-search"
+              type="text"
+              placeholder="ابحث عن بند..."
+              autocomplete="off"
+            />
+          </div>
+          <div id="bulkPickerResults" class="bp-items-scroll">
+            <div class="picker-empty">جاري التحميل...</div>
+          </div>
+        </div>
+
+        <!-- Review View -->
+        <div id="bulkReviewView" class="bp-review-view" style="display:none">
+          <button class="bp-back-btn" id="bulkReviewBackBtn">‹ رجوع</button>
+          <h3 id="bulkReviewTitle" style="margin:0 0 8px;font-size:16px;">كل البنود المحددة</h3>
+          <div id="bulkReviewBody"></div>
+        </div>
+
+        <!-- Fixed Bottom -->
+        <div class="bp-selection-bar">
+          <span class="bp-sel-count" id="bulkSelCount">كل البنود المحددة (0)</span>
+          <button class="bp-delete-all-btn" id="bulkDeleteAllBtn" style="display:none">حذف الكل</button>
+        </div>
+        <button id="bulkAddBtn" class="bulk-add-btn" disabled>
+          إضافة البنود المحددة (0)
+        </button>
       </div>
     </div>
 
@@ -2364,6 +2933,7 @@
       </div>
     </div>
 
+    <script src="/autosave-core.js"></script>
     <script>
       // Theme toggle
       const savedTheme = localStorage.getItem("theme") || "dark";
@@ -2441,6 +3011,7 @@
       let allDisciplines = [];
       let selectedDisciplineId = null;
       let activeCategoryTab = null;
+      let editingRoomIdx = null;
       let allItemsOpen = false;
       let hasUnsavedWork = false;
       // Fix #1: shared save lock — both manual & auto-save use the same flag
@@ -2450,7 +3021,288 @@
       function markDirty() {
         hasUnsavedWork = true;
         scheduleDraftSave();
-        scheduleAutoSave();
+        getAutoSaveController().markDirty();
+      }
+
+      // ---- Dirty-entity bookkeeping (FIX-6 Slice C) ----
+      // Records WHICH entities changed (quote/header, sections, rooms, items).
+      // Purely additive runtime state: hasUnsavedWork, the FIX-3 stamp/snapshot,
+      // the busy lock, and the existing autosave/draft layers remain authoritative.
+      // The save strategy is deliberately unchanged — this bookkeeping is what a
+      // future selective-save slice will consume.
+      let dirtyEntities = {
+        quote: false,
+        sections: new Set(),
+        rooms: new Set(),
+        items: new Set(),
+      };
+      // Keys are server ids when the entity has one, otherwise the live object
+      // reference (+ Date.now() negative ids for new rooms), so not-yet-persisted
+      // entities are still tracked in O(1).
+      function dirtyKey(entity, id) {
+        return id != null ? id : entity;
+      }
+      function markQuoteDirty() {
+        dirtyEntities.quote = true;
+      }
+      function markSectionDirty(sec) {
+        if (sec) dirtyEntities.sections.add(dirtyKey(sec, sec.id));
+      }
+      function markRoomDirty(room) {
+        if (room) dirtyEntities.rooms.add(dirtyKey(room, room.id));
+      }
+      function markItemDirty(item) {
+        if (item) dirtyEntities.items.add(dirtyKey(item, item.id));
+      }
+      // A just-persisted entity received a real server id: move its dirty reference
+      // from the old key (temp negative id / live object) to the real id.
+      function remapDirtyId(set, oldKey, newId) {
+        if (oldKey == null) return;
+        set.delete(oldKey);
+        if (newId != null) set.add(newId);
+      }
+      // FIX-6 D-2.0 P-C: per-cycle remap log. When a save cycle creates a new
+      // section/room/item, the live dirty key (object ref / negative temp id) is
+      // moved to the new server id. The cycle's D-1 snapshot still holds the OLD
+      // key, so a clean cycle needs this log to also drop the NEW id — otherwise
+      // a successfully-persisted, remapped entity would stay dirty forever. On a
+      // DIRTY cycle (an edit landed mid-save) nothing is cleared here: the new
+      // id stays dirty and the next cycle persists it.
+      let dirtyIdRemapLog = null;
+
+      function beginDirtyIdRemapLog() {
+        dirtyIdRemapLog = { sections: [], rooms: [], items: [] };
+      }
+
+      // Remap a dirty key from its pre-create identity to the server id, but
+      // only when the old key is ACTUALLY present right now — never invent a
+      // dirty mark for an entity that was already clean.
+      function remapDirtyIdForCycle(kind, oldKey, newId) {
+        // FIX-6 Slice D-2.3-1: DEFER the live dirty re-key. During an in-flight
+        // cycle the live dirty set must keep its pre-create key (object ref /
+        // temp id): only the remap LOG records oldKey -> newId. Destructive
+        // re-keying here made the live set drift from the cycle's immutable
+        // dirtySnapshot, so a mid-cycle edit could confirm-serve an entity
+        // under a key the snapshot could no longer see (PC-7a/7b), clear flags
+        // too early (D-2.2 L1), and under-write the follow-up (D-2.2 L2).
+        if (!dirtyIdRemapLog || !dirtyEntities[kind]) return;
+        // Always record the prospective remap (server said it persisted under
+        // newId). Whether the live key is re-keyed now or at cycle end is
+        // decided ONCE at the cycle boundary by the stamp gate.
+        dirtyIdRemapLog[kind].push({ oldKey, newId });
+      }
+
+      function clearDirtyIdRemapLog() {
+        if (!dirtyIdRemapLog) return;
+        for (const kind of ["sections", "rooms", "items"]) {
+          const set = dirtyEntities[kind];
+          for (const entry of dirtyIdRemapLog[kind]) {
+            set.delete(entry.newId);
+          }
+        }
+        dirtyIdRemapLog = null;
+      }
+
+      function clearSectionDirty(sec) {
+        if (!sec) return;
+        dirtyEntities.sections.delete(dirtyKey(sec, sec.id));
+        (sec.rooms || []).forEach((r) =>
+          dirtyEntities.rooms.delete(dirtyKey(r, r.id)),
+        );
+        (sec.items || []).forEach((it) =>
+          dirtyEntities.items.delete(dirtyKey(it, it.id)),
+        );
+      }
+      function clearRoomDirty(room) {
+        if (room) dirtyEntities.rooms.delete(dirtyKey(room, room.id));
+      }
+      function clearItemDirty(item) {
+        if (item) dirtyEntities.items.delete(dirtyKey(item, item.id));
+      }
+      function resetDirtyEntities() {
+        dirtyEntities.quote = false;
+        dirtyEntities.sections.clear();
+        dirtyEntities.rooms.clear();
+        dirtyEntities.items.clear();
+      }
+
+      // FIX-6 D-2.1 — buildSavePlan: pure, deterministic description of what a
+      // selective autosave cycle WOULD save. The quote is always included (its
+      // total is denormalized into quotes.total); sections/rooms/items are driven
+      // by the cycle's D-1 dirty snapshot and live object identity. D-2.1 does
+      // NOT change the send path — runAutoSaveToServer still writes exactly as
+      // before; this block is the contract D-2.2 will consume.
+      function scanSectionsAll(sections, state) {
+        const sectionIndex = new Map();
+        const roomIndex = new Map();
+        const itemIndex = new Map();
+        const roomObjIndex = new Map();
+        const itemObjIndex = new Map();
+        const sectionObjIndex = new Map();
+        const saveableSections = [];
+        let subtotal = 0;
+        for (const sec of sections) {
+          sectionObjIndex.set(sec, sec);
+          if (sec.id != null) sectionIndex.set(sec.id, sec);
+          const items = sec.items || [];
+          const hasSaveable = items.some(
+            (it) =>
+              it._fromServer ||
+              (it.name || "").trim() !== "" ||
+              (Number(it.selling_price) || 0) > 0 ||
+              (Number(it.base_cost) || 0) > 0
+          );
+          if (hasSaveable) saveableSections.push(sec);
+          for (const r of sec.rooms || []) {
+            roomObjIndex.set(r, { sec, room: r });
+            if (r.id != null) roomIndex.set(r.id, { sec, room: r });
+          }
+          for (const it of items) {
+            itemObjIndex.set(it, { sec, item: it });
+            if (it.id != null) itemIndex.set(it.id, { sec, item: it });
+            subtotal += (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+          }
+        }
+        const discountVal = Number(state.discountVal) || 0;
+        const taxPct = Number(state.taxPct) || 16;
+        const discount =
+          state.discountType === "pct"
+            ? Math.round((subtotal * discountVal) / 100 * 100) / 100
+            : discountVal;
+        const afterDiscount = Math.max(subtotal - discount, 0);
+        const vat = Math.round((afterDiscount * taxPct) / 100 * 100) / 100;
+        const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
+        return {
+          saveableSections,
+          sectionIndex,
+          roomIndex,
+          itemIndex,
+          roomObjIndex,
+          itemObjIndex,
+          sectionObjIndex,
+          totals: { subtotal, discount, afterDiscount, vat, grandTotal, taxPct },
+        };
+      }
+
+      // Totals for the tree — identical formulas to renderTotals/autosave. Empty
+      // items contribute zero, so filtering by "saveable" yields the same number.
+      function computeTotalsForPlan(sections, state) {
+        return scanSectionsAll(sections, state).totals;
+      }
+
+      function buildSavePlan({ dirtySnapshot, sections, state, currentQuoteId }) {
+        const plan = {
+          hasWork: false,
+          quote: null,
+          stages: { sections: [], rooms: [], items: [] },
+        };
+        if (!dirtySnapshot) return plan;
+
+        const scans = scanSectionsAll(sections, state);
+
+        // Mirror runAutoSaveToServer's two early-return no-op cases exactly.
+        if (
+          (!currentQuoteId && !state.projectName && sections.length === 0) ||
+          (scans.saveableSections.length === 0 && !state.projectName)
+        ) {
+          return plan;
+        }
+        plan.hasWork = true;
+
+        // Every cycle persists the quote (its total is denormalized).
+        plan.quote = {
+          op: currentQuoteId ? "update" : "create",
+          quoteId: currentQuoteId || null,
+          totals: scans.totals,
+          fields: [
+            "project_name", "data", "total", "reference_no", "client_name",
+            "site_location", "discount_val", "discount_type", "tax_pct",
+            "execution_days", "validity_days", "payment_terms",
+            "quote_title", "price_exclusions",
+          ],
+        };
+
+        const secEntryByObj = new Map();
+        function mkSectionEntry(sec, derivedByChild) {
+          const entry = {
+            obj: sec,
+            key: sec.id != null ? sec.id : null,
+            op: sec.id ? (derivedByChild ? "depend" : "update") : "create",
+            requiresHasRoomsSync: !sec.id ? !!sec.has_rooms : false,
+            derivedByChild,
+          };
+          secEntryByObj.set(sec, entry);
+          plan.stages.sections.push(entry);
+          return entry;
+        }
+
+        for (const key of dirtySnapshot.sections) {
+          const sec =
+            typeof key === "object" && key != null
+              ? scans.sectionObjIndex.get(key)
+              : scans.sectionIndex.get(key);
+          if (!sec) continue;
+          mkSectionEntry(sec, false);
+        }
+
+        for (const key of dirtySnapshot.rooms) {
+          const hit =
+            typeof key === "object" && key != null
+              ? scans.roomObjIndex.get(key)
+              : scans.roomIndex.get(key);
+          if (!hit) continue;
+          const { sec, room } = hit;
+          let secEntry = secEntryByObj.get(sec);
+          if (!secEntry) secEntry = mkSectionEntry(sec, true);
+          plan.stages.rooms.push({
+            obj: room,
+            key,
+            op: room.id > 0 ? "update" : "create",
+            sectionObj: sec,
+            sectionEntry: secEntry,
+            oldRoomTempKey: room.id < 0 ? room.id : null,
+          });
+        }
+
+        for (const key of dirtySnapshot.items) {
+          const hit =
+            typeof key === "object" && key != null
+              ? scans.itemObjIndex.get(key)
+              : scans.itemIndex.get(key);
+          if (!hit) continue;
+          const { sec, item } = hit;
+          let secEntry = secEntryByObj.get(sec);
+          if (!secEntry) secEntry = mkSectionEntry(sec, true);
+          const empty = !(
+            (item.name || "").trim() !== "" ||
+            (Number(item.selling_price) || 0) > 0 ||
+            (Number(item.base_cost) || 0) > 0
+          );
+          let roomRef = null;
+          let roomIdValue = null;
+          const rid = item.room_id;
+          if (rid != null && rid !== 0 && rid !== "") {
+            if (Number(rid) < 0) {
+              const roomHit = scans.roomIndex.get(rid);
+              roomRef = roomHit ? { stage: "rooms", obj: roomHit.room } : null;
+            } else {
+              roomIdValue = rid;
+            }
+          }
+          plan.stages.items.push({
+            obj: item,
+            key,
+            op: item.id ? "update" : "create",
+            sectionObj: sec,
+            sectionEntry: secEntry,
+            roomRef,
+            roomIdValue,
+            empty,
+            deleteIfPersisted: empty && !!item.id && !!sec.id,
+          });
+        }
+
+        return plan;
       }
 
       // ---- Auto-draft (local recovery layer) ----
@@ -2495,15 +3347,29 @@
           enableDraftFallback();
         }
       }
+      // loadDraft: read + parse the stored recovery draft in one call.
+      // Parsing/validation (invalid JSON -> null, missing state -> null,
+      // non-array sections -> null, unreadable -> null) is delegated to
+      // AutoSaveCore.parseDraftRaw so the init path can re-use the same
+      // parser on a raw string it has already captured (single read).
       function loadDraft() {
         try {
-          const raw = localStorage.getItem(DRAFT_KEY);
-          if (!raw) return null;
-          const draft = JSON.parse(raw);
-          if (!draft || !draft.state || !Array.isArray(draft.sections)) {
-            return null;
-          }
-          return draft;
+          return AutoSaveCore.parseDraftRaw(localStorage.getItem(DRAFT_KEY));
+        } catch (e) {
+          return null;
+        }
+      }
+      // Final FIX-14 correction: reads the RAW localStorage value (exact
+      // serialized bytes) without parsing. Combined with a single pre-fetch
+      // capture, the identity string and the parsed draft are guaranteed to
+      // describe the SAME snapshot. Cleanup is allowed only while the raw
+      // value re-read after the fetch is still byte-identical to the captured
+      // one; draft values observed to change/replace while the fetch was in
+      // flight are preserved. localStorage provides no atomic
+      // compare-and-delete, so a tiny synchronous read-to-remove gap remains.
+      function readDraftRaw() {
+        try {
+          return localStorage.getItem(DRAFT_KEY);
         } catch (e) {
           return null;
         }
@@ -2537,19 +3403,53 @@
       // Fix #5: hasUnsavedWork = false after full success
       // Fix #6: try/catch per stage for partial save handling
 
-      let autoSaveTimer = null;
       let autoSaveInProgress = false;
-      let lastAutoSaveJson = null;
       const AUTO_SAVE_DEBOUNCE = 5000;
       const AUTO_SAVE_TIMEOUT_FIRST = 30000;
       const AUTO_SAVE_TIMEOUT = 15000;
       const AUTO_SAVE_RETRY_DELAYS = [5000, 15000];
       const AUTO_SAVE_TOTAL_TIMEOUT = 90000;
+      // FIX-6 D-2.1: observability hook — the Save Plan computed for the most
+      // recent cycle. Set by runAutoSaveToServer; never used to alter the send
+      // path (the sender stays non-selective until D-2.2).
+      let lastSavePlan = null;
 
-      function scheduleAutoSave() {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(autoSaveToServer, AUTO_SAVE_DEBOUNCE);
+      let autoSaveController = null;
+      function getAutoSaveController() {
+        if (autoSaveController) return autoSaveController;
+        autoSaveController = AutoSaveCore.createController({
+          debounceMs: AUTO_SAVE_DEBOUNCE,
+          readSnapshot: () => JSON.stringify({ state, sections }),
+          runSave: runAutoSaveToServer,
+          isLocked: () => isSavingToServer,
+          onSaving: () => showAutoSaveIndicator("saving"),
+          onSaved: () => showAutoSaveIndicator("saved"),
+          onError: () => showAutoSaveIndicator("error"),
+          onDirty: () => {
+            hasUnsavedWork = true;
+          },
+          onClean: () => {
+            // FIX-6 Slice D-1: dirty bookkeeping is now cleared selectively
+            // inside runAutoSaveToServer (stamp-gated, snapshot-based). onClean
+            // only fires when NO edit happened during the save, so a blanket
+            // resetDirtyEntities() here is forbidden — it could wipe a mark
+            // that a bookkeeping-only edit (e.g. the name field) added mid-save.
+            clearDraft();
+            hasUnsavedWork = false;
+          },
+        });
+        return autoSaveController;
       }
+
+      // Fix #6 (Slice B): resume a pending dirty auto-save when the page
+      // becomes active again. Both listeners call the same idempotent hook —
+      // the controller ignores resumes while a timer is already pending, a
+      // save is in flight, the state is clean, or a manual save holds the
+      // shared lock — so this can never stack a second timer or a second save.
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) getAutoSaveController().resume();
+      });
+      window.addEventListener("focus", () => getAutoSaveController().resume());
 
       // Fix #4: fetch with AbortController timeout
       function apiWithTimeout(path, options, timeoutMs) {
@@ -2580,70 +3480,78 @@
         throw lastErr;
       }
 
-      async function autoSaveToServer() {
-        // Fix #1: shared lock — don't interfere with manual save
-        if (isSavingToServer) return;
-        if (!currentUser) return;
-        if (!currentQuoteId && !state.projectName && sections.length === 0) return;
-
-        // Skip if nothing changed since last successful save
-        const snapshot = JSON.stringify({ state, sections });
-        if (snapshot === lastAutoSaveJson) return;
+      async function runAutoSaveToServer() {
+        if (!currentUser) return false;
+        if (!currentQuoteId && !state.projectName && sections.length === 0) return true;
 
         // Acquire shared lock
         autoSaveInProgress = true;
         isSavingToServer = true;
-        showAutoSaveIndicator("saving");
 
-        let fullSuccess = false;
         const totalTimer = setTimeout(() => {
           showAutoSaveIndicator("error");
         }, AUTO_SAVE_TOTAL_TIMEOUT);
 
+        // FIX-6 Slice D-1: snapshot the dirty state at cycle start (isolated
+        // copy) and remember the editor stamp. Marks that arrive while this
+        // cycle's requests are in flight never leak into the snapshot, and the
+        // cycle clears ONLY these entities when it succeeds with no concurrent
+        // edits.
+        const saveStartStamp = getAutoSaveController().getStamp();
+        const dirtySnapshot = AutoSaveCore.createDirtySnapshot(dirtyEntities);
+        // FIX-6 D-2.1: compute (but do NOT yet use) the selective Save Plan for
+        // this cycle. Purely observational — the send path below is unchanged.
+        // Guarded so a plan-construction error can never fail the save cycle.
         try {
-          // Fix #2: filter saveable sections using original references
-          // sections.filter() returns the same object references —
-          // modifying sec.id here changes sections[] directly
-          const saveableSections = sections.filter((sec) => {
-            return (sec.items || []).some(
-              (it) =>
-                it._fromServer ||
-                (it.name || "").trim() !== "" ||
-                (Number(it.selling_price) || 0) > 0 ||
-                (Number(it.base_cost) || 0) > 0
-            );
+          lastSavePlan = buildSavePlan({
+            dirtySnapshot,
+            sections,
+            state,
+            currentQuoteId,
           });
+        } catch (err) {
+          lastSavePlan = null;
+        }
+        // FIX-6 D-2.0 P-C: record every dirty-key remap this cycle performs so a
+        // successful CLEAN cycle can also drop the new server ids (they were not
+        // in the snapshot); a DIRTY cycle keeps them for the next save.
+        beginDirtyIdRemapLog();
 
-          if (saveableSections.length === 0 && !state.projectName) return;
+        try {
+          // FIX-6 D-2.2: selective send driven by buildSavePlan(). Only the
+          // entities the D-1 snapshot requires are written; clean sections,
+          // rooms and items are never touched. A plan failure aborts the cycle
+          // (catch returns false → the controller retries) instead of writing
+          // the whole quote.
+          if (!lastSavePlan) {
+            throw new Error("Save plan unavailable");
+          }
+          if (!lastSavePlan.hasWork) return true;
 
-          // Calculate totals from saveable items only
-          let subtotal = 0;
-          saveableSections.forEach((sec) => {
-            (sec.items || [])
-              .filter(
-                (it) =>
-                  it._fromServer ||
-                  (it.name || "").trim() !== "" ||
-                  (Number(it.selling_price) || 0) > 0 ||
-                  (Number(it.base_cost) || 0) > 0
-              )
-              .forEach((it) => {
-                subtotal +=
-                  (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
-              });
-          });
-          let discount =
-            state.discountType === "pct"
-              ? Math.round((subtotal * Number(state.discountVal)) / 100 * 100) / 100
-              : Number(state.discountVal);
-          const afterDiscount = Math.max(subtotal - discount, 0);
-          const vat = Math.round((afterDiscount * Number(state.taxPct)) / 100 * 100) / 100;
-          const grandTotal = Math.round((afterDiscount + vat) * 100) / 100;
+          const planQuote = lastSavePlan.quote;
+          const planSections = lastSavePlan.stages.sections;
+          const planRooms = lastSavePlan.stages.rooms;
+          const planItems = lastSavePlan.stages.items;
+
+          // Group planned rooms/items under their section entry so each
+          // section persists rooms BEFORE the items that reference their ids.
+          const roomsBySec = new Map();
+          const itemsBySec = new Map();
+          for (const entry of planRooms) {
+            const list = roomsBySec.get(entry.sectionEntry) || [];
+            list.push(entry);
+            roomsBySec.set(entry.sectionEntry, list);
+          }
+          for (const entry of planItems) {
+            const list = itemsBySec.get(entry.sectionEntry) || [];
+            list.push(entry);
+            itemsBySec.set(entry.sectionEntry, list);
+          }
 
           const body = {
             project_name: state.projectName || "مشروع بدون اسم",
             data: state,
-            total: grandTotal,
+            total: planQuote ? planQuote.totals.grandTotal : 0,
             reference_no: state.referenceNo,
             client_name: state.clientName,
             site_location: state.siteLocation,
@@ -2657,8 +3565,7 @@
             price_exclusions: state.priceExclusions,
           };
 
-          // Fix #6: each stage in its own try/catch
-          // Stage 1: save quote
+          // Stage 1: save the quote every cycle (its total is denormalized)
           try {
             if (currentQuoteId) {
               await apiWithRetry("/quotes/" + currentQuoteId, {
@@ -2676,12 +3583,14 @@
             throw new Error("Quote save failed: " + err.message);
           }
 
-          // Stage 2: save sections, rooms, items
-          // saveableSections contains original references — sec.id = res.id modifies sections[]
-          for (const sec of saveableSections) {
-            // Section
+          // Stage 2: write only the plan's required sections, rooms, items.
+          // op "create" → POST (+ has_rooms sync PUT for created sections with
+          // rooms), "update" → PUT, "depend" → clean parent of a dirty child,
+          // intentionally NO request.
+          for (const secEntry of planSections) {
+            const sec = secEntry.obj;
             try {
-              if (!sec.id && currentQuoteId) {
+              if (secEntry.op === "create") {
                 const res = await apiWithRetry(
                   `/quotes/${currentQuoteId}/sections`,
                   {
@@ -2695,8 +3604,24 @@
                   false
                 );
                 sec.id = res.id;
-              }
-              if (sec.id) {
+                remapDirtyIdForCycle("sections", sec, res.id);
+                if (secEntry.requiresHasRoomsSync && sec.id) {
+                  await apiWithRetry(
+                    `/quotes/${currentQuoteId}/sections/${sec.id}`,
+                    {
+                      method: "PUT",
+                      body: JSON.stringify({
+                        code: sec.code,
+                        name: sec.name,
+                        sort_order: sec.sort_order,
+                        has_rooms: sec.has_rooms ? 1 : 0,
+                      }),
+                    },
+                    false
+                  );
+                }
+                sec._fromServer = true;
+              } else if (secEntry.op === "update") {
                 await apiWithRetry(
                   `/quotes/${currentQuoteId}/sections/${sec.id}`,
                   {
@@ -2710,49 +3635,20 @@
                   },
                   false
                 );
+                sec._fromServer = true;
               }
-              sec._fromServer = true;
             } catch (err) {
               throw new Error(
                 "Section \"" + sec.name + "\" save failed: " + err.message
               );
             }
 
-            // Rooms
+            // Rooms under this section (guarded like the original code path)
             if (sec.has_rooms && sec.id) {
-              for (const room of sec.rooms || []) {
+              for (const roomEntry of roomsBySec.get(secEntry) || []) {
+                const room = roomEntry.obj;
                 try {
-                  if (!room.id) {
-                    const res = await apiWithRetry(
-                      "/sections/" + sec.id + "/rooms",
-                      {
-                        method: "POST",
-                        body: JSON.stringify({
-                          name: room.name,
-                          sort_order: room.sort_order,
-                        }),
-                      },
-                      false
-                    );
-                    room.id = res.id;
-                  } else if (room.id < 0) {
-                    const oldId = room.id;
-                    const res = await apiWithRetry(
-                      "/sections/" + sec.id + "/rooms",
-                      {
-                        method: "POST",
-                        body: JSON.stringify({
-                          name: room.name,
-                          sort_order: room.sort_order,
-                        }),
-                      },
-                      false
-                    );
-                    room.id = res.id;
-                    for (const item of sec.items) {
-                      if (item.room_id === oldId) item.room_id = res.id;
-                    }
-                  } else {
+                  if (roomEntry.op === "update") {
                     await apiWithRetry(
                       "/sections/" + sec.id + "/rooms/" + room.id,
                       {
@@ -2764,6 +3660,27 @@
                       },
                       false
                     );
+                  } else {
+                    const res = await apiWithRetry(
+                      "/sections/" + sec.id + "/rooms",
+                      {
+                        method: "POST",
+                        body: JSON.stringify({
+                          name: room.name,
+                          sort_order: room.sort_order,
+                        }),
+                      },
+                      false
+                    );
+                    remapDirtyIdForCycle("rooms", roomEntry.key, res.id);
+                    if (roomEntry.oldRoomTempKey != null) {
+                      for (const item of sec.items) {
+                        if (item.room_id === roomEntry.oldRoomTempKey) {
+                          item.room_id = res.id;
+                        }
+                      }
+                    }
+                    room.id = res.id;
                   }
                   room._fromServer = true;
                 } catch (err) {
@@ -2774,20 +3691,16 @@
               }
             }
 
-            // Items
-            for (const item of sec.items) {
-              const itemHasData =
-                (item.name || "").trim() !== "" ||
-                (Number(item.selling_price) || 0) > 0 ||
-                (Number(item.base_cost) || 0) > 0;
-              if (!itemHasData) {
-                if (item.id && sec.id) {
-                  apiWithRetry(
-                    "/sections/" + sec.id + "/items/" + item.id,
-                    { method: "DELETE" },
-                    false
-                  ).catch(() => {});
-                }
+            // Items under this section — empty persisted items are deleted
+            // fire-and-forget (server DELETE is idempotent) and not re-written.
+            for (const itemEntry of itemsBySec.get(secEntry) || []) {
+              const item = itemEntry.obj;
+              if (itemEntry.deleteIfPersisted) {
+                apiWithRetry(
+                  "/sections/" + sec.id + "/items/" + item.id,
+                  { method: "DELETE" },
+                  false
+                ).catch(() => {});
                 continue;
               }
               try {
@@ -2796,7 +3709,7 @@
                   category_id: item.category_id || null,
                   room_id: item.room_id || null,
                 };
-                if (!item.id && sec.id) {
+                if (itemEntry.op === "create" && sec.id) {
                   const res = await apiWithRetry(
                     "/sections/" + sec.id + "/items",
                     {
@@ -2806,7 +3719,8 @@
                     false
                   );
                   item.id = res.id;
-                } else if (item.id && sec.id) {
+                  remapDirtyIdForCycle("items", item, res.id);
+                } else if (itemEntry.op === "update" && sec.id) {
                   await apiWithRetry(
                     "/sections/" + sec.id + "/items/" + item.id,
                     {
@@ -2839,19 +3753,32 @@
             }
           }
 
+          // FIX-6 Slice D-1: selective, stamp-gated clear. Only entities that
+          // were dirty when this cycle STARTED are removed from the live dirty
+          // state; anything marked while the requests were in flight stays dirty
+          // (no blanket reset), so a concurrent edit is never lost.
+          if (getAutoSaveController().getStamp() === saveStartStamp) {
+            AutoSaveCore.clearDirtySnapshot(dirtyEntities, dirtySnapshot);
+            // FIX-6 Slice D-2.1: drop remapped server-id keys too (they were
+            // newly covered by this clean cycle's snapshot).
+            clearDirtyIdRemapLog();
+          } else {
+            // DIRTY stamp (a mid-cycle edit landed): the remapped entity must
+            // STAY dirty under its server identity so the follow-up cycle
+            // (already stamp-gated) persists it. Do NOT clear, do NOT drop
+            // server-id keys.
+            consumeDirtyIdRemapLogForDirtyCycle();
+          }
+
           // All stages succeeded
-          fullSuccess = true;
-          lastAutoSaveJson = JSON.stringify({ state, sections });
-          clearDraft();
-          // Fix #5: after full success, no unsaved work
-          hasUnsavedWork = false;
-          showAutoSaveIndicator("saved");
+          return true;
         } catch (err) {
           console.error("[auto-save] Failed:", err.message);
-          showAutoSaveIndicator("error");
+          return false;
         } finally {
           clearTimeout(totalTimer);
           autoSaveInProgress = false;
+          dirtyIdRemapLog = null;
           // Fix #1: release shared lock
           isSavingToServer = false;
         }
@@ -3142,59 +4069,53 @@
             const roomItemCount = allItems.filter(
               (it) => it.room_id === room.id,
             ).length;
-            roomTabs += `<div class="room-tab${activeRoomIdx === rIdx ? " active" : ""}" data-room-idx="${rIdx}"><span class="room-name-text">${escapeAttr(room.name)}</span><button class="room-edit" data-room-edit="${rIdx}" title="تعديل الاسم">✎</button><span class="count">${roomItemCount || ""}</span><button class="room-rm" data-room-del="${rIdx}" title="حذف الغرفة">✕</button></div>`;
+            roomTabs += `<div class="room-tab${activeRoomIdx === rIdx ? " active" : ""}" data-room-idx="${rIdx}"><span class="room-name-text">${escapeAttr(room.name)}</span><span class="count">${roomItemCount || ""}</span><button class="room-copy" data-room-copy="${rIdx}" title="نسخ الغرفة">📋</button><button class="room-edit" data-room-edit="${rIdx}" title="تعديل الاسم">✎</button><button class="room-rm" data-room-del="${rIdx}" title="حذف الغرفة">✕</button></div>`;
           });
           roomsHtml = `<div class="rooms-nav" id="roomsNav">${roomTabs}<button class="add-room-btn" id="addRoomBtn">+ غرفة</button></div>`;
         } else {
           roomsHtml = `<div class="rooms-nav"><button class="enable-rooms-btn" id="enableRoomsBtn">🏠 إضافة غرف</button></div>`;
         }
 
-        // Always show all categories as tabs, filtered by selected discipline if any
-        const catsInSection = [];
+        // Build category tabs from items actually present in this section/room
         const catCounts = {};
         roomFilteredItems.forEach((it) => {
           const cid = it.category_id != null ? Number(it.category_id) : null;
           if (!catCounts[cid]) catCounts[cid] = 0;
           catCounts[cid]++;
         });
-        const filteredCats = selectedDisciplineId
-          ? allPickerCategories.filter(
-              (cat) =>
-                Number(cat._disciplineId) === Number(selectedDisciplineId),
-            )
-          : allPickerCategories;
-        console.log(
-          "[DBG-4] renderMainPanel: selectedDisciplineId=",
-          selectedDisciplineId,
-          "filteredCats.length=",
-          filteredCats.length,
-          "filteredCats:",
-          filteredCats.map((c) => c.name),
+
+        // Only show categories that have at least one item in this section/room
+        const activeCatIds = new Set(
+          roomFilteredItems
+            .filter((it) => it.category_id != null)
+            .map((it) => Number(it.category_id)),
         );
-        filteredCats.forEach((cat) => {
-          catsInSection.push({
+        const catsInSection = allPickerCategories
+          .filter((cat) => activeCatIds.has(Number(cat.id)))
+          .map((cat) => ({
             id: cat.id,
             name: cat.name,
             count: catCounts[cat.id] || 0,
-          });
-        });
+          }));
 
-        // Show unclassified if items exist without category_id
         const unclassCount = catCounts[null] || 0;
 
-        // Filter items by active tab
+        // If the active filter references a category that no longer has items,
+        // reset back to "الكل"
+        if (activeCategoryTab === "__unclassified__" && unclassCount === 0) {
+          activeCategoryTab = null;
+        } else if (
+          activeCategoryTab != null &&
+          activeCategoryTab !== "__unclassified__" &&
+          !activeCatIds.has(Number(activeCategoryTab))
+        ) {
+          activeCategoryTab = null;
+        }
+
+        // Filter items by active category tab
         let items;
         if (activeCategoryTab === null) {
-          if (selectedDisciplineId) {
-            const discCatIds = new Set(filteredCats.map((c) => Number(c.id)));
-            items = roomFilteredItems.filter(
-              (it) =>
-                it.category_id != null &&
-                discCatIds.has(Number(it.category_id)),
-            );
-          } else {
-            items = roomFilteredItems;
-          }
+          items = roomFilteredItems;
         } else if (activeCategoryTab === "__unclassified__") {
           items = roomFilteredItems.filter((it) => !it.category_id);
         } else {
@@ -3205,23 +4126,11 @@
           );
         }
 
-        // Discipline tabs + Category tabs HTML
-        let discTabsHtml = "";
-        if (allDisciplines.length >= 1) {
-          discTabsHtml = `<div class="category-tabs" id="disciplineTabs">
-            <button class="category-tab${selectedDisciplineId === null ? " active" : ""}" data-disc="all">الكل</button>`;
-          allDisciplines.forEach((d) => {
-            discTabsHtml += `<button class="category-tab${Number(selectedDisciplineId) === Number(d.id) ? " active" : ""}" data-disc="${d.id}">${escapeAttr(d.name)}</button>`;
-          });
-          discTabsHtml += `</div>`;
-        }
-
+        // Category tabs HTML (only categories with items + "الكل")
         let catTabsHtml = "";
-        const totalClassified = catsInSection.reduce((s, c) => s + c.count, 0);
-        const totalAll = selectedDisciplineId
-          ? filteredCats.reduce((s, c) => s + (catCounts[Number(c.id)] || 0), 0)
-          : roomFilteredItems.length;
-        if (allPickerCategories.length > 0 || unclassCount > 0) {
+        const totalAll = roomFilteredItems.length;
+        const hasAnyTabs = catsInSection.length > 0 || unclassCount > 0;
+        if (hasAnyTabs) {
           catTabsHtml = `<div class="category-tabs" id="categoryTabs">
             <button class="category-tab${activeCategoryTab === null ? " active" : ""}" data-cat="all">
               الكل<span class="cat-count">${totalAll}</span>
@@ -3247,17 +4156,9 @@
               ? allPickerCategories.find((c) => c.id === activeCategoryTab)
                   ?.name || ""
               : "";
-          const activeDiscName =
-            !activeCategoryTab && selectedDisciplineId
-              ? allDisciplines.find(
-                  (d) => Number(d.id) === Number(selectedDisciplineId),
-                )?.name || ""
-              : "";
           const searchPlaceholder = activeCatName
             ? `بحث في ${escapeAttr(activeCatName)} — اكتب أو اضغط لعرض كل البنود...`
-            : activeDiscName
-              ? `بحث في ${escapeAttr(activeDiscName)} — اكتب اسم البند أو الكود...`
-              : "بحث في كل الفئات — اكتب اسم البند أو الكود...";
+            : "بحث في كل الفئات — اكتب اسم البند أو الكود...";
           searchHtml = `<div class="cat-search-row">
             <input class="cat-search-input" id="catSearchInput" type="text" placeholder="${searchPlaceholder}" autocomplete="off" />
             <button class="cat-search-clear" id="catSearchClear" title="مسح">✕</button>
@@ -3307,10 +4208,13 @@
           <div class="section-actions">
             <button class="btn-rename" id="renameSecBtn">تعديل الاسم</button>
             <button class="btn-delete-sec" id="deleteSecBtn">حذف القسم</button>
+            <button class="btn-copy-direct-sec" id="copyDirectBtn">📋 نسخ المباشر</button>
           </div>
           ${roomsHtml}
-          ${discTabsHtml}
           ${catTabsHtml}
+          <div class="cat-actions-row">
+            <button class="pick-catalog-btn" id="bulkPickBtn">☑ إضافة بنود</button>
+          </div>
           ${searchHtml}
           ${
             items.length
@@ -3320,12 +4224,9 @@
                 <th class="col-price">سعر البيع</th>${costHeader}
                 <th class="col-total">الإجمالي</th><th class="col-notes">ملاحظات</th><th class="col-del"></th>
               </tr></thead><tbody>${rows}</tbody></table>`
-              : selectedDisciplineId && filteredCats.length === 0
-                ? `<p class="empty-note" style="padding:20px 0;">لا توجد أقسام مربوطة بتصنيف "${escapeAttr(allDisciplines.find((d) => Number(d.id) === Number(selectedDisciplineId))?.name || "")}". أضف أقساماً من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</p>`
-                : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? "ما في بنود لهالقسم. ابدأ بإضافة أول بند." : "ما في بنود لسا. ابدأ بإضافة أول بند."}</p>`
+              : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? "ما في بنود لهالقسم. ابدأ بإضافة أول بند." : "ما في بنود لسا. ابدأ بإضافة أول بند."}</p>`
           }
           <button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>
-          ${isOwnerOrAdmin ? '<button class="pick-catalog-btn" id="pickCatalogBtn">📂 اختيار من كتالوج الأسعار</button>' : ""}
           <div class="section-subtotal" id="secSubtotal"></div>
         </div>`;
 
@@ -3342,30 +4243,6 @@
           : "القسم";
         document.getElementById("secSubtotal").textContent =
           `► إجمالي ${subLabel}: ${moneyInt(secSub)}`;
-
-        // Discipline tab click events
-        document
-          .querySelectorAll("#disciplineTabs .category-tab")
-          .forEach((tab) => {
-            tab.onclick = () => {
-              const val = tab.dataset.disc;
-              selectedDisciplineId = val === "all" ? null : Number(val);
-              activeCategoryTab = null;
-              console.log(
-                "[DBG-3] Discipline tab clicked. selectedDisciplineId:",
-                selectedDisciplineId,
-              );
-              console.log(
-                "[DBG-3] allPickerCategories annotations:",
-                allPickerCategories.map((c) => ({
-                  id: c.id,
-                  name: c.name,
-                  _disciplineId: c._disciplineId,
-                })),
-              );
-              renderAll();
-            };
-          });
 
         // Category tab click events
         document
@@ -3388,6 +4265,7 @@
               if (
                 e.target.classList.contains("room-rm") ||
                 e.target.classList.contains("room-edit") ||
+                e.target.classList.contains("room-copy") ||
                 e.target.tagName === "INPUT"
               )
                 return;
@@ -3395,97 +4273,22 @@
               activeRoomIdx = val === "null" ? null : Number(val);
               renderAll();
             };
-            tab.ondblclick = async (e) => {
+            tab.ondblclick = (e) => {
               if (
                 e.target.classList.contains("room-rm") ||
                 e.target.classList.contains("room-edit") ||
+                e.target.classList.contains("room-copy") ||
                 e.target.tagName === "INPUT"
               )
                 return;
               const rIdx = Number(tab.dataset.roomIdx);
-              const room = (sec.rooms || [])[rIdx];
-              if (!room) return;
-              const nameSpan = tab.querySelector(".room-name-text");
-              if (!nameSpan) return;
-              const oldName = room.name;
-              const input = document.createElement("input");
-              input.type = "text";
-              input.value = oldName;
-              input.style.cssText =
-                "width:80px;font-size:12px;border:none;border-radius:4px;padding:1px 4px;background:var(--surface);color:var(--ash);";
-              nameSpan.replaceWith(input);
-              input.focus();
-              input.select();
-              const saveRename = async () => {
-                const newName = input.value.trim();
-                if (newName && newName !== oldName) {
-                  room.name = newName;
-                  if (room.id && sec.id && room.id > 0) {
-                    try {
-                      await api(`/sections/${sec.id}/rooms/${room.id}`, {
-                        method: "PUT",
-                        body: JSON.stringify({ name: newName }),
-                      });
-                    } catch {}
-                  }
-                  markDirty();
-                }
-                renderAll();
-              };
-              input.onkeydown = (ev) => {
-                if (ev.key === "Enter") {
-                  ev.preventDefault();
-                  saveRename();
-                }
-                if (ev.key === "Escape") {
-                  renderAll();
-                }
-              };
-              input.onblur = saveRename;
+              openRoomNameModalForEdit(rIdx);
             };
             tab.querySelectorAll(".room-edit").forEach((btn) => {
               btn.onclick = (e) => {
                 e.stopPropagation();
                 const rIdx = Number(btn.dataset.roomEdit);
-                const room = (sec.rooms || [])[rIdx];
-                if (!room) return;
-                const nameSpan = tab.querySelector(".room-name-text");
-                if (!nameSpan) return;
-                const oldName = room.name;
-                const input = document.createElement("input");
-                input.type = "text";
-                input.value = oldName;
-                input.style.cssText =
-                  "width:80px;font-size:12px;border:none;border-radius:4px;padding:1px 4px;background:var(--surface);color:var(--ash);";
-                nameSpan.replaceWith(input);
-                input.focus();
-                input.select();
-                const saveRename = async () => {
-                  const newName = input.value.trim();
-                  if (newName && newName !== oldName) {
-                    room.name = newName;
-                    if (room.id && sec.id && room.id > 0) {
-                      try {
-                        await api(`/sections/${sec.id}/rooms/${room.id}`, {
-                          method: "PUT",
-                          body: JSON.stringify({ name: newName }),
-                        });
-                      } catch {}
-                    }
-                    markDirty();
-                  }
-                  renderAll();
-                };
-                input.onkeydown = (ev) => {
-                  if (ev.key === "Enter") {
-                    ev.preventDefault();
-                    saveRename();
-                  }
-                  if (ev.key === "Escape") {
-                    renderAll();
-                  }
-                };
-                input.onblur = saveRename;
+                openRoomNameModalForEdit(rIdx);
               };
             });
           });
@@ -3504,12 +4307,24 @@
               );
             };
           });
+          // Room copy buttons
+          document.querySelectorAll("#roomsNav .room-copy").forEach((btn) => {
+            btn.onclick = (e) => {
+              e.stopPropagation();
+              const rIdx = Number(btn.dataset.roomCopy);
+              openCopyRoomModal(rIdx);
+            };
+          });
           // Add room button
           const addRoomBtn = document.getElementById("addRoomBtn");
           if (addRoomBtn) {
             addRoomBtn.onclick = () => {
               const input = document.getElementById("roomNameInput");
               input.value = "";
+              editingRoomIdx = null;
+              document.querySelector(
+                "#roomNameModal .modal h3",
+              ).textContent = "إضافة غرفة جديدة";
               openModal("roomNameModal");
               input.focus();
             };
@@ -3534,6 +4349,7 @@
                 });
               } catch {}
             }
+            markSectionDirty(sec);
             markDirty();
             renderAll();
             showToast(
@@ -3741,6 +4557,9 @@
               deleteSection,
             );
           };
+        const copyDirectBtn = document.getElementById("copyDirectBtn");
+        if (copyDirectBtn)
+          copyDirectBtn.onclick = () => openCopyDirectModal();
 
         // Event: add item (empty)
         document.getElementById("addItemBtn").onclick = async () => {
@@ -3759,10 +4578,7 @@
             selling_price: 0,
             notes: "",
             image: null,
-          category_id:
-            activeCategoryTab && activeCategoryTab !== "__unclassified__"
-              ? activeCategoryTab
-              : null,
+            category_id: null,
             room_id: activeRoom ? activeRoom.id : null,
           };
           if (currentQuoteId && sec.id) {
@@ -3784,6 +4600,7 @@
             }
           }
           allItems.push(newItem);
+          markItemDirty(newItem);
           markDirty();
           renderAll();
         };
@@ -3814,6 +4631,7 @@
               room_id: activeRoom ? activeRoom.id : null,
             };
             allItems.push(newItem);
+            markItemDirty(newItem);
             markDirty();
             renderAll();
             const preCat =
@@ -3822,6 +4640,16 @@
                 : null;
             openPicker(allItems.length - 1, preCat);
           };
+        }
+
+        // Event: bulk add items from catalog
+        const bulkBtn = document.getElementById("bulkPickBtn");
+        if (bulkBtn) {
+          bulkBtn.onclick = () => openBulkPicker();
+        }
+        const bulkAddBtnEl = document.getElementById("bulkAddBtn");
+        if (bulkAddBtnEl) {
+          bulkAddBtnEl.onclick = () => addBulkSelectedItems();
         }
 
         // Item row events
@@ -3837,7 +4665,11 @@
           let fNameCachedItems = [];
 
           fNameInput.oninput = (e) => {
-            item.name = e.target.value;
+            if (e.target.value !== item.name) {
+              item.name = e.target.value;
+              markItemDirty(item);
+              markDirty();
+            }
             clearTimeout(fNameTimeout);
             if (!fNameAc) return;
             const val = e.target.value.trim();
@@ -3901,6 +4733,8 @@
                     (i) => Number(i.id) === id,
                   );
                   if (catItem) {
+                    markItemDirty(item);
+                    markDirty();
                     item.name = catItem.name || item.name;
                     item.description = catItem.description || item.description;
                     item.unit = catItem.unit || item.unit;
@@ -3960,16 +4794,19 @@
           tr.querySelector(".f-desc").oninput = (e) => {
             item.description = e.target.value;
             autoGrow(e.target);
+            markItemDirty(item);
             markDirty();
           };
           autoGrow(tr.querySelector(".f-desc"));
           tr.querySelector(".f-unit").onchange = (e) => {
             item.unit = e.target.value;
+            markItemDirty(item);
             markDirty();
           };
           tr.querySelector(".f-notes").oninput = (e) => {
             item.notes = e.target.value;
             autoGrow(e.target);
+            markItemDirty(item);
             markDirty();
           };
           autoGrow(tr.querySelector(".f-notes"));
@@ -3977,6 +4814,7 @@
           tr.querySelector(".f-qty").oninput = (e) => {
             item.qty = Number(e.target.value) || 0;
             recalcItem(item);
+            markItemDirty(item);
             markDirty();
             renderTotals();
           };
@@ -3985,6 +4823,7 @@
           if (!isOwnerOrAdmin) {
             priceInput.oninput = (e) => {
               item.selling_price = Number(e.target.value) || 0;
+              markItemDirty(item);
               markDirty();
               renderTotals();
             };
@@ -3997,6 +4836,7 @@
               baseCostInput.oninput = (e) => {
                 item.base_cost = Number(e.target.value) || 0;
                 recalcItem(item);
+                markItemDirty(item);
                 markDirty();
                 renderTotals();
               };
@@ -4004,6 +4844,7 @@
               overheadInput.oninput = (e) => {
                 item.overhead_pct = Number(e.target.value) || 0;
                 recalcItem(item);
+                markItemDirty(item);
                 markDirty();
                 renderTotals();
               };
@@ -4016,6 +4857,7 @@
               });
             }
             allItems.splice(idx, 1);
+            clearItemDirty(item);
             markDirty();
             renderAll();
           };
@@ -4035,6 +4877,7 @@
               const file = e.target.files && e.target.files[0];
               if (!file) return;
               item.image = await compressImage(file);
+              markItemDirty(item);
               markDirty();
               renderAll();
             };
@@ -4049,6 +4892,7 @@
             rmBtn.onclick = (e) => {
               e.stopPropagation();
               item.image = null;
+              markItemDirty(item);
               markDirty();
               renderAll();
             };
@@ -4084,12 +4928,7 @@
           selling_price: Number(catItem.selling_price) || 0,
           notes: "",
           image: null,
-          category_id:
-            catItem.category_id != null
-              ? catItem.category_id
-              : activeCategoryTab && activeCategoryTab !== "__unclassified__"
-                ? activeCategoryTab
-                : null,
+          category_id: catItem.category_id != null ? catItem.category_id : null,
           room_id: activeRoom ? activeRoom.id : null,
         };
         if (currentQuoteId && sec.id) {
@@ -4107,6 +4946,7 @@
           }
         }
         allItems.push(newItem);
+        markItemDirty(newItem);
         markDirty();
         renderAll();
         showToast("تمت إضافة البند من الكتالوج");
@@ -4131,10 +4971,7 @@
           selling_price: 0,
           notes: "",
           image: null,
-          category_id:
-            activeCategoryTab && activeCategoryTab !== "__unclassified__"
-              ? activeCategoryTab
-              : null,
+          category_id: null,
           room_id: activeRoom ? activeRoom.id : null,
         };
         if (currentQuoteId && sec.id) {
@@ -4152,6 +4989,7 @@
           }
         }
         allItems.push(newItem);
+        markItemDirty(newItem);
         markDirty();
         renderAll();
         showToast("تمت إضافة البند يدوياً");
@@ -4325,7 +5163,11 @@
         let fNameCachedItems = [];
 
         fNameInput.oninput = (e) => {
-          item.name = e.target.value;
+          if (e.target.value !== item.name) {
+            item.name = e.target.value;
+            markItemDirty(item);
+            markDirty();
+          }
           clearTimeout(fNameTimeout);
           if (!fNameAc) return;
           const val = e.target.value.trim();
@@ -4377,6 +5219,7 @@
                   (i) => Number(i.id) === id,
                 );
                 if (catItem) {
+                  markItemDirty(item);
                   item.name = catItem.name || item.name;
                   item.description =
                     catItem.description || item.description;
@@ -4437,16 +5280,19 @@
         tr.querySelector(".f-desc").oninput = (e) => {
           item.description = e.target.value;
           autoGrow(e.target);
+          markItemDirty(item);
           markDirty();
         };
         autoGrow(tr.querySelector(".f-desc"));
         tr.querySelector(".f-unit").onchange = (e) => {
           item.unit = e.target.value;
+          markItemDirty(item);
           markDirty();
         };
         tr.querySelector(".f-notes").oninput = (e) => {
           item.notes = e.target.value;
           autoGrow(e.target);
+          markItemDirty(item);
           markDirty();
         };
         autoGrow(tr.querySelector(".f-notes"));
@@ -4454,6 +5300,7 @@
         tr.querySelector(".f-qty").oninput = (e) => {
           item.qty = Number(e.target.value) || 0;
           recalcItem(item);
+          markItemDirty(item);
           markDirty();
           renderTotals();
         };
@@ -4462,6 +5309,7 @@
         if (!isOwnerOrAdmin) {
           priceInput.oninput = (e) => {
             item.selling_price = Number(e.target.value) || 0;
+            markItemDirty(item);
             markDirty();
             renderTotals();
           };
@@ -4474,6 +5322,7 @@
             baseCostInput.oninput = (e) => {
               item.base_cost = Number(e.target.value) || 0;
               recalcItem(item);
+              markItemDirty(item);
               markDirty();
               renderTotals();
             };
@@ -4481,6 +5330,7 @@
             overheadInput.oninput = (e) => {
               item.overhead_pct = Number(e.target.value) || 0;
               recalcItem(item);
+              markItemDirty(item);
               markDirty();
               renderTotals();
             };
@@ -4497,6 +5347,7 @@
             }
           }
           sec.items.splice(itemIdx, 1);
+          clearItemDirty(item);
           markDirty();
           renderAllItemsRows();
           renderAll();
@@ -4516,6 +5367,7 @@
             const file = e.target.files && e.target.files[0];
             if (!file) return;
             item.image = await compressImage(file);
+            markItemDirty(item);
             markDirty();
             renderAllItemsRows();
           };
@@ -4530,6 +5382,7 @@
           rmBtn.onclick = (e) => {
             e.stopPropagation();
             item.image = null;
+            markItemDirty(item);
             markDirty();
             renderAllItemsRows();
           };
@@ -4600,6 +5453,7 @@
           }
         }
         allItems.push(newItem);
+        markItemDirty(newItem);
         markDirty();
         renderAllItemsRows();
         renderAll();
@@ -4748,6 +5602,7 @@
           inp.oninput = (e) => {
             const idx = Number(e.target.dataset.idx);
             state.paymentTerms[idx].percentage = Number(e.target.value) || 0;
+            markQuoteDirty();
             markDirty();
             const row = e.target.closest(".payment-row");
             const amtEl = row && row.querySelector(".amt");
@@ -4778,6 +5633,7 @@
           inp.oninput = (e) => {
             const idx = Number(e.target.dataset.idx);
             state.paymentTerms[idx].trigger_description = e.target.value;
+            markQuoteDirty();
             markDirty();
           };
         });
@@ -4785,6 +5641,7 @@
           btn.onclick = () => {
             const idx = Number(btn.dataset.idx);
             state.paymentTerms.splice(idx, 1);
+            markQuoteDirty();
             markDirty();
             renderPaymentTerms(grandTotal);
           };
@@ -4793,6 +5650,7 @@
         if (addBtn) {
           addBtn.onclick = () => {
             state.paymentTerms.push({ percentage: 0, trigger_description: "" });
+            markQuoteDirty();
             markDirty();
             renderPaymentTerms(grandTotal);
             const inputs = el.querySelectorAll(".pct-input");
@@ -4812,8 +5670,13 @@
       function openSectionModal(idx) {
         editingSectionIdx = idx !== undefined ? idx : null;
         const modal = document.getElementById("sectionModal");
-        document.getElementById("sectionModalTitle").textContent =
-          editingSectionIdx !== null ? "تعديل القسم" : "إضافة قسم جديد";
+        if (editingSectionIdx !== null) {
+          document.getElementById("sectionModalTitle").textContent = "تعديل القسم";
+          document.getElementById("secModalSave").textContent = "حفظ";
+        } else {
+          document.getElementById("sectionModalTitle").textContent = "إضافة قسم جديد";
+          document.getElementById("secModalSave").textContent = "حفظ";
+        }
         document.getElementById("secModalCode").value =
           editingSectionIdx !== null
             ? sections[editingSectionIdx].code
@@ -4842,9 +5705,7 @@
           const sec = sections[editingSectionIdx];
           sec.code = code;
           sec.name = name;
-          // ملاحظة: تعديل اسم/كود القسم يُحفَّظ فورًا على السيرفر عبر PUT.
-          // زر "تجاهل" لا يتراجع عن هذا التعديل تحديدًا (فقط عن الأقسام/البنود المُضافة حديثًا).
-          // هذا حد مقبول تم تحديده بوعي بتاريخ 2026-07-22 لأن حالة الاستخدام نادرة.
+          markSectionDirty(sec);
           if (currentQuoteId && sec.id) {
             await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
               method: "PUT",
@@ -4868,6 +5729,7 @@
             newSec.id = res.id;
           }
           sections.push(newSec);
+          markSectionDirty(newSec);
           activeSectionIdx = sections.length - 1;
         }
         closeSectionModal();
@@ -4876,6 +5738,174 @@
         showToast(
           editingSectionIdx !== null ? "تم تعديل القسم" : "تمت إضافة القسم",
         );
+      };
+
+      // ---- Copy Room Modal ----
+      let copyRoomSourceIdx = null;
+      function openCopyRoomModal(roomIdx) {
+        copyRoomSourceIdx = roomIdx;
+        const sourceSec = sections[activeSectionIdx];
+        const select = document.getElementById("copyRoomTargetSection");
+        select.innerHTML = "";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        placeholder.textContent = "اختر القسم...";
+        select.appendChild(placeholder);
+        sections.forEach((sec) => {
+          if (sec.id === sourceSec.id) return;
+          const opt = document.createElement("option");
+          opt.value = sec.id;
+          opt.textContent = `${sec.code} — ${sec.name}`;
+          select.appendChild(opt);
+        });
+        if (select.options.length <= 1) {
+          const noOpt = document.createElement("option");
+          noOpt.value = "";
+          noOpt.disabled = true;
+          noOpt.textContent = "لا توجد أقسام أخرى مناسبة";
+          select.appendChild(noOpt);
+        }
+        document.getElementById("copyRoomModal").classList.add("open");
+        select.focus();
+      }
+      function closeCopyRoomModal() {
+        document.getElementById("copyRoomModal").classList.remove("open");
+        copyRoomSourceIdx = null;
+      }
+      document.getElementById("copyRoomCancel").onclick = closeCopyRoomModal;
+      document.getElementById("copyRoomModal").onclick = (e) => {
+        if (e.target === e.currentTarget) closeCopyRoomModal();
+      };
+      document.getElementById("copyRoomSave").onclick = async () => {
+        const targetId = Number(document.getElementById("copyRoomTargetSection").value);
+        if (!targetId) {
+          showToast("اختر القسم الهدف");
+          return;
+        }
+        if (copyRoomSourceIdx === null || !currentQuoteId) {
+          showToast("خطأ في تحديد الغرفة");
+          closeCopyRoomModal();
+          return;
+        }
+        const sec = sections[activeSectionIdx];
+        const room = sec.rooms[copyRoomSourceIdx];
+        if (!sec.id || !room.id) {
+          showToast("لا يمكن النسخ — تأكد من حفظ القسم والغرفة أولاً");
+          closeCopyRoomModal();
+          return;
+        }
+        try {
+          const res = await api(
+            `/quotes/${currentQuoteId}/rooms/${room.id}/clone`,
+            {
+              method: "POST",
+              body: JSON.stringify({ targetSectionId: targetId }),
+            },
+          );
+          const newRoom = { ...res.room, _fromServer: true };
+          const clonedItems = (res.items || []).map((it) => ({
+            ...it,
+            _fromServer: true,
+          }));
+          const targetIdx = sections.findIndex((s) => String(s.id) === String(targetId));
+          if (targetIdx !== -1) {
+            const targetSec = sections[targetIdx];
+            if (res.wasDirect) {
+              targetSec.has_rooms = 1;
+            }
+            if (!targetSec.rooms) targetSec.rooms = [];
+            const existingRoomIdx = targetSec.rooms.findIndex((r) => r.id === newRoom.id);
+            if (existingRoomIdx === -1) {
+              targetSec.rooms.push(newRoom);
+            }
+            for (const it of clonedItems) {
+              if (!targetSec.items) targetSec.items = [];
+              if (!targetSec.items.some((existing) => existing.id === it.id)) {
+                targetSec.items.push(it);
+              }
+            }
+          }
+          activeSectionIdx = targetIdx !== -1 ? targetIdx : activeSectionIdx;
+          const finalTargetSec = sections[activeSectionIdx];
+          const newRoomIdx = finalTargetSec.rooms.findIndex((r) => r.id === newRoom.id);
+          activeRoomIdx = newRoomIdx !== -1 ? newRoomIdx : null;
+          activeCategoryTab = null;
+          closeCopyRoomModal();
+          markSectionDirty(finalTargetSec);
+          markRoomDirty(newRoom);
+          for (const it of clonedItems) markItemDirty(it);
+          markDirty();
+          renderAll();
+          showToast("تم نسخ الغرفة بنجاح");
+        } catch (e) {
+          showToast("فشل النسخ: " + e.message);
+        }
+      };
+
+      // ---- Copy Direct Modal ----
+      function openCopyDirectModal() {
+        document.getElementById("copyDirectSecName").value = "";
+        document.getElementById("copyDirectSecCode").value = nextSectionCode();
+        document.getElementById("copyDirectModal").classList.add("open");
+        document.getElementById("copyDirectSecName").focus();
+      }
+      function closeCopyDirectModal() {
+        document.getElementById("copyDirectModal").classList.remove("open");
+      }
+      document.getElementById("copyDirectCancel").onclick = closeCopyDirectModal;
+      document.getElementById("copyDirectModal").onclick = (e) => {
+        if (e.target === e.currentTarget) closeCopyDirectModal();
+      };
+      document.getElementById("copyDirectSave").onclick = async () => {
+        const code = document.getElementById("copyDirectSecCode").value.trim();
+        const name = document.getElementById("copyDirectSecName").value.trim();
+        if (!code || !name) {
+          showToast("الكود والاسم مطلوبين");
+          return;
+        }
+        if (!currentQuoteId) {
+          showToast("خطأ: لا يوجد عرض محدد");
+          closeCopyDirectModal();
+          return;
+        }
+        const sec = sections[activeSectionIdx];
+        if (!sec.id) {
+          showToast("لا يمكن النسخ — تأكد من حفظ القسم أولاً");
+          closeCopyDirectModal();
+          return;
+        }
+        try {
+          const res = await api(
+            `/quotes/${currentQuoteId}/sections/${sec.id}/clone-direct`,
+            {
+              method: "POST",
+              body: JSON.stringify({ code, name }),
+            },
+          );
+          const newSec = {
+            ...res.section,
+            _fromServer: true,
+            rooms: [],
+            items: (res.section.items || []).map((it) => ({
+              ...it,
+              _fromServer: true,
+            })),
+          };
+          sections.push(newSec);
+          activeSectionIdx = sections.length - 1;
+          activeRoomIdx = null;
+          activeCategoryTab = null;
+          closeCopyDirectModal();
+          markSectionDirty(newSec);
+          (newSec.items || []).forEach((it) => markItemDirty(it));
+          markDirty();
+          renderAll();
+          showToast("تم نسخ المباشر بنجاح");
+        } catch (e) {
+          showToast("فشل النسخ: " + e.message);
+        }
       };
 
       function openTemplateModal(mode) {
@@ -5007,6 +6037,613 @@
       document.getElementById("pickerModal").onclick = (e) => {
         if (e.target === e.currentTarget) closePicker();
       };
+
+      // ---- Bulk Picker (multi-select items from catalog) ----
+      // Selection Basket — Application-level state (survives modal open/close)
+      let bulkSelectedIds = new Set();
+      let bulkSelectedItems = new Map();
+
+      // Basket target — frozen from first selection, cleared only on full success or delete-all
+      let bulkTargetQuoteSectionId = null;
+      let bulkTargetQuoteSectionName = null;
+      let bulkTargetRoomId = null;
+      let bulkTargetRoomName = null;
+
+      // Bulk Picker view state (modal-level, reset on open/close)
+      let bulkPickerView = "specialties";
+      let bulkPickerDisciplineId = null;
+      let bulkPickerDisciplineName = null;
+      let bulkPickerSections = [];
+      let bulkPickerSectionId = null;
+      let bulkPickerSectionName = null;
+
+      function clearBulkBasket() {
+        bulkSelectedIds = new Set();
+        bulkSelectedItems = new Map();
+        bulkTargetQuoteSectionId = null;
+        bulkTargetQuoteSectionName = null;
+        bulkTargetRoomId = null;
+        bulkTargetRoomName = null;
+      }
+
+      function ensureBulkTarget() {
+        if (bulkTargetQuoteSectionId !== null) return;
+        const sec = sections[activeSectionIdx];
+        if (!sec) return;
+        bulkTargetQuoteSectionId = sec.id;
+        bulkTargetQuoteSectionName = sec.name;
+        if (sec.has_rooms && activeRoomIdx !== null) {
+          const room = (sec.rooms || [])[activeRoomIdx];
+          if (room) {
+            bulkTargetRoomId = room.id;
+            bulkTargetRoomName = room.name;
+          }
+        }
+      }
+
+      async function openBulkPicker() {
+        // DO NOT clear bulkSelectedIds / bulkSelectedItems — basket persists across modal sessions
+        bulkPickerView = "specialties";
+        bulkPickerDisciplineId = null;
+        bulkPickerDisciplineName = null;
+        bulkPickerSections = [];
+        bulkPickerSectionId = null;
+        bulkPickerSectionName = null;
+        document.getElementById("bulkPickerSearch").value = "";
+        renderBulkTargetContext();
+        renderBulkView();
+        updateBulkSelectionBar();
+        document.getElementById("bulkPickerModal").classList.add("open");
+      }
+
+      function closeBulkPicker() {
+        document.getElementById("bulkPickerModal").classList.remove("open");
+        // DO NOT clear basket — persists across modal sessions
+        bulkPickerView = "specialties";
+        bulkPickerDisciplineId = null;
+        bulkPickerDisciplineName = null;
+        bulkPickerSections = [];
+        bulkPickerSectionId = null;
+        bulkPickerSectionName = null;
+      }
+
+      document.getElementById("bulkPickerModal").onclick = (e) => {
+        if (e.target === e.currentTarget) closeBulkPicker();
+      };
+
+      function renderBulkView() {
+        renderBulkTargetContext();
+        const specView = document.getElementById("bulkSpecialtyView");
+        const itemView = document.getElementById("bulkItemView");
+        const reviewView = document.getElementById("bulkReviewView");
+        specView.style.display = "none";
+        itemView.style.display = "none";
+        reviewView.style.display = "none";
+        const delAll = document.getElementById("bulkDeleteAllBtn");
+        if (bulkPickerView === "specialties") {
+          specView.style.display = "block";
+          renderBulkSpecialties();
+          delAll.style.display = bulkSelectedIds.size > 0 ? "inline-block" : "none";
+        } else if (bulkPickerView === "items") {
+          itemView.style.display = "flex";
+          delAll.style.display = "none";
+          renderBulkBreadcrumb();
+          loadBulkSectionItems();
+        } else if (bulkPickerView === "review") {
+          reviewView.style.display = "block";
+          delAll.style.display = "inline-block";
+          renderBulkReview();
+        }
+        renderBulkTargetContext();
+      }
+
+      function renderBulkTargetContext() {
+        const el = document.getElementById("bulkTargetValue");
+        if (!el) return;
+        if (bulkTargetQuoteSectionId !== null) {
+          const roomLabel = bulkTargetRoomName || "مباشر";
+          el.textContent = bulkTargetQuoteSectionName + " - " + roomLabel;
+        } else {
+          const sec = sections[activeSectionIdx];
+          if (sec) {
+            const roomLabel =
+              sec.has_rooms && activeRoomIdx !== null
+                ? (sec.rooms || [])[activeRoomIdx]?.name || "مباشر"
+                : "مباشر";
+            el.textContent = sec.name + " - " + roomLabel;
+          } else {
+            el.textContent = "—";
+          }
+        }
+      }
+
+      // ---- Specialties View + Accordion ----
+      async function renderBulkSpecialties() {
+        const listEl = document.getElementById("bulkDiscList");
+        try {
+          if (allDisciplines.length === 0) {
+            const discData = await api("/disciplines");
+            allDisciplines = discData.disciplines || [];
+          }
+          if (allPickerCategories.length === 0) {
+            const data = await api("/price-list");
+            allPickerCategories = data.categories || [];
+            const catToDiscMap = {};
+            for (const disc of allDisciplines) {
+              try {
+                const secData = await api(`/disciplines/${disc.id}/sections`);
+                (secData.sections || []).forEach((sec) => {
+                  if (!catToDiscMap[sec.id]) catToDiscMap[sec.id] = disc.id;
+                });
+              } catch {
+                /* skip */
+              }
+            }
+            allPickerCategories.forEach((cat) => {
+              cat._disciplineId =
+                catToDiscMap[cat.id] != null ? Number(catToDiscMap[cat.id]) : null;
+            });
+          }
+
+          if (allDisciplines.length === 0) {
+            listEl.innerHTML =
+              '<div class="bp-empty-msg">لا توجد تخصصات. أضف تخصصات من <a href="/price-list" style="color:var(--gold);">قائمة الأسعار</a>.</div>';
+            return;
+          }
+
+          let html = "";
+          for (const disc of allDisciplines) {
+            const isOpen = Number(bulkPickerDisciplineId) === Number(disc.id);
+            const arrow = isOpen ? "▾" : "▸";
+            html += `<div class="bp-discipline" data-disc-id="${disc.id}">
+              <div class="bp-discipline-header" data-disc-id="${disc.id}">
+                <span class="bp-disc-arrow">${arrow}</span>
+                <span class="bp-disc-name">${escapeAttr(disc.name)}</span>
+              </div>
+              <div class="bp-discipline-sections" style="${isOpen ? "display:block" : "display:none"}" data-disc-id="${disc.id}"></div>
+            </div>`;
+          }
+          listEl.innerHTML = html;
+
+          // Bind discipline header clicks (accordion)
+          listEl.querySelectorAll(".bp-discipline-header").forEach((hdr) => {
+            hdr.onclick = () => {
+              const discId = Number(hdr.dataset.discId);
+              toggleBulkDiscipline(discId);
+            };
+          });
+
+          // Render sections for currently-open discipline
+          if (bulkPickerDisciplineId !== null) {
+            await loadBulkDisciplineSections(Number(bulkPickerDisciplineId));
+          }
+        } catch {
+          listEl.innerHTML = '<div class="bp-empty-msg">صار في خطأ في تحميل التخصصات</div>';
+        }
+      }
+
+      async function toggleBulkDiscipline(discId) {
+        if (Number(bulkPickerDisciplineId) === Number(discId)) {
+          bulkPickerDisciplineId = null;
+          bulkPickerSections = [];
+          renderAccordionAfterToggle();
+          return;
+        }
+        bulkPickerDisciplineId = discId;
+        const disc = allDisciplines.find((d) => Number(d.id) === Number(discId));
+        bulkPickerDisciplineName = disc ? disc.name : "";
+        await loadBulkDisciplineSections(discId);
+        renderAccordionAfterToggle();
+      }
+
+      function renderAccordionAfterToggle() {
+        document.getElementById("bulkSpecialtyView").style.display = "block";
+        document.getElementById("bulkItemView").style.display = "none";
+        document.getElementById("bulkReviewView").style.display = "none";
+        renderBulkSpecialties();
+        updateBulkSelectionBar();
+      }
+
+      async function loadBulkDisciplineSections(discId) {
+        try {
+          const data = await api(`/disciplines/${discId}/sections`);
+          bulkPickerSections = data.sections || [];
+          const secWrap = document.querySelector(`.bp-discipline-sections[data-disc-id="${discId}"]`);
+          if (!secWrap) return;
+          const secs = data.sections || [];
+          if (secs.length === 0) {
+            secWrap.innerHTML = '<div class="bp-empty-msg">لا توجد أقسام في هذا التخصص</div>';
+            return;
+          }
+          secWrap.innerHTML = secs
+            .map((sec) => {
+              return `<div class="bp-section-item" data-sec-id="${sec.id}">
+                <span>${escapeAttr(sec.name)}</span>
+              </div>`;
+            })
+            .join("");
+          secWrap.querySelectorAll(".bp-section-item").forEach((secEl) => {
+            secEl.onclick = () => {
+              const secId = Number(secEl.dataset.secId);
+              const sec = secs.find((s) => Number(s.id) === secId);
+              openBulkSectionItems(secId, sec ? sec.name : "", bulkPickerDisciplineName);
+            };
+          });
+        } catch {
+          const secWrap = document.querySelector(`.bp-discipline-sections[data-disc-id="${discId}"]`);
+          if (secWrap) secWrap.innerHTML = '<div class="bp-empty-msg">تعذر تحميل الأقسام</div>';
+        }
+      }
+
+      function openBulkSectionItems(secId, secName, discName) {
+        bulkPickerView = "items";
+        bulkPickerSectionId = secId;
+        bulkPickerSectionName = secName;
+        bulkPickerDisciplineName = discName;
+        document.getElementById("bulkPickerSearch").value = "";
+        renderBulkView();
+      }
+
+      function goBackToSpecialties() {
+        bulkPickerView = "specialties";
+        bulkPickerDisciplineId = null;
+        bulkPickerSections = [];
+        renderBulkView();
+      }
+
+      // ---- Breadcrumb ----
+      function renderBulkBreadcrumb() {
+        const el = document.getElementById("bulkBreadcrumb");
+        el.innerHTML =
+          '<span class="bp-bc-link" data-view="specialties">قسم التخصصات</span>' +
+          (bulkPickerDisciplineName
+            ? '<span class="bp-bc-sep">›</span><span class="bp-bc-link" data-view="specialties">' + escapeAttr(bulkPickerDisciplineName) + '</span>'
+            : "") +
+          (bulkPickerSectionName
+            ? '<span class="bp-bc-sep">›</span><span class="bp-bc-current">' + escapeAttr(bulkPickerSectionName) + '</span>'
+            : "");
+        el.querySelectorAll(".bp-bc-link").forEach((link) => {
+          link.onclick = () => {
+            const view = link.dataset.view;
+            if (view === "specialties") goBackToSpecialties();
+          };
+        });
+      }
+
+      // ---- Items View ----
+      let bulkSearchTimeout;
+      document.getElementById("bulkPickerSearch").oninput = () => {
+        clearTimeout(bulkSearchTimeout);
+        bulkSearchTimeout = setTimeout(() => loadBulkSectionItems(), 300);
+      };
+
+      document.getElementById("bulkBackBtn").onclick = () => goBackToSpecialties();
+
+      async function loadBulkSectionItems() {
+        if (!bulkPickerSectionId) return;
+        const q = document.getElementById("bulkPickerSearch").value.trim();
+        const queryStr = q ? "?q=" + encodeURIComponent(q) : "";
+        const resultsEl = document.getElementById("bulkPickerResults");
+        try {
+          const data = await api("/price-list/" + bulkPickerSectionId + "/items" + queryStr);
+          const items = data.items || [];
+          if (items.length === 0) {
+            resultsEl.innerHTML = '<div class="picker-empty">ما في نتائج</div>';
+            return;
+          }
+          resultsEl.innerHTML = items
+            .map((it) => {
+              const checked = bulkSelectedIds.has(it.id) ? "checked" : "";
+              const selectedClass = bulkSelectedIds.has(it.id) ? " bp-selected" : "";
+              const price =
+                Number(it.selling_price) > 0
+                  ? Number(it.selling_price).toFixed(2) + " د.أ"
+                  : "0.00 د.أ";
+              return (
+                '<label class="bulk-picker-item' + selectedClass + '" data-id="' + it.id + '">' +
+                '<input type="checkbox" data-id="' + it.id + '" ' + checked + " />" +
+                '<div class="bp-content">' +
+                '<span class="bp-name">' + escapeAttr(it.name) + "</span>" +
+                (it.item_code ? '<span class="bp-code">' + escapeAttr(it.item_code) + "</span>" : "") +
+                "</div>" +
+                (it.unit ? '<span class="bp-unit">' + escapeAttr(it.unit) + "</span>" : "") +
+                '<span class="bp-price">' + escapeAttr(price) + "</span>" +
+                "</label>"
+              );
+            })
+            .join("");
+          resultsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.addEventListener("change", function () {
+              const id = Number(this.dataset.id);
+              const it = items.find(function (i) { return Number(i.id) === id; });
+              const row = this.closest(".bulk-picker-item");
+              if (this.checked) {
+                ensureBulkTarget();
+                bulkSelectedIds.add(id);
+                if (it) bulkSelectedItems.set(id, it);
+                if (row) row.classList.add("bp-selected");
+              } else {
+                bulkSelectedIds.delete(id);
+                bulkSelectedItems.delete(id);
+                if (row) row.classList.remove("bp-selected");
+              }
+              updateBulkSelectionBar();
+            });
+          });
+          resultsEl.querySelectorAll(".bulk-picker-item").forEach((el) => {
+            el.addEventListener("click", function (e) {
+              if (e.target.tagName === "INPUT") return;
+              e.preventDefault();
+              const cb = el.querySelector('input[type="checkbox"]');
+              if (cb) {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event("change"));
+              }
+            });
+          });
+        } catch {
+          resultsEl.innerHTML = '<div class="picker-empty">صار في خطأ</div>';
+        }
+      }
+
+      // ---- Review View ----
+      function openBulkReview() {
+        bulkPickerView = "review";
+        renderBulkView();
+      }
+
+      function goBackFromReview() {
+        bulkPickerView = bulkPickerSectionId !== null ? "items" : "specialties";
+        renderBulkView();
+      }
+
+      document.getElementById("bulkReviewBackBtn").onclick = () => goBackFromReview();
+
+      function groupSelectedItems() {
+        const groups = {};
+        for (const item of bulkSelectedItems.values()) {
+          const catId = item.category_id;
+          const cat = allPickerCategories.find((c) => c.id === catId);
+          const discId = cat?._disciplineId != null ? Number(cat._disciplineId) : null;
+          const disc = discId ? allDisciplines.find((d) => Number(d.id) === discId) : null;
+          const discKey = discId != null ? discId : "unclassified";
+          if (!groups[discKey]) {
+            groups[discKey] = {
+              disciplineName: disc ? disc.name : "غير مصنف",
+              sections: {},
+            };
+          }
+          const secKey = catId != null ? catId : "unclassified";
+          if (!groups[discKey].sections[secKey]) {
+            groups[discKey].sections[secKey] = {
+              sectionName: cat ? cat.name : "غير مصنف",
+              items: [],
+            };
+          }
+          groups[discKey].sections[secKey].items.push(item);
+        }
+        return groups;
+      }
+
+      function removeBulkItem(id) {
+        bulkSelectedIds.delete(id);
+        bulkSelectedItems.delete(id);
+        updateBulkSelectionBar();
+        if (bulkSelectedIds.size === 0) {
+          bulkPickerView = "specialties";
+          renderBulkView();
+        } else {
+          renderBulkReview();
+        }
+      }
+
+      function clearBulkBasketFromUI() {
+        clearBulkBasket();
+        bulkPickerView = "specialties";
+        renderBulkView();
+        updateBulkSelectionBar();
+      }
+
+      document.getElementById("bulkDeleteAllBtn").onclick = () => clearBulkBasketFromUI();
+
+      function renderBulkReview() {
+        const bodyEl = document.getElementById("bulkReviewBody");
+        const titleEl = document.getElementById("bulkReviewTitle");
+        const count = bulkSelectedIds.size;
+        titleEl.textContent = "كل البنود المحددة (" + count + ")";
+        if (count === 0) {
+          bodyEl.innerHTML = '<div class="bp-empty-msg">لا توجد بنود محددة</div>';
+          return;
+        }
+        const groups = groupSelectedItems();
+        let html = "";
+        Object.values(groups).forEach((group) => {
+          html += '<div class="bp-review-group-name">' + escapeAttr(group.disciplineName) + "</div>";
+          Object.values(group.sections).forEach((sec) => {
+            html += '<div class="bp-review-section-name">' + escapeAttr(sec.sectionName) + "</div>";
+            sec.items.forEach((item) => {
+              const price =
+                Number(item.selling_price) > 0
+                  ? Number(item.selling_price).toFixed(2) + " د.أ"
+                  : "0.00 د.أ";
+              html += `<div class="bp-review-item" data-id="${item.id}">
+                <div class="bp-review-item-info">
+                  <span class="bp-review-item-name">${escapeAttr(item.name)}</span>
+                  ${item.item_code ? '<span class="bp-review-item-meta">' + escapeAttr(item.item_code) + "</span>" : ""}
+                </div>
+                <span class="bp-review-item-price">${item.unit ? escapeAttr(item.unit) + " · " : ""}${escapeAttr(price)}</span>
+                <button class="bp-review-delete-btn" data-id="${item.id}" title="حذف">✕</button>
+              </div>`;
+            });
+          });
+        });
+        bodyEl.innerHTML = html;
+        bodyEl.querySelectorAll(".bp-review-delete-btn").forEach((btn) => {
+          btn.onclick = () => removeBulkItem(Number(btn.dataset.id));
+        });
+      }
+
+      // ---- Selection Bar & Submit ----
+      function updateBulkSelectionBar() {
+        const count = bulkSelectedIds.size;
+        const countEl = document.getElementById("bulkSelCount");
+        const addBtn = document.getElementById("bulkAddBtn");
+        const delAll = document.getElementById("bulkDeleteAllBtn");
+        if (countEl) countEl.textContent = "كل البنود المحددة (" + count + ")";
+        if (addBtn) {
+          addBtn.textContent = "إضافة البنود المحددة (" + count + ")";
+          addBtn.disabled = count === 0;
+        }
+        // In specialties view, the count itself opens the review
+        if (delAll) {
+          if (bulkPickerView === "specialties" || bulkPickerView === "review") {
+            delAll.style.display = count > 0 ? "inline-block" : "none";
+          } else {
+            delAll.style.display = "none";
+          }
+        }
+        renderBulkTargetContext();
+      }
+
+      // The "all selected items" count in the specialties view opens the review
+      document.getElementById("bulkSelCount").onclick = () => {
+        if (bulkSelectedIds.size > 0) openBulkReview();
+      };
+
+      // In-flight guard: prevents double-click / concurrent bulk submissions
+      let bulkAddInFlight = false;
+
+      async function addBulkSelectedItems() {
+        const targetSecId = bulkTargetQuoteSectionId;
+        const targetRoomId = bulkTargetRoomId;
+        const sec = sections.find((s) => s.id === targetSecId);
+        if (!sec) {
+          showToast("القسم الأصلي لم يعد متاحاً. يُرجى إعادة تحديد البنود.");
+          return;
+        }
+        const allItems = sec.items || [];
+        const selectedItems = Array.from(bulkSelectedItems.values());
+        if (selectedItems.length === 0) return;
+        if (bulkAddInFlight) return;
+        bulkAddInFlight = true;
+        const addBtn = document.getElementById("bulkAddBtn");
+        if (addBtn) addBtn.disabled = true;
+        try {
+          const room = targetRoomId
+            ? (sec.rooms || []).find((r) => r.id === targetRoomId)
+            : null;
+          const roomId = room ? room.id : null;
+
+          // Build the same per-item payload the old single-item flow sent,
+          // in Map insertion order, with sequential fallback codes computed
+          // as if each item were appended one after another.
+          const payloadItems = selectedItems.map((catItem, i) => ({
+            item_code: catItem.item_code || `${sec.code}.${allItems.length + i + 1}`,
+            name: catItem.name || "",
+            description: catItem.description || "",
+            unit: catItem.unit || "عدد",
+            qty: 1,
+            base_cost: Number(catItem.base_cost) || 0,
+            overhead_pct: Number(catItem.overhead_pct) || 35,
+            selling_price: Number(catItem.selling_price) || 0,
+            notes: "",
+            image: null,
+            category_id: catItem.category_id != null ? catItem.category_id : null,
+            room_id: roomId,
+          }));
+
+          let succeeded = 0;
+          let failed = 0;
+
+          if (currentQuoteId && sec.id) {
+            // ONE batch request for all selected items. HTTP 200 does NOT mean every
+            // item succeeded — only per-input-index results determine success/failure.
+            try {
+              const data = await api(`/sections/${sec.id}/items/batch`, {
+                method: "POST",
+                body: JSON.stringify({ items: payloadItems }),
+              });
+              const results = data.results || [];
+              const processed = new Set();
+              results.forEach((r) => {
+                const catItem = selectedItems[r.index];
+                if (!catItem) return;
+                processed.add(r.index);
+                if (r.id != null && !r.error) {
+                  const newItem = Object.assign({}, payloadItems[r.index], {
+                    id: r.id,
+                    selling_price: r.selling_price,
+                  });
+                  allItems.push(newItem);
+                  markItemDirty(newItem);
+                  bulkSelectedIds.delete(catItem.id);
+                  bulkSelectedItems.delete(catItem.id);
+                  succeeded++;
+                } else {
+                  // keep in basket for retry
+                  failed++;
+                }
+              });
+              // Safety net: an input index without a result entry is neither confirmed
+              // nor removed — keep it in the basket and count it as failed.
+              for (let i = 0; i < selectedItems.length; i++) {
+                if (!processed.has(i)) failed++;
+              }
+            } catch (e) {
+              // Entire request failed — preserve the whole basket, allow retry
+              showToast("تعذر الحفظ: " + e.message);
+              return;
+            }
+          } else {
+            // In-memory only (unsaved quote / unsaved section) — mirrors the old
+            // flow, which skipped the network for every item.
+            for (const catItem of selectedItems) {
+              const newItem = {
+                item_code: catItem.item_code || `${sec.code}.${allItems.length + succeeded + 1}`,
+                name: catItem.name || "",
+                description: catItem.description || "",
+                unit: catItem.unit || "عدد",
+                qty: 1,
+                base_cost: Number(catItem.base_cost) || 0,
+                overhead_pct: Number(catItem.overhead_pct) || 35,
+                selling_price: Number(catItem.selling_price) || 0,
+                notes: "",
+                image: null,
+                category_id: catItem.category_id != null ? catItem.category_id : null,
+                room_id: roomId,
+              };
+              allItems.push(newItem);
+              markItemDirty(newItem);
+              bulkSelectedIds.delete(catItem.id);
+              bulkSelectedItems.delete(catItem.id);
+              succeeded++;
+            }
+          }
+
+          // Single final render — never once per item
+          if (succeeded > 0) markDirty();
+          if (succeeded > 0) renderAll();
+          updateBulkSelectionBar();
+
+          if (failed === 0) {
+            showToast("تمت إضافة " + succeeded + " بند بنجاح");
+            clearBulkBasket();
+            closeBulkPicker();
+          } else {
+            showToast("تمت إضافة " + succeeded + " بنود. فشل " + failed + " بند. يمكنك إعادة المحاولة.");
+            if (bulkSelectedIds.size === 0) {
+              showToast("تمت إضافة " + succeeded + " بند بنجاح");
+              clearBulkBasket();
+              closeBulkPicker();
+            } else {
+              openBulkReview();
+            }
+          }
+        } finally {
+          bulkAddInFlight = false;
+          updateBulkSelectionBar();
+        }
+      }
 
       async function loadPickerCategories(preselectedCategoryId) {
         try {
@@ -5168,6 +6805,7 @@
             });
             item.id = res.id;
             item.selling_price = res.selling_price;
+            remapDirtyId(dirtyEntities.items, item, item.id);
           } catch (e) {
             showToast("تعذر الحفظ على السيرفر: " + e.message);
           }
@@ -5181,6 +6819,7 @@
             showToast("تعذر تحديث البند على السيرفر: " + e.message);
           }
         }
+        markItemDirty(item);
         markDirty();
         renderAll();
         showToast("تم تعبئة البند من الكتالوج");
@@ -5189,45 +6828,61 @@
       // ---- Data Binding ----
       document.getElementById("projectName").oninput = (e) => {
         state.projectName = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("referenceNo").oninput = (e) => {
         state.referenceNo = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("clientName").oninput = (e) => {
         state.clientName = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("siteLocation").oninput = (e) => {
         state.siteLocation = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("quoteTitle").oninput = (e) => {
         state.quoteTitle = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("priceExclusions").oninput = (e) => {
         state.priceExclusions = e.target.value;
+        markQuoteDirty();
         markDirty();
       };
       document.getElementById("taxPct").oninput = (e) => {
         state.taxPct = e.target.value;
+        markQuoteDirty();
+        markDirty();
         renderTotals();
       };
       document.getElementById("discountVal").oninput = (e) => {
         state.discountVal = e.target.value;
+        markQuoteDirty();
+        markDirty();
         renderTotals();
       };
       document.getElementById("discountType").onchange = (e) => {
         state.discountType = e.target.value;
+        markQuoteDirty();
+        markDirty();
         renderTotals();
       };
       document.getElementById("executionDays").oninput = (e) => {
         state.executionDays = Number(e.target.value);
+        markQuoteDirty();
+        markDirty();
       };
       document.getElementById("validityDays").oninput = (e) => {
         state.validityDays = Number(e.target.value);
+        markQuoteDirty();
+        markDirty();
       };
 
       // ---- Save / Load ----
@@ -5260,13 +6915,14 @@
         const btn = document.getElementById("saveQuoteBtn");
 
         // Fix #1: cancel pending auto-save and wait for in-flight one
-        clearTimeout(autoSaveTimer);
+        getAutoSaveController().cancel();
         while (autoSaveInProgress) {
           await new Promise((r) => setTimeout(r, 100));
         }
 
         // Fix #1: acquire shared lock
         isSavingToServer = true;
+        const saveStartStamp = getAutoSaveController().getStamp();
         btn.disabled = true;
         btn.textContent = "\u062c\u0627\u0631\u064a \u0627\u0644\u062d\u0641\u0638...";
         try {
@@ -5319,22 +6975,88 @@
           }
           const _quoteTime = performance.now() - _t0Q;
 
-          // --- Wave 1: Sections (parallel) ---
+          // --- Wave 1: Sections (batch-create new, PUT existing) ---
           const _t0Sec = performance.now();
-          const secResults = await Promise.allSettled(
-            sections.map(async (sec) => {
-              if (!sec.id && currentQuoteId) {
-                const res = await api(`/quotes/${currentQuoteId}/sections`, {
+          const secOutcomes = [];
+          const BATCH_CHUNK = 200;
+          let batchReqCount = 0;
+
+          // Batch-create all new sections (no persisted id) in ONE request
+          const newSections = sections.filter((sec) => !sec.id);
+          const existingSections = sections.filter((sec) => sec.id);
+          if (newSections.length > 0 && currentQuoteId) {
+            let batchOk = false;
+            let batchResults = [];
+            try {
+              const res = await api(
+                `/quotes/${currentQuoteId}/sections/batch`,
+                {
                   method: "POST",
                   body: JSON.stringify({
-                    code: sec.code,
-                    name: sec.name,
-                    sort_order: sec.sort_order,
+                    sections: newSections.map((sec) => ({
+                      code: sec.code,
+                      name: sec.name,
+                      sort_order: sec.sort_order,
+                    })),
                   }),
+                }
+              );
+              batchOk = true;
+              batchResults = res.results || [];
+              batchReqCount++;
+            } catch (err) {
+              batchOk = false;
+            }
+            for (let idx = 0; idx < newSections.length; idx++) {
+              const sec = newSections[idx];
+              const entry = batchOk ? batchResults[idx] || {} : {};
+              if (entry.id != null && !entry.error) {
+                sec.id = entry.id;
+                let synced = true;
+                if (sec.has_rooms) {
+                  // batch create defaults has_rooms to 0 — keep it in sync
+                  try {
+                    await api(
+                      `/quotes/${currentQuoteId}/sections/${sec.id}`,
+                      {
+                        method: "PUT",
+                        body: JSON.stringify({
+                          code: sec.code,
+                          name: sec.name,
+                          sort_order: sec.sort_order,
+                          has_rooms: 1,
+                        }),
+                      }
+                    );
+                  } catch (err) {
+                    synced = false;
+                  }
+                }
+                if (synced) {
+                  sec._fromServer = true;
+                  secOutcomes.push({ label: sec.name || sec.code });
+                } else {
+                  sec._saveFailed = true;
+                  secOutcomes.push({
+                    wave: "section",
+                    label: sec.name || sec.code,
+                    error: "has_rooms sync failed",
+                  });
+                }
+              } else {
+                sec._saveFailed = true;
+                secOutcomes.push({
+                  wave: "section",
+                  label: sec.name || sec.code,
+                  error: entry.error || "request failed",
                 });
-                sec.id = res.id;
               }
-              if (sec.id) {
+            }
+          }
+
+          // Existing sections keep their PUT path (parallel, unchanged)
+          const existingSecResults = await Promise.allSettled(
+            existingSections.map(async (sec) => {
                 await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
                   method: "PUT",
                   body: JSON.stringify({
@@ -5344,139 +7066,258 @@
                     has_rooms: sec.has_rooms ? 1 : 0,
                   }),
                 });
-              }
-              sec._fromServer = true;
-              return { label: sec.name || sec.code };
-            })
+                sec._fromServer = true;
+                return sec;
+              })
           );
-          const _secTime = performance.now() - _t0Sec;
-
-          // --- Wave 2: Rooms (parallel, across all sections) ---
-          const _t0Room = performance.now();
-          const roomPromises = [];
-          for (const sec of sections) {
-            if (sec.has_rooms && sec.id) {
-              for (const room of sec.rooms || []) {
-                roomPromises.push((async () => {
-                  let remap = null;
-                  if (!room.id) {
-                    const res = await api(`/sections/${sec.id}/rooms`, {
-                      method: "POST",
-                      body: JSON.stringify({
-                        name: room.name,
-                        sort_order: room.sort_order,
-                      }),
-                    });
-                    room.id = res.id;
-                  } else if (room.id < 0) {
-                    const oldId = room.id;
-                    const res = await api(`/sections/${sec.id}/rooms`, {
-                      method: "POST",
-                      body: JSON.stringify({
-                        name: room.name,
-                        sort_order: room.sort_order,
-                      }),
-                    });
-                    room.id = res.id;
-                    remap = { oldId, newId: res.id, sec };
-                  } else {
-                    await api(`/sections/${sec.id}/rooms/${room.id}`, {
-                      method: "PUT",
-                      body: JSON.stringify({
-                        name: room.name,
-                        sort_order: room.sort_order,
-                      }),
-                    });
-                  }
-                  room._fromServer = true;
-                  return { label: room.name, remap };
-                })());
-              }
+          for (const r of existingSecResults) {
+            if (r.status === "fulfilled") {
+              secOutcomes.push({ label: r.value.name || r.value.code });
+            } else {
+              secOutcomes.push({
+                wave: "section",
+                label: r.reason && r.reason.label,
+                error: true,
+              });
             }
           }
-          const roomResults = await Promise.allSettled(roomPromises);
-          for (const r of roomResults) {
-            if (r.status === "fulfilled" && r.value.remap) {
-              const { oldId, newId, sec } = r.value.remap;
-              for (const item of sec.items) {
-                if (item.room_id === oldId) item.room_id = newId;
-              }
+          const _secTime = performance.now() - _t0Sec;
+
+          // --- Wave 2: Rooms (batch-create new per section, PUT existing) ---
+          const _t0Room = performance.now();
+          const roomOutcomes = [];
+          const roomRemaps = [];
+          const existingRoomsBySection = new Map();
+          await Promise.all(
+            sections
+              .filter((sec) => sec.has_rooms && sec.id)
+              .map(async (sec) => {
+                const newRooms = (sec.rooms || []).filter(
+                  (room) => !room.id || room.id < 0,
+                );
+                existingRoomsBySection.set(
+                  sec,
+                  (sec.rooms || []).filter((room) => room.id && room.id >= 0),
+                );
+                if (newRooms.length === 0) return;
+                let batchOk = false;
+                let batchResults = [];
+                try {
+                  const res = await api(`/sections/${sec.id}/rooms/batch`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                      rooms: newRooms.map((room) => ({
+                        name: room.name,
+                        sort_order: room.sort_order,
+                      })),
+                    }),
+                  });
+                  batchOk = true;
+                  batchResults = res.results || [];
+                  batchReqCount++;
+                } catch (err) {
+                  batchOk = false;
+                }
+                newRooms.forEach((room, idx) => {
+                  const entry = batchOk ? batchResults[idx] || {} : {};
+                  if (entry.id != null && !entry.error) {
+                    const oldId = room.id;
+                    room.id = entry.id;
+                    room._fromServer = true;
+                    if (oldId && oldId < 0) {
+                      roomRemaps.push({ oldId, newId: entry.id, sec });
+                    }
+                    roomOutcomes.push({ label: room.name });
+                  } else {
+                    room._saveFailed = true;
+                    roomOutcomes.push({
+                      wave: "room",
+                      label: room.name,
+                      error: entry.error || "request failed",
+                    });
+                  }
+                });
+              })
+          );
+
+          // Existing rooms keep their PUT path (parallel, unchanged)
+          const existingRoomPromises = [];
+          for (const sec of sections) {
+            const existingRooms = existingRoomsBySection.get(sec);
+            if (!existingRooms) continue;
+            for (const room of existingRooms) {
+              existingRoomPromises.push((async () => {
+                await api(`/sections/${sec.id}/rooms/${room.id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    name: room.name,
+                    sort_order: room.sort_order,
+                  }),
+                });
+                room._fromServer = true;
+                return room;
+              })());
+            }
+          }
+          const existingRoomResults = await Promise.allSettled(existingRoomPromises);
+          for (const r of existingRoomResults) {
+            if (r.status === "fulfilled") {
+              roomOutcomes.push({ label: r.value.name });
+            } else {
+              roomOutcomes.push({
+                wave: "room",
+                label: r.reason && r.reason.label,
+                error: true,
+              });
+            }
+          }
+
+          // Apply temporary-id remaps once every new room has a real id
+          for (const { oldId, newId, sec } of roomRemaps) {
+            for (const item of sec.items) {
+              if (item.room_id === oldId) item.room_id = newId;
             }
           }
           const _roomTime = performance.now() - _t0Room;
 
-          // --- Wave 3: Items (parallel, across all sections) ---
+          // --- Wave 3: Items (batch-create new per section, PUT existing) ---
           const _t0Item = performance.now();
-          const itemPromises = [];
-          for (const sec of sections) {
-            if (!sec.id) continue;
-            for (const item of sec.items) {
-              const itemHasData =
-                (item.name || "").trim() !== "" ||
-                (Number(item.selling_price) || 0) > 0 ||
-                (Number(item.base_cost) || 0) > 0;
-              if (!itemHasData) {
-                if (item.id) {
-                  api(`/sections/${sec.id}/items/${item.id}`, {
-                    method: "DELETE",
-                  }).catch(() => {});
+          const itemOutcomes = [];
+          await Promise.all(
+            sections
+              .filter((sec) => sec.id)
+              .map(async (sec) => {
+                const newItems = [];
+                const existingItems = [];
+                for (const item of sec.items || []) {
+                  const itemHasData =
+                    (item.name || "").trim() !== "" ||
+                    (Number(item.selling_price) || 0) > 0 ||
+                    (Number(item.base_cost) || 0) > 0;
+                  if (!itemHasData) {
+                    if (item.id) {
+                      api(`/sections/${sec.id}/items/${item.id}`, {
+                        method: "DELETE",
+                      }).catch(() => {});
+                    }
+                    continue;
+                  }
+                  if (!item.id) newItems.push(item);
+                  else existingItems.push(item);
                 }
-                continue;
-              }
-              itemPromises.push((async () => {
-                const itemPayload = {
-                  ...item,
-                  category_id: item.category_id || null,
-                  room_id: item.room_id || null,
-                };
-                if (!item.id) {
-                  const res = await api(`/sections/${sec.id}/items`, {
-                    method: "POST",
-                    body: JSON.stringify(itemPayload),
-                  });
-                  item.id = res.id;
-                } else {
-                  await api(`/sections/${sec.id}/items/${item.id}`, {
-                    method: "PUT",
-                    body: JSON.stringify(itemPayload),
+
+                const existingPutResultsPromise = Promise.allSettled(
+                  existingItems.map(async (item) => {
+                    await api(`/sections/${sec.id}/items/${item.id}`, {
+                      method: "PUT",
+                      body: JSON.stringify({
+                        ...item,
+                        category_id: item.category_id || null,
+                        room_id: item.room_id || null,
+                      }),
+                    });
+                    item._fromServer = true;
+                    return item;
+                  })
+                );
+
+                for (let start = 0; start < newItems.length; start += BATCH_CHUNK) {
+                  const chunk = newItems.slice(start, start + BATCH_CHUNK);
+                  let batchOk = false;
+                  let batchResults = [];
+                  try {
+                    const res = await api(`/sections/${sec.id}/items/batch`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        items: chunk.map((item) => ({
+                          ...item,
+                          category_id: item.category_id || null,
+                          room_id: item.room_id || null,
+                        })),
+                      }),
+                    });
+                    batchOk = true;
+                    batchResults = res.results || [];
+                    batchReqCount++;
+                  } catch (err) {
+                    batchOk = false;
+                  }
+                  chunk.forEach((item, idx) => {
+                    const entry = batchOk ? batchResults[idx] || {} : {};
+                    if (entry.id != null && !entry.error) {
+                      item.id = entry.id;
+                      item._fromServer = true;
+                      itemOutcomes.push({
+                        label: item.name || item.item_code || `#${entry.id}`,
+                      });
+                    } else {
+                      item._saveFailed = true;
+                      itemOutcomes.push({
+                        wave: "item",
+                        label: item.name || item.item_code || "#new",
+                        error: entry.error || "request failed",
+                      });
+                    }
                   });
                 }
-                item._fromServer = true;
-                return { label: item.name || item.item_code || `#${item.id}` };
-              })());
-            }
-          }
-          const itemResults = await Promise.allSettled(itemPromises);
+
+                const existingPutResults = await existingPutResultsPromise;
+                for (const r of existingPutResults) {
+                  if (r.status === "fulfilled") {
+                    itemOutcomes.push({
+                      label: r.value.name || r.value.item_code || `#${r.value.id}`,
+                    });
+                  } else {
+                    itemOutcomes.push({
+                      wave: "item",
+                      label: r.reason && r.reason.label,
+                      error: true,
+                    });
+                  }
+                }
+              })
+          );
           const _itemTime = performance.now() - _t0Item;
 
           // --- Collect failures from all waves ---
           const allFailed = [
-            ...secResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "section", ...r.reason })),
-            ...roomResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "room", ...r.reason })),
-            ...itemResults.filter(r => r.status === "rejected").map((r, i) => ({ wave: "item", ...r.reason })),
+            ...secOutcomes.filter((o) => o.error),
+            ...roomOutcomes.filter((o) => o.error),
+            ...itemOutcomes.filter((o) => o.error),
           ];
           const allOk = allFailed.length === 0;
 
           const _totalTime = performance.now() - _t0Q;
           console.log(
-            `[save] Quote:${_quoteTime.toFixed(0)}ms | Sec:${_secTime.toFixed(0)}ms(${secResults.length}) | Room:${_roomTime.toFixed(0)}ms(${roomResults.length}) | Item:${_itemTime.toFixed(0)}ms(${itemResults.length}) | Total:${_totalTime.toFixed(0)}ms | Failed:${allFailed.length}`
+            `[save] Quote:${_quoteTime.toFixed(0)}ms | Sec:${_secTime.toFixed(0)}ms(${secOutcomes.length}) | Room:${_roomTime.toFixed(0)}ms(${roomOutcomes.length}) | Item:${_itemTime.toFixed(0)}ms(${itemOutcomes.length}) | BatchReq:${batchReqCount} | Total:${_totalTime.toFixed(0)}ms | Failed:${allFailed.length}`
           );
 
           if (allOk) {
             document.getElementById("pageTitle").textContent =
               state.projectName || "\u0639\u0631\u0636 \u0633\u0639\u0631";
-            clearDraft();
-            hasUnsavedWork = false;
-            lastAutoSaveJson = JSON.stringify({ state, sections });
-            showAutoSaveIndicator("saved");
+            if (getAutoSaveController().getStamp() === saveStartStamp) {
+              // No edits during this save — absorb the newly persisted state
+              getAutoSaveController().commitSaved(
+                JSON.stringify({ state, sections })
+              );
+              resetDirtyEntities();
+              clearDraft();
+              hasUnsavedWork = false;
+              showAutoSaveIndicator("saved");
+            } else {
+              // Edits happened while this save was in flight — keep them dirty
+              // (and the draft) so auto-save persists them next.
+              hasUnsavedWork = true;
+              getAutoSaveController().markDirty();
+            }
             showToast("\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0639\u0631\u0636");
           } else {
             const saved =
-              (secResults.length - secResults.filter(r => r.status === "rejected").length) +
-              (roomResults.length - roomResults.filter(r => r.status === "rejected").length) +
-              (itemResults.length - itemResults.filter(r => r.status === "rejected").length);
-            const total = secResults.length + roomResults.length + itemResults.length;
-            const names = allFailed.map(f => f.label || f.wave).join(", ");
+              (secOutcomes.length - secOutcomes.filter((o) => o.error).length) +
+              (roomOutcomes.length - roomOutcomes.filter((o) => o.error).length) +
+              (itemOutcomes.length - itemOutcomes.filter((o) => o.error).length);
+            const total = secOutcomes.length + roomOutcomes.length + itemOutcomes.length;
+            const names = allFailed.map((f) => f.label || f.wave).join(", ");
             showToast(
               `\u062a\u0645 \u062d\u0641\u0638 ${saved} \u0645\u0646 ${total} \u060c \u0641\u0634\u0644 \u062d\u0641\u0638: ${names}`
             );
@@ -5502,8 +7343,7 @@
         }
       }
 
-      async function loadQuote(id) {
-        const { quote } = await api("/quotes/" + id);
+      function applyQuoteToEditor(quote) {
         currentQuoteId = quote.id;
         state.projectName = quote.project_name || "";
         state.referenceNo = quote.reference_no || "";
@@ -5557,7 +7397,7 @@
         activeRoomIdx = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
-        clearDraft();
+        resetDirtyEntities();
 
         document.getElementById("projectName").value = state.projectName;
         document.getElementById("referenceNo").value = state.referenceNo;
@@ -5575,6 +7415,17 @@
           state.projectName || "عرض سعر";
 
         renderAll();
+      }
+
+      async function loadQuote(id) {
+        // FIX-14 correction: the canonical server-to-editor mapping lives in
+        // applyQuoteToEditor and is shared verbatim with the stale-draft
+        // rejection path so the two cannot drift apart. loadQuote ALSO clears
+        // the local recovery draft (it loads authoritative server data);
+        // applyQuoteToEditor intentionally does not touch any draft.
+        const { quote } = await api("/quotes/" + id);
+        applyQuoteToEditor(quote);
+        clearDraft();
       }
 
       async function loadSavedList() {
@@ -5715,6 +7566,7 @@
 
       function resetQuote() {
         clearDraft();
+        resetDirtyEntities();
         currentQuoteId = null;
         state = {
           projectName: "",
@@ -6104,12 +7956,35 @@
         if (!sec.rooms) sec.rooms = [];
         sec.rooms.push(newRoom);
         activeRoomIdx = sec.rooms.length - 1;
+        markRoomDirty(newRoom);
         markDirty();
         renderAll();
         showToast("تمت إضافة الغرفة");
       }
-      document.getElementById("roomNameCancel").onclick = () =>
+
+      function openRoomNameModalForEdit(rIdx) {
+        const sec = sections[activeSectionIdx];
+        if (!sec) return;
+        const room = (sec.rooms || [])[rIdx];
+        if (!room) return;
+        editingRoomIdx = rIdx;
+        const input = document.getElementById("roomNameInput");
+        input.value = room.name;
+        document.querySelector(
+          "#roomNameModal .modal h3",
+        ).textContent = "تعديل اسم الغرفة";
+        openModal("roomNameModal");
+        input.focus();
+        input.select();
+      }
+
+      function closeRoomNameModal() {
+        editingRoomIdx = null;
         closeModal("roomNameModal");
+      }
+
+      document.getElementById("roomNameCancel").onclick = () =>
+        closeRoomNameModal();
       document.getElementById("roomNameSave").onclick = async () => {
         const input = document.getElementById("roomNameInput");
         const name = input.value;
@@ -6118,11 +7993,40 @@
           input.focus();
           return;
         }
-        closeModal("roomNameModal");
-        await addRoom(name);
+        if (editingRoomIdx !== null) {
+          const sec = sections[activeSectionIdx];
+          const room = sec && (sec.rooms || [])[editingRoomIdx];
+          if (!room) {
+            closeRoomNameModal();
+            renderAll();
+            return;
+          }
+          const newName = name.trim();
+          if (newName !== room.name) {
+            room.name = newName;
+            markRoomDirty(room);
+            if (room.id && sec.id && room.id > 0) {
+              try {
+                await api(`/sections/${sec.id}/rooms/${room.id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({ name: newName }),
+                });
+              } catch (e) {
+                showToast("تم التعديل محلياً — تعذر الحفظ: " + e.message);
+              }
+            }
+            markDirty();
+          }
+          closeRoomNameModal();
+          renderAll();
+          showToast("تم تعديل اسم الغرفة");
+        } else {
+          closeRoomNameModal();
+          await addRoom(name);
+        }
       };
       document.getElementById("roomNameModal").onclick = (e) => {
-        if (e.target === e.currentTarget) closeModal("roomNameModal");
+        if (e.target === e.currentTarget) closeRoomNameModal();
       };
       document.getElementById("roomNameInput").addEventListener(
         "keydown",
@@ -6132,7 +8036,7 @@
             document.getElementById("roomNameSave").click();
           }
           if (ev.key === "Escape") {
-            closeModal("roomNameModal");
+            closeRoomNameModal();
           }
         },
       );
@@ -6152,7 +8056,9 @@
                 });
               } catch {}
             }
+            const removedItem = allItems[i];
             allItems.splice(i, 1);
+            clearItemDirty(removedItem);
           }
         }
         if (room.id && sec.id) {
@@ -6163,6 +8069,7 @@
           } catch {}
         }
         sec.rooms.splice(rIdx, 1);
+        clearRoomDirty(room);
         if (activeRoomIdx === rIdx) activeRoomIdx = null;
         else if (activeRoomIdx > rIdx) activeRoomIdx--;
         markDirty();
@@ -6180,6 +8087,7 @@
             });
           }
           sections.splice(activeSectionIdx, 1);
+          clearSectionDirty(sec);
           if (activeSectionIdx >= sections.length)
             activeSectionIdx = Math.max(0, sections.length - 1);
           activeCategoryTab = null;
@@ -6283,13 +8191,67 @@
             .getElementById("topbarAvatarCircle")
             .querySelector(".topbar-avatar-placeholder").style.display = "none";
         }
-        const draft = loadDraft();
-        if (draft) {
+        // FIX-14: stale local-draft guard. The editor's local recovery draft
+        // is only ignored when its OWN quote's server updated_at is a valid
+        // timestamp strictly newer than draft.savedAt. A fetch error, a server
+        // quote whose id does not match the draft, or any missing/invalid
+        // timestamp keeps today's unconditional-restore behavior — an uncertain
+        // comparison never discards a draft.
+        // Final FIX-14 correction: single storage read before the async fetch. The
+        // captured raw string feeds BOTH the parsed draft (quote id for the
+        // fetch + timestamp decision) and the identity comparison — so the
+        // parsed draft ALWAYS describes the same inspected snapshot as
+        // inspectedDraftRaw. No second getItem() constructs the draft.
+        const inspectedDraftRaw = readDraftRaw();
+        const draft = AutoSaveCore.parseDraftRaw(inspectedDraftRaw);
+        let serverQuote = null;
+        if (draft && draft.currentQuoteId) {
+          try {
+            const res = await api("/quotes/" + draft.currentQuoteId);
+            serverQuote = res.quote || null;
+          } catch (err) {
+            serverQuote = null;
+          }
+        }
+        // Final FIX-14 correction: the whole decision is made by the pure
+        // seam decideDraftRestore (regression-tested in node). The RAW value
+        // captured before the fetch and the RAW value re-read after it are
+        // compared byte-for-byte; cleanup is allowed only when they are
+        // exactly identical. A draft another tab wrote while the fetch was in
+        // flight — even one sharing the same savedAt and quote id but with
+        // different content — is preserved whenever the re-read observes it
+        // as a changed value. localStorage still has no atomic
+        // compare-and-delete, so a tiny synchronous read-to-remove gap
+        // remains possible.
+        const restoreOutcome = AutoSaveCore.decideDraftRestore(
+          draft,
+          serverQuote,
+          readDraftRaw(),
+          inspectedDraftRaw,
+        );
+        if (restoreOutcome.action === "reject-stale") {
+          // FIX-14 correction: newer server data exists for the same quote.
+          // Populate the editor from the AUTHORITATIVE server quote using the
+          // same canonical mapping as loadQuote (applyQuoteToEditor) instead
+          // of leaving it blank, and mark nothing dirty so no autosave can
+          // push the stale snapshot back over the server. The stale draft is
+          // cleared ONLY when the value currently stored is still the
+          // inspected one; a replaced draft (another tab's unsaved work) is
+          // preserved.
+          if (restoreOutcome.serverQuote) {
+            applyQuoteToEditor(restoreOutcome.serverQuote);
+          }
+          if (restoreOutcome.clearDraft) {
+            clearDraft();
+            showToast("تم تجاهل مسودة محلية قديمة — توجد بيانات أحدث على الخادم");
+          }
+        } else if (restoreOutcome.action === "restore") {
           state = draft.state;
           sections = draft.sections;
           currentQuoteId = draft.currentQuoteId || null;
           activeSectionIdx = Number(draft.activeSectionIdx) || 0;
           hasUnsavedWork = true;
+          resetDirtyEntities();
           document.getElementById("projectName").value = state.projectName;
           document.getElementById("referenceNo").value = state.referenceNo;
           document.getElementById("clientName").value = state.clientName;
@@ -6307,9 +8269,16 @@
           showToast("تمت استعادة مسودة غير محفوظة");
           if (draft.stripped && currentQuoteId) {
             try {
-              const res = await api("/quotes/" + currentQuoteId);
+              // FIX-14: reuse the guard's single quote fetch (serverQuote)
+              // when available; fall back to a fresh fetch on a transient
+              // failure so image rehydration never degrades.
+              let srcQuote = serverQuote;
+              if (!srcQuote) {
+                const res = await api("/quotes/" + currentQuoteId);
+                srcQuote = res.quote;
+              }
               const serverImages = new Map();
-              (res.quote.sections || []).forEach((s) =>
+              ((srcQuote && srcQuote.sections) || []).forEach((s) =>
                 (s.items || []).forEach((it) => {
                   if (it.id && it.image)
                     serverImages.set(String(it.id), it.image);
@@ -6323,6 +8292,19 @@
               );
             } catch (e) {}
           }
+          // FIX-6 D-2.0 P-B: the restored draft is unsaved work, so represent the
+          // whole restored quote in the dirty-entity bookkeeping. Persisted
+          // entities keep their server id keys; temporary rooms (negative ids)
+          // and unpersisted sections/items use their object/temp keys via the
+          // existing dirtyKey() convention. Deliberately NO markDirty() here —
+          // restoring must not schedule a new autosave or alter existing restore
+          // timing; the next real edit triggers the save and sees this state.
+          markQuoteDirty();
+          sections.forEach((sec) => {
+            markSectionDirty(sec);
+            (sec.rooms || []).forEach((r) => markRoomDirty(r));
+            (sec.items || []).forEach((it) => markItemDirty(it));
+          });
         }
         loadSavedList();
         await loadPickerCategories();
@@ -6339,6 +8321,17 @@
             name: c.name,
             _disciplineId: c._disciplineId,
           })),
+        );
+        // Debug aid — FIX-6 Slice C: current dirty-entity bookkeeping counts.
+        // These counts are runtime-only and do not affect the save strategy.
+        console.log(
+          "[FIX6-C] dirty-entity counts:",
+          JSON.stringify({
+            quote: dirtyEntities.quote,
+            sections: dirtyEntities.sections.size,
+            rooms: dirtyEntities.rooms.size,
+            items: dirtyEntities.items.size,
+          }),
         );
       })();
     </script>
