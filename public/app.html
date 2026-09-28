@@ -5742,9 +5742,23 @@
 
       // ---- Copy Room Modal ----
       let copyRoomSourceIdx = null;
+      // Bound source identity for the current modal invocation: the save handler
+      // must clone exactly this section/room even if the global selection changes.
+      let copyRoomBoundSecId = null;
+      let copyRoomBoundRoomId = null;
       function openCopyRoomModal(roomIdx) {
         copyRoomSourceIdx = roomIdx;
         const sourceSec = sections[activeSectionIdx];
+        const sourceRoom =
+          sourceSec && sourceSec.rooms ? sourceSec.rooms[roomIdx] : null;
+        copyRoomBoundSecId =
+          sourceSec && sourceSec.id != null ? String(sourceSec.id) : null;
+        copyRoomBoundRoomId =
+          sourceRoom && sourceRoom.id != null ? String(sourceRoom.id) : null;
+        copyRoomActiveKey = copyRoomBoundRoomId;
+        const copyRoomSaveBtn = document.getElementById("copyRoomSave");
+        if (copyRoomSaveBtn)
+          copyRoomSaveBtn.disabled = copyRoomPending.has(copyRoomActiveKey);
         const select = document.getElementById("copyRoomTargetSection");
         select.innerHTML = "";
         const placeholder = document.createElement("option");
@@ -5773,29 +5787,54 @@
       function closeCopyRoomModal() {
         document.getElementById("copyRoomModal").classList.remove("open");
         copyRoomSourceIdx = null;
+        copyRoomActiveKey = null;
+        copyRoomBoundSecId = null;
+        copyRoomBoundRoomId = null;
       }
       document.getElementById("copyRoomCancel").onclick = closeCopyRoomModal;
       document.getElementById("copyRoomModal").onclick = (e) => {
         if (e.target === e.currentTarget) closeCopyRoomModal();
       };
+      // Resource-scoped in-flight guards: pending source room ids, plus the room
+      // id currently shown in the open modal (null when closed). Different rooms
+      // stay independent; a stale completion never touches another modal instance.
+      const copyRoomPending = new Set();
+      let copyRoomActiveKey = null;
       document.getElementById("copyRoomSave").onclick = async () => {
         const targetId = Number(document.getElementById("copyRoomTargetSection").value);
         if (!targetId) {
           showToast("اختر القسم الهدف");
           return;
         }
-        if (copyRoomSourceIdx === null || !currentQuoteId) {
+        if (
+          copyRoomBoundSecId === null ||
+          copyRoomBoundRoomId === null ||
+          !currentQuoteId
+        ) {
           showToast("خطأ في تحديد الغرفة");
           closeCopyRoomModal();
           return;
         }
-        const sec = sections[activeSectionIdx];
-        const room = sec.rooms[copyRoomSourceIdx];
-        if (!sec.id || !room.id) {
+        // Resolve the source from the bound invocation identity, never from the
+        // mutable global selection: the selection may have moved on since open.
+        const sec = sections.find(
+          (s) => String(s.id) === String(copyRoomBoundSecId),
+        );
+        const room =
+          sec && sec.rooms
+            ? sec.rooms.find((r) => String(r.id) === String(copyRoomBoundRoomId))
+            : null;
+        if (!room) {
           showToast("لا يمكن النسخ — تأكد من حفظ القسم والغرفة أولاً");
           closeCopyRoomModal();
           return;
         }
+        const roomKey = String(room.id);
+        if (copyRoomPending.has(roomKey)) return;
+        copyRoomPending.add(roomKey);
+        const myRoomKey = roomKey;
+        const copyRoomSaveBtn = document.getElementById("copyRoomSave");
+        if (copyRoomSaveBtn) copyRoomSaveBtn.disabled = true;
         try {
           const res = await api(
             `/quotes/${currentQuoteId}/rooms/${room.id}/clone`,
@@ -5832,7 +5871,11 @@
           const newRoomIdx = finalTargetSec.rooms.findIndex((r) => r.id === newRoom.id);
           activeRoomIdx = newRoomIdx !== -1 ? newRoomIdx : null;
           activeCategoryTab = null;
-          closeCopyRoomModal();
+          // Only the owning invocation may close or clear the modal: the modal
+          // may since have been reopened for a different room.
+          if (copyRoomActiveKey === myRoomKey) {
+            closeCopyRoomModal();
+          }
           markSectionDirty(finalTargetSec);
           markRoomDirty(newRoom);
           for (const it of clonedItems) markItemDirty(it);
@@ -5841,11 +5884,29 @@
           showToast("تم نسخ الغرفة بنجاح");
         } catch (e) {
           showToast("فشل النسخ: " + e.message);
+        } finally {
+          copyRoomPending.delete(myRoomKey);
+          // Re-enable only when the currently displayed invocation is not pending.
+          const copyRoomCurKey = copyRoomActiveKey;
+          const copyRoomSaveBtn = document.getElementById("copyRoomSave");
+          if (copyRoomSaveBtn)
+            copyRoomSaveBtn.disabled =
+              copyRoomCurKey !== null && copyRoomPending.has(copyRoomCurKey);
         }
       };
 
       // ---- Copy Direct Modal ----
+      // Bound source section for the current modal invocation: the save handler
+      // must clone exactly this section even if the global selection changes.
+      let copyDirectBoundSecId = null;
       function openCopyDirectModal() {
+        const directSec = sections[activeSectionIdx];
+        copyDirectBoundSecId =
+          directSec && directSec.id != null ? String(directSec.id) : null;
+        copyDirectActiveKey = copyDirectBoundSecId;
+        const copyDirectSaveBtn = document.getElementById("copyDirectSave");
+        if (copyDirectSaveBtn)
+          copyDirectSaveBtn.disabled = copyDirectPending.has(copyDirectActiveKey);
         document.getElementById("copyDirectSecName").value = "";
         document.getElementById("copyDirectSecCode").value = nextSectionCode();
         document.getElementById("copyDirectModal").classList.add("open");
@@ -5853,11 +5914,17 @@
       }
       function closeCopyDirectModal() {
         document.getElementById("copyDirectModal").classList.remove("open");
+        copyDirectActiveKey = null;
+        copyDirectBoundSecId = null;
       }
       document.getElementById("copyDirectCancel").onclick = closeCopyDirectModal;
       document.getElementById("copyDirectModal").onclick = (e) => {
         if (e.target === e.currentTarget) closeCopyDirectModal();
       };
+      // Resource-scoped in-flight guards: pending source section ids, plus the
+      // section id the open modal was started from (null when closed).
+      const copyDirectPending = new Set();
+      let copyDirectActiveKey = null;
       document.getElementById("copyDirectSave").onclick = async () => {
         const code = document.getElementById("copyDirectSecCode").value.trim();
         const name = document.getElementById("copyDirectSecName").value.trim();
@@ -5870,12 +5937,22 @@
           closeCopyDirectModal();
           return;
         }
-        const sec = sections[activeSectionIdx];
-        if (!sec.id) {
+        // Resolve the source from the bound invocation identity, never from the
+        // mutable global selection: the selection may have moved on since open.
+        const sec = sections.find(
+          (s) => String(s.id) === String(copyDirectBoundSecId),
+        );
+        if (!sec || !sec.id) {
           showToast("لا يمكن النسخ — تأكد من حفظ القسم أولاً");
           closeCopyDirectModal();
           return;
         }
+        const directKey = String(sec.id);
+        if (copyDirectPending.has(directKey)) return;
+        copyDirectPending.add(directKey);
+        const myDirectKey = directKey;
+        const copyDirectSaveBtn = document.getElementById("copyDirectSave");
+        if (copyDirectSaveBtn) copyDirectSaveBtn.disabled = true;
         try {
           const res = await api(
             `/quotes/${currentQuoteId}/sections/${sec.id}/clone-direct`,
@@ -5897,7 +5974,11 @@
           activeSectionIdx = sections.length - 1;
           activeRoomIdx = null;
           activeCategoryTab = null;
-          closeCopyDirectModal();
+          // Only the owning invocation may close the modal: it may since have
+          // been reopened for a different source section.
+          if (copyDirectActiveKey === myDirectKey) {
+            closeCopyDirectModal();
+          }
           markSectionDirty(newSec);
           (newSec.items || []).forEach((it) => markItemDirty(it));
           markDirty();
@@ -5905,9 +5986,37 @@
           showToast("تم نسخ المباشر بنجاح");
         } catch (e) {
           showToast("فشل النسخ: " + e.message);
+        } finally {
+          copyDirectPending.delete(myDirectKey);
+          // Re-enable only when the currently displayed invocation is not pending.
+          const copyDirectCurKey = copyDirectActiveKey;
+          const copyDirectSaveBtn = document.getElementById("copyDirectSave");
+          if (copyDirectSaveBtn)
+            copyDirectSaveBtn.disabled =
+              copyDirectCurKey !== null && copyDirectPending.has(copyDirectCurKey);
         }
       };
 
+      // In-flight guards: prevent double-click template save/load/delete.
+      // Load/delete guards are keyed by stable template id (not button closures)
+      // so they survive modal close/reopen and list re-renders.
+      let tmplSaveInFlight = false;
+      const tmplLoadPending = new Set();
+      const tmplDelPending = new Set();
+      // Locate the currently rendered template button of a given kind by stable
+      // id. Guards must reconcile this live node, never only a captured node
+      // that a re-render may since have detached.
+      function tmplFindBtn(cls, tmplId) {
+        const modalBody = document.getElementById("templateModalBody");
+        const list =
+          modalBody && modalBody.querySelectorAll
+            ? modalBody.querySelectorAll(cls)
+            : [];
+        for (const b of list) {
+          if (String(b.dataset.id) === String(tmplId)) return b;
+        }
+        return null;
+      }
       function openTemplateModal(mode) {
         const modal = document.getElementById("templateModal");
         const body = document.getElementById("templateModalBody");
@@ -5929,6 +6038,10 @@
               showToast("الاسم مطلوب");
               return;
             }
+            if (tmplSaveInFlight) return;
+            tmplSaveInFlight = true;
+            const tmplSaveBtn = document.getElementById("tmplSaveBtn");
+            if (tmplSaveBtn) tmplSaveBtn.disabled = true;
             const data = {
               ...state,
               projectName: "",
@@ -5942,14 +6055,20 @@
                 rooms: s.rooms || [],
               })),
             };
-            await api("/templates", {
-              method: "POST",
-              body: JSON.stringify({
-                name,
-                description: document.getElementById("tmplDesc").value,
-                data,
-              }),
-            });
+            try {
+              await api("/templates", {
+                method: "POST",
+                body: JSON.stringify({
+                  name,
+                  description: document.getElementById("tmplDesc").value,
+                  data,
+                }),
+              });
+            } finally {
+              tmplSaveInFlight = false;
+              const tmplSaveBtn = document.getElementById("tmplSaveBtn");
+              if (tmplSaveBtn) tmplSaveBtn.disabled = false;
+            }
             closeTemplateModal();
             showToast("تم حفظ القالب");
           };
@@ -5970,8 +6089,8 @@
                   <div class="meta">${escapeAttr(t.description || "")}</div>
                 </div>
                 <div class="btns">
-                  <button class="tmpl-load-btn" data-id="${t.id}">تحميل</button>
-                  <button class="tmpl-del-btn" data-id="${t.id}">حذف</button>
+                  <button class="tmpl-load-btn" data-id="${t.id}"${tmplLoadPending.has(String(t.id)) ? " disabled" : ""}>تحميل</button>
+                  <button class="tmpl-del-btn" data-id="${t.id}"${tmplDelPending.has(String(t.id)) ? " disabled" : ""}>حذف</button>
                 </div>
               </div>
             `,
@@ -5979,14 +6098,26 @@
               .join("");
             body.querySelectorAll(".tmpl-load-btn").forEach((btn) => {
               btn.onclick = async () => {
-                const res = await api(`/templates/${btn.dataset.id}/clone`, {
-                  method: "POST",
-                });
-                currentQuoteId = res.id;
-                await loadQuote(currentQuoteId);
-                loadSavedList();
-                closeTemplateModal();
-                showToast("تم تحميل القالب");
+                const tmplLoadId = String(btn.dataset.id);
+                if (tmplLoadPending.has(tmplLoadId)) return;
+                tmplLoadPending.add(tmplLoadId);
+                btn.disabled = true;
+                try {
+                  const res = await api(`/templates/${tmplLoadId}/clone`, {
+                    method: "POST",
+                  });
+                  currentQuoteId = res.id;
+                  await loadQuote(currentQuoteId);
+                  loadSavedList();
+                  closeTemplateModal();
+                  showToast("تم تحميل القالب");
+                } finally {
+                  tmplLoadPending.delete(tmplLoadId);
+                  btn.disabled = false;
+                  const curLoadBtn = tmplFindBtn(".tmpl-load-btn", tmplLoadId);
+                  if (curLoadBtn)
+                    curLoadBtn.disabled = tmplLoadPending.has(tmplLoadId);
+                }
               };
             });
             body.querySelectorAll(".tmpl-del-btn").forEach((btn) => {
@@ -5996,12 +6127,25 @@
                   "هل أنت متأكد من حذف هذا القالب؟",
                   "حذف",
                   async () => {
+                    const tmplId = btn.dataset.id;
+                    if (tmplDelPending.has(tmplId)) return;
+                    tmplDelPending.add(tmplId);
+                    btn.disabled = true;
                     try {
-                      await api(`/templates/${btn.dataset.id}`, { method: "DELETE" });
-                      btn.closest(".saved-item").remove();
+                      await api(`/templates/${tmplId}`, { method: "DELETE" });
+                      const liveDelBtn =
+                        tmplFindBtn(".tmpl-del-btn", tmplId) || btn;
+                      const liveRow = liveDelBtn.closest(".saved-item");
+                      if (liveRow) liveRow.remove();
                       showToast("تم حذف القالب");
                     } catch (e) {
                       showToast(e.message);
+                    } finally {
+                      tmplDelPending.delete(tmplId);
+                      btn.disabled = false;
+                      const curDelBtn = tmplFindBtn(".tmpl-del-btn", tmplId);
+                      if (curDelBtn)
+                        curDelBtn.disabled = tmplDelPending.has(tmplId);
                     }
                   },
                 );
