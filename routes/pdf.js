@@ -297,6 +297,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   const colDefs = [
     { label: "#", w: 28 },
     { label: "القسم", w: 60 },
+    { label: "اسم البند", w: 110 },
     { label: "الوصف", w: 0 }, // flex
     { label: "الوحدة", w: 32 },
     { label: "الكمية", w: 30 },
@@ -346,7 +347,8 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     }
 
     const lineTotal = (Number(item.qty) || 0) * (Number(item.selling_price) || 0);
-    const descText = displayText([item.name, item.description].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" — "));
+    const itemNameText = displayText(item.name || "");
+    const descText = displayText(item.description || "");
     const notesText = displayText(item.notes || "");
     const secLabel = displayText(sectionLabelEn);
     const itemUnit = displayText(item.unit || "");
@@ -355,6 +357,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     const values = [
       itemCode,
       secLabel,
+      itemNameText,
       descText,
       itemUnit,
       String(item.qty || 0),
@@ -382,7 +385,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     let rx = right;
     for (let i = 0; i < values.length; i++) {
       const w = colWidths[i];
-      const align = (i === 2 || i === 7) ? "right" : "center";
+      const align = (i === 2 || i === 3 || i === 8) ? "right" : "center";
       doc.text(String(values[i]), rx - w, atY, { width: w, align });
       rx -= w;
     }
