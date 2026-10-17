@@ -346,7 +346,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     }
 
     const lineTotal = (Number(item.qty) || 0) * (Number(item.selling_price) || 0);
-    const descText = displayText(item.description || item.name || "");
+    const descText = displayText([item.name, item.description].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" — "));
     const notesText = displayText(item.notes || "");
     const secLabel = displayText(sectionLabelEn);
     const itemUnit = displayText(item.unit || "");

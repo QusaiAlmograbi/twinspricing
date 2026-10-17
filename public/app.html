@@ -8414,7 +8414,7 @@
             tr.innerHTML = `
               <td>${escapeAttr(displayMap[it.id] || it.item_code || "")}</td>
               <td>${escapeAttr(secNameEn.substring(0, 12))}</td>
-              <td>${escapeAttr(it.description || it.name || "")}</td>
+              <td>${escapeAttr([it.name, it.description].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" — "))}</td>
               <td>${escapeAttr(it.unit || "")}</td>
               <td>${escapeAttr(String(it.qty || 0))}</td>
               <td>${fmt(it.selling_price)}</td>
