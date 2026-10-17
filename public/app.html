@@ -8396,7 +8396,8 @@
         thRow.innerHTML = `
           <th style="width:28px">#</th>
           <th style="width:60px">القسم<br>Section</th>
-          <th style="width:330px">الوصف<br>Description</th>
+          <th style="width:150px">اسم البند<br>Item Name</th>
+          <th style="width:160px">الوصف<br>Description</th>
           <th style="width:32px">الوحدة<br>Unit</th>
           <th style="width:30px">الكمية<br>Qty</th>
           <th style="width:40px">سعر الوحدة<br>Unit Price</th>
@@ -8414,7 +8415,8 @@
             tr.innerHTML = `
               <td>${escapeAttr(displayMap[it.id] || it.item_code || "")}</td>
               <td>${escapeAttr(secNameEn.substring(0, 12))}</td>
-              <td>${escapeAttr([it.name, it.description].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" — "))}</td>
+              <td>${escapeAttr(it.name || "")}</td>
+              <td>${escapeAttr(it.description || "")}</td>
               <td>${escapeAttr(it.unit || "")}</td>
               <td>${escapeAttr(String(it.qty || 0))}</td>
               <td>${fmt(it.selling_price)}</td>
@@ -8431,7 +8433,7 @@
           if (showHeader) {
             const headerRow = document.createElement("tr");
             headerRow.className = "pt-sec-header pt-room-header";
-            headerRow.innerHTML = `<td colspan="8">${escapeAttr(label)}</td>`;
+            headerRow.innerHTML = `<td colspan="9">${escapeAttr(label)}</td>`;
             tbody.appendChild(headerRow);
           }
 
@@ -8444,7 +8446,7 @@
           );
           const subRow = document.createElement("tr");
           subRow.className = "pt-sec-subtotal pt-room-subtotal";
-          subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(label)}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(sub)} JOD</td>`;
+          subRow.innerHTML = `<td colspan="7" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(label)}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(sub)} JOD</td>`;
           tbody.appendChild(subRow);
         }
 
@@ -8453,7 +8455,7 @@
           // Section header row
           const secHeader = document.createElement("tr");
           secHeader.className = "pt-sec-header";
-          secHeader.innerHTML = `<td colspan="8">القسم ${escapeAttr(sec.code)} : ${escapeAttr(sectionLabel(sec.name))}</td>`;
+          secHeader.innerHTML = `<td colspan="9">القسم ${escapeAttr(sec.code)} : ${escapeAttr(sectionLabel(sec.name))}</td>`;
           tbody.appendChild(secHeader);
 
           const allItems = sec.items || [];
@@ -8479,7 +8481,7 @@
           if (secSub && secSub.subtotal > 0) {
             const subRow = document.createElement("tr");
             subRow.className = "pt-sec-subtotal";
-            subRow.innerHTML = `<td colspan="6" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(sectionLabel(sec.name))}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(secSub.subtotal)} JOD</td>`;
+            subRow.innerHTML = `<td colspan="7" style="text-align:right;padding-right:8px;">▶ مجموع ${escapeAttr(sectionLabel(sec.name))}</td><td colspan="2" style="text-align:left;padding-left:8px;">${fmt(secSub.subtotal)} JOD</td>`;
             tbody.appendChild(subRow);
           }
         }
@@ -9401,7 +9403,8 @@
         word-break: break-word;
       }
       #print-template .pt-items-table td:nth-child(3),
-      #print-template .pt-items-table td:nth-child(8) {
+      #print-template .pt-items-table td:nth-child(4),
+      #print-template .pt-items-table td:nth-child(9) {
         text-align: right;
       }
       #print-template .pt-items-table .pt-sec-header {
