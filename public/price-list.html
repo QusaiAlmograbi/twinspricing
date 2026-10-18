@@ -462,6 +462,10 @@
       let editingItemId = null;
       let editingDisciplineId = null;
       let creatingNewDiscipline = false;
+      let catModalSaveInFlight = false;
+      let itemModalSaveInFlight = false;
+      let catModalInvocationSeq = 0;
+      let itemModalInvocationSeq = 0;
 
       let unlinkedCategories = [];
 
@@ -541,13 +545,15 @@
         renderMain();
       }
 
-      async function loadDisciplineSections() {
-        if (!activeDisciplineId) {
+      async function loadDisciplineSections(disciplineId) {
+        const targetId = disciplineId ?? activeDisciplineId;
+        if (!targetId) {
           disciplineSections = [];
           renderDisciplineSections();
           return;
         }
-        const data = await api(`/disciplines/${activeDisciplineId}/sections`);
+        const data = await api(`/disciplines/${targetId}/sections`);
+        if (targetId !== activeDisciplineId) return;
         disciplineSections = data.sections || [];
         renderDisciplineSections();
       }
@@ -810,6 +816,7 @@
 
       // ---- Discipline Modal ----
       function openDisciplineModal(editId) {
+        catModalInvocationSeq++;
         editingDisciplineId = editId || null;
         creatingNewDiscipline = !editId;
         const modal = document.getElementById("catModal");
@@ -828,6 +835,7 @@
 
       // ---- Category Modal ----
       function openCatModal(editId) {
+        catModalInvocationSeq++;
         editingCategoryId = editId || null;
         creatingNewDiscipline = false;
         const modal = document.getElementById("catModal");
@@ -849,43 +857,58 @@
       document.getElementById("catModalSave").onclick = async () => {
         const name = document.getElementById("catModalName").value.trim();
         if (!name) { showToast("الاسم مطلوب"); return; }
-
-        // Discipline mode vs category mode
-        if (creatingNewDiscipline) {
-          await api("/disciplines", { method: "POST", body: JSON.stringify({ name }) });
-          showToast("تمت إضافة التخصص");
-          creatingNewDiscipline = false;
-          await loadDisciplines();
-        } else if (editingDisciplineId !== null) {
-          await api(`/disciplines/${editingDisciplineId}`, { method: "PUT", body: JSON.stringify({ name }) });
-          showToast("تم تعديل التخصص");
-          editingDisciplineId = null;
-          await loadDisciplines();
-        } else if (editingDisciplineId === null && editingCategoryId === null) {
-          // Check context: if we're in a discipline, add category to discipline
-          if (activeDisciplineId) {
-            // First create the category, then link it
-            const catRes = await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
-            await api(`/disciplines/${activeDisciplineId}/sections`, { method: "POST", body: JSON.stringify({ section_id: catRes.id }) });
-            showToast("تمت إضافة القسم");
-          } else {
-            await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
-            showToast("تمت إضافة القسم");
+        if (catModalSaveInFlight) return;
+        catModalSaveInFlight = true;
+        const mySeq = catModalInvocationSeq;
+        const myCreatingNewDiscipline = creatingNewDiscipline;
+        const myEditingDisciplineId = editingDisciplineId;
+        const myEditingCategoryId = editingCategoryId;
+        const myActiveDisciplineId = activeDisciplineId;
+        const catSaveBtn = document.getElementById("catModalSave");
+        if (catSaveBtn) catSaveBtn.disabled = true;
+        try {
+          // Discipline mode vs category mode
+          if (myCreatingNewDiscipline) {
+            await api("/disciplines", { method: "POST", body: JSON.stringify({ name }) });
+            showToast("تمت إضافة التخصص");
+            await loadDisciplines();
+          } else if (myEditingDisciplineId !== null) {
+            await api(`/disciplines/${myEditingDisciplineId}`, { method: "PUT", body: JSON.stringify({ name }) });
+            showToast("تم تعديل التخصص");
+            await loadDisciplines();
+          } else if (myEditingDisciplineId === null && myEditingCategoryId === null) {
+            // Check context: if we're in a discipline, add category to discipline
+            if (myActiveDisciplineId) {
+              // First create the category, then link it
+              const catRes = await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
+              await api(`/disciplines/${myActiveDisciplineId}/sections`, { method: "POST", body: JSON.stringify({ section_id: catRes.id }) });
+              showToast("تمت إضافة القسم");
+            } else {
+              await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
+              showToast("تمت إضافة القسم");
+            }
+            await loadDisciplines();
+            await loadUnlinkedCategories();
+            if (myActiveDisciplineId) await loadDisciplineSections(myActiveDisciplineId);
+          } else if (myEditingCategoryId !== null) {
+            await api(`/price-list/${myEditingCategoryId}`, { method: "PUT", body: JSON.stringify({ name }) });
+            showToast("تم تعديل القسم");
+            await loadDisciplineSections();
           }
-          await loadDisciplines();
-          await loadUnlinkedCategories();
-          if (activeDisciplineId) await loadDisciplineSections();
-        } else if (editingCategoryId !== null) {
-          await api(`/price-list/${editingCategoryId}`, { method: "PUT", body: JSON.stringify({ name }) });
-          showToast("تم تعديل القسم");
-          editingCategoryId = null;
-          await loadDisciplineSections();
+          if (mySeq === catModalInvocationSeq) {
+            if (myEditingDisciplineId !== null) editingDisciplineId = null;
+            if (myEditingCategoryId !== null) editingCategoryId = null;
+            closeCatModal();
+          }
+        } finally {
+          catModalSaveInFlight = false;
+          if (catSaveBtn) catSaveBtn.disabled = false;
         }
-        closeCatModal();
       };
 
       // ---- Item Modal ----
       function openItemModal(item) {
+        itemModalInvocationSeq++;
         editingItemId = item ? item.id : null;
         const modal = document.getElementById("itemModal");
         document.getElementById("itemModalTitle").textContent = editingItemId !== null ? "تعديل البند" : "إضافة بند جديد";
@@ -922,17 +945,29 @@
           overhead_pct: Number(document.getElementById("itemModalOverhead").value) || 35,
         };
         if (!body.name) { showToast("اسم البند مطلوب"); return; }
-        if (editingItemId !== null) {
-          await api(`/price-list/items/${editingItemId}`, { method: "PUT", body: JSON.stringify(body) });
-          showToast("تم تعديل البند");
-        } else {
-          await api(`/price-list/${activeCategoryId}/items`, { method: "POST", body: JSON.stringify(body) });
-          showToast("تمت إضافة البند");
+        if (itemModalSaveInFlight) return;
+        itemModalSaveInFlight = true;
+        const mySeq = itemModalInvocationSeq;
+        const myEditingItemId = editingItemId;
+        const myActiveCategoryId = activeCategoryId;
+        const itemSaveBtn = document.getElementById("itemModalSave");
+        if (itemSaveBtn) itemSaveBtn.disabled = true;
+        try {
+          if (myEditingItemId !== null) {
+            await api(`/price-list/items/${myEditingItemId}`, { method: "PUT", body: JSON.stringify(body) });
+            showToast("تم تعديل البند");
+          } else {
+            await api(`/price-list/${myActiveCategoryId}/items`, { method: "POST", body: JSON.stringify(body) });
+            showToast("تمت إضافة البند");
+          }
+          if (mySeq === itemModalInvocationSeq) closeItemModal();
+          await loadItems();
+          await loadDisciplineSections();
+          await loadUnlinkedCategories();
+        } finally {
+          itemModalSaveInFlight = false;
+          if (itemSaveBtn) itemSaveBtn.disabled = false;
         }
-        closeItemModal();
-        await loadItems();
-        await loadDisciplineSections();
-        await loadUnlinkedCategories();
       };
 
       document.getElementById("addDiscBtn").onclick = () => openDisciplineModal();
