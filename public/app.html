@@ -3002,8 +3002,182 @@
         ],
       };
       let sections = [];
+      // Stable per-object identity for unsaved/local resources used by the
+      // Blocker 6 destination keys. Persisted resources use their IDs.
+      const localResourceIds = new WeakMap();
+      let localResourceIdCounter = 0;
+      // Blocker 6: deterministic destination/session intent guards for the
+      // synchronous local add flows. A processed {destination/session, intent
+      // generation} tuple is never processed twice; destination changes and
+      // genuine user interactions create a new tuple.
+      let mainAddDestinationKey = null;
+      let mainAddIntentGeneration = 0;
+      let mainAddLastProcessed = null;
+      let allItemsOverlaySessionId = 0;
+      let allItemsOverlayTrackedSessionId = null;
+      let allItemsOverlayDestinationKey = null;
+      let allItemsOverlayIntentGeneration = 0;
+      let allItemsOverlayLastProcessed = null;
+      let allItemsOverlaySelectedSection = null;
+      let allItemsOverlaySelectedRoom = null;
+      let allItemsOverlayRoomStale = false;
+      function stableResourceKey(prefix, obj) {
+        if (!obj) return prefix + ":none";
+        let key = localResourceIds.get(obj);
+        if (key === undefined) {
+          const id = obj.id;
+          if (id != null && Number(id) > 0) {
+            key = prefix + ":id:" + id;
+          } else {
+            key = prefix + ":local:" + (++localResourceIdCounter);
+          }
+          localResourceIds.set(obj, key);
+        }
+        return key;
+      }
+
+      function resolveMainAddDestination() {
+        const sec = sections[activeSectionIdx] || null;
+        let room = null;
+        let staleRoom = false;
+        if (sec && sec.has_rooms) {
+          if (activeRoomObj) {
+            if ((sec.rooms || []).includes(activeRoomObj)) {
+              room = activeRoomObj;
+            } else {
+              staleRoom = true;
+            }
+          } else if (activeRoomIdx !== null) {
+            const candidate = (sec.rooms || [])[activeRoomIdx];
+            if (candidate !== undefined) {
+              room = candidate;
+              activeRoomObj = candidate;
+            }
+          }
+        }
+        return { sec, room, staleRoom };
+      }
+
+      function selectActiveSection(nextIdx, previousSection) {
+        const prev =
+          arguments.length >= 2
+            ? previousSection
+            : sections[activeSectionIdx] || null;
+        const nextSection = sections[nextIdx] || null;
+        activeSectionIdx = nextIdx;
+        if (prev !== nextSection) {
+          activeRoomIdx = null;
+          activeRoomObj = null;
+          activeCategoryTab = null;
+          advanceMainAddIntent();
+          return;
+        }
+        if (!nextSection) return;
+        if (!nextSection.has_rooms) {
+          activeRoomIdx = null;
+          activeRoomObj = null;
+          return;
+        }
+        if (
+          activeRoomObj &&
+          (nextSection.rooms || []).includes(activeRoomObj)
+        ) {
+          activeRoomIdx = (nextSection.rooms || []).indexOf(activeRoomObj);
+        } else {
+          activeRoomIdx = null;
+          activeRoomObj = null;
+        }
+      }
+
+      function getMainAddDestinationKey() {
+        const { sec, room } = resolveMainAddDestination();
+        const sectionKey = stableResourceKey("section", sec);
+        const roomKey = room
+          ? stableResourceKey("room", room)
+          : "direct";
+        return "main:section:" + sectionKey + ":room:" + roomKey;
+      }
+
+      function advanceMainAddIntent() {
+        const key = getMainAddDestinationKey();
+        if (key !== mainAddDestinationKey) {
+          mainAddDestinationKey = key;
+          mainAddIntentGeneration = 0;
+          mainAddLastProcessed = null;
+        }
+        mainAddIntentGeneration += 1;
+      }
+
+      function resolveOverlayDestination() {
+        let sec = allItemsOverlaySelectedSection;
+        let staleSection = false;
+        if (!sec || !sections.includes(sec)) {
+          if (allItemsOverlaySelectedSection === null) {
+            const idx = Number(
+              document.getElementById("allItemsSecSelect")?.value,
+            );
+            if (Number.isInteger(idx) && sections[idx]) {
+              sec = sections[idx];
+              allItemsOverlaySelectedSection = sec;
+            } else {
+              staleSection = allItemsOverlaySelectedSection !== null;
+            }
+          } else {
+            staleSection = true;
+          }
+        }
+        if (!sec || !sections.includes(sec)) {
+          return { sec: null, room: null, staleSection: true, staleRoom: false };
+        }
+        let room = allItemsOverlaySelectedRoom;
+        let staleRoom = allItemsOverlayRoomStale;
+        if (room) {
+          if ((sec.rooms || []).includes(room)) {
+            allItemsOverlayRoomStale = false;
+          } else {
+            staleRoom = true;
+            allItemsOverlayRoomStale = true;
+          }
+        } else if (allItemsOverlayRoomStale) {
+          staleRoom = true;
+        }
+        if (!sec.has_rooms) {
+          room = null;
+          allItemsOverlayRoomStale = false;
+          staleRoom = false;
+        }
+        return { sec, room, staleSection, staleRoom };
+      }
+
+      function getOverlayAddDestinationKey() {
+        const destination = resolveOverlayDestination();
+        if (
+          !destination ||
+          !destination.sec ||
+          destination.staleSection ||
+          destination.staleRoom
+        )
+          return "overlay:stale";
+        const sectionKey = stableResourceKey("section", destination.sec);
+        const roomKey = destination.room
+          ? stableResourceKey("room", destination.room)
+          : "direct";
+        return "overlay:section:" + sectionKey + ":room:" + roomKey;
+      }
+
+      function advanceOverlayAddIntent() {
+        const key = getOverlayAddDestinationKey();
+        if (key !== allItemsOverlayDestinationKey) {
+          allItemsOverlayDestinationKey = key;
+          allItemsOverlayIntentGeneration = 0;
+          allItemsOverlayLastProcessed = null;
+        }
+        allItemsOverlayIntentGeneration += 1;
+      }
+
       let activeSectionIdx = 0;
       let activeRoomIdx = null;
+      let activeRoomObj = null;
       let currentQuoteId = null;
       let isOwnerOrAdmin =
         currentUser.role === "owner" || currentUser.role === "admin";
@@ -3993,8 +4167,7 @@
           const count = (sec.items || []).length;
           btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ""}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
           btn.onclick = () => {
-            activeSectionIdx = idx;
-            activeCategoryTab = null;
+            selectActiveSection(idx);
             renderAll();
           };
           nav.appendChild(btn);
@@ -4271,6 +4444,10 @@
                 return;
               const val = tab.dataset.roomIdx;
               activeRoomIdx = val === "null" ? null : Number(val);
+              activeRoomObj =
+                activeRoomIdx === null
+                  ? null
+                  : (sec.rooms || [])[activeRoomIdx] || null;
               renderAll();
             };
             tab.ondblclick = (e) => {
@@ -4322,6 +4499,8 @@
               const input = document.getElementById("roomNameInput");
               input.value = "";
               editingRoomIdx = null;
+              roomModalActiveSeq = ++roomModalSeq;
+              syncRoomNameSaveBtn();
               document.querySelector(
                 "#roomNameModal .modal h3",
               ).textContent = "إضافة غرفة جديدة";
@@ -4337,6 +4516,7 @@
             sec.has_rooms = 1;
             if (!sec.rooms) sec.rooms = [];
             activeRoomIdx = null;
+            activeRoomObj = null;
             if (currentQuoteId && sec.id) {
               try {
                 await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
@@ -4562,13 +4742,47 @@
           copyDirectBtn.onclick = () => openCopyDirectModal();
 
         // Event: add item (empty)
+        // Destination/session intent guard: same destination + same intent
+        // generation cannot create a second row; destination changes or genuine
+        // user interactions create a new generation. renderAll() does not.
         document.getElementById("addItemBtn").onclick = async () => {
-          const activeRoom =
-            sec.has_rooms && activeRoomIdx !== null
-              ? (sec.rooms || [])[activeRoomIdx]
-              : null;
+          const mainDestination = resolveMainAddDestination();
+          if (!mainDestination.sec) {
+            showToast("القسم غير متاح");
+            return;
+          }
+          if (mainDestination.staleRoom) {
+            activeRoomObj = null;
+            showToast("الغرفة المحددة غير متاحة");
+            return;
+          }
+          const destinationSec = mainDestination.sec;
+          const destinationRoom = mainDestination.room;
+          const destinationKey =
+            "main:section:" +
+            stableResourceKey("section", destinationSec) +
+            ":room:" +
+            (destinationRoom
+              ? stableResourceKey("room", destinationRoom)
+              : "direct");
+          if (destinationKey !== mainAddDestinationKey) {
+            mainAddDestinationKey = destinationKey;
+            mainAddIntentGeneration = 0;
+            mainAddLastProcessed = null;
+          }
+          if (
+            mainAddLastProcessed &&
+            mainAddLastProcessed.key === destinationKey &&
+            mainAddLastProcessed.generation === mainAddIntentGeneration
+          )
+            return;
+          mainAddLastProcessed = {
+            key: destinationKey,
+            generation: mainAddIntentGeneration,
+          };
+          const destinationItems = destinationSec.items || [];
           const newItem = {
-            item_code: `${sec.code}.${allItems.length + 1}`,
+            item_code: `${destinationSec.code}.${destinationItems.length + 1}`,
             name: "",
             description: "",
             unit: "عدد",
@@ -4579,8 +4793,10 @@
             notes: "",
             image: null,
             category_id: null,
-            room_id: activeRoom ? activeRoom.id : null,
+            room_id: destinationRoom ? destinationRoom.id : null,
           };
+          const sec = destinationSec;
+          const allItems = destinationItems;
           if (currentQuoteId && sec.id) {
             const hasData =
               (newItem.name || "").trim() !== "" ||
@@ -4909,17 +5125,35 @@
         });
       }
 
+      // Single-item create guards: same section + same catalog/name key while
+      // pending is a repeat; different items stay independent.
+      const itemCreatePending = new Set();
       async function addItemFromCatalog(catItem) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
-        const allItems = sec.items || [];
+        const secKey =
+          sec.id != null ? String(sec.id) : "idx:" + activeSectionIdx;
         const activeRoom =
           sec.has_rooms && activeRoomIdx !== null
             ? (sec.rooms || [])[activeRoomIdx]
             : null;
-        const newItem = {
-          item_code: catItem.item_code || `${sec.code}.${allItems.length + 1}`,
-          name: catItem.name || "",
+        const activeRoomKey =
+          activeRoom && activeRoom.id != null
+            ? String(activeRoom.id)
+            : "none";
+        const catKey =
+          secKey +
+          "|room:" +
+          activeRoomKey +
+          "|" +
+          (catItem.id || catItem.item_code || catItem.name || "?");
+        if (itemCreatePending.has(catKey)) return;
+        itemCreatePending.add(catKey);
+        try {
+          const allItems = sec.items || [];
+          const newItem = {
+            item_code: catItem.item_code || `${sec.code}.${allItems.length + 1}`,
+            name: catItem.name || "",
           description: catItem.description || "",
           unit: catItem.unit || "عدد",
           qty: 1,
@@ -4950,19 +5184,35 @@
         markDirty();
         renderAll();
         showToast("تمت إضافة البند من الكتالوج");
+        } finally {
+          itemCreatePending.delete(catKey);
+        }
       }
 
       async function addItemManual(nameText) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
-        const allItems = sec.items || [];
-        const activeRoom =
+        const secKey =
+          sec.id != null ? String(sec.id) : "idx:" + activeSectionIdx;
+        const manualRoom =
           sec.has_rooms && activeRoomIdx !== null
             ? (sec.rooms || [])[activeRoomIdx]
             : null;
-        const newItem = {
-          item_code: `${sec.code}.${allItems.length + 1}`,
-          name: nameText,
+        const manualRoomKey =
+          manualRoom && manualRoom.id != null
+            ? String(manualRoom.id)
+            : "none";
+        const manualKey =
+          secKey + "|room:" + manualRoomKey + "|manual:" + (nameText || "").trim();
+        if (itemCreatePending.has(manualKey)) return;
+        itemCreatePending.add(manualKey);
+        const manualBtn = document.getElementById("catSearchManualBtn");
+        if (manualBtn) manualBtn.disabled = true;
+        try {
+          const allItems = sec.items || [];
+          const newItem = {
+            item_code: `${sec.code}.${allItems.length + 1}`,
+            name: nameText,
           description: "",
           unit: "عدد",
           qty: 1,
@@ -4971,9 +5221,9 @@
           selling_price: 0,
           notes: "",
           image: null,
-          category_id: null,
-          room_id: activeRoom ? activeRoom.id : null,
-        };
+            category_id: null,
+            room_id: manualRoom ? manualRoom.id : null,
+          };
         if (currentQuoteId && sec.id) {
           try {
             const res = await api(`/sections/${sec.id}/items`, {
@@ -4993,6 +5243,11 @@
         markDirty();
         renderAll();
         showToast("تمت إضافة البند يدوياً");
+        } finally {
+          itemCreatePending.delete(manualKey);
+          const manualBtn = document.getElementById("catSearchManualBtn");
+          if (manualBtn) manualBtn.disabled = false;
+        }
       }
 
       // ---- All Items Overlay ----
@@ -5392,6 +5647,21 @@
       function openAllItemsOverlay() {
         allItemsOpen = true;
         populateAllItemsSelects();
+        allItemsOverlaySelectedSection =
+          sections[activeSectionIdx] || null;
+        allItemsOverlayRoomStale = false;
+        if (
+          allItemsOverlaySelectedSection &&
+          allItemsOverlaySelectedSection.has_rooms &&
+          activeRoomIdx !== null
+        ) {
+          const candidate =
+            (allItemsOverlaySelectedSection.rooms || [])[activeRoomIdx];
+          allItemsOverlaySelectedRoom =
+            candidate === undefined ? null : candidate;
+        } else {
+          allItemsOverlaySelectedRoom = null;
+        }
         renderAllItemsRows();
         document.getElementById("allItemsOverlay").classList.add("open");
       }
@@ -5402,22 +5672,22 @@
         renderAll();
       }
 
-      async function addItemInOverlay() {
-        const secIdx = Number(
-          document.getElementById("allItemsSecSelect").value,
-        );
-        const sec = sections[secIdx];
-        if (!sec) {
-          showToast("اختر قسم أولاً");
+      async function addItemInOverlay(destination = resolveOverlayDestination()) {
+        const resolvedDestination =
+          destination && destination.sec ? destination : resolveOverlayDestination();
+        if (
+          !resolvedDestination ||
+          !resolvedDestination.sec ||
+          resolvedDestination.staleSection ||
+          resolvedDestination.staleRoom
+        ) {
+          showToast("القسم المحدد غير متاح");
           return;
         }
+        const sec = resolvedDestination.sec;
+        const room = resolvedDestination.room;
+        const secIdx = sections.indexOf(sec);
         const allItems = sec.items || [];
-        let room = null;
-        if (sec.has_rooms) {
-          const roomVal = document.getElementById("allItemsRoomSelect").value;
-          const roomIdx = roomVal === "" ? -1 : Number(roomVal);
-          room = roomIdx >= 0 ? (sec.rooms || [])[roomIdx] : null;
-        }
         const newItem = {
           item_code: `${sec.code}.${allItems.length + 1}`,
           name: "",
@@ -5665,10 +5935,73 @@
         renderTotals();
       }
 
+      // Explicit re-arm boundaries for the one-shot local add guards. A later
+      // user interaction with another control/row proves a new add intention;
+      // the same activation/render never re-arms.
+      const mainPanelEl = document.getElementById("mainPanel");
+      if (mainPanelEl) {
+        const mainIntentHandler = (e) => {
+          if (!e || e.isTrusted === false) return;
+          const target = e.target;
+          if (!target) return;
+          const addBtn = document.getElementById("addItemBtn");
+          if (target === addBtn || (target.closest && target.closest("#addItemBtn")))
+            return;
+          advanceMainAddIntent();
+        };
+        ["input", "change", "click", "keydown"].forEach((type) => {
+          mainPanelEl.addEventListener(type, mainIntentHandler, true);
+        });
+      }
+      const allItemsOverlayEl = document.getElementById("allItemsOverlay");
+      if (allItemsOverlayEl) {
+        const overlayIntentHandler = (e) => {
+          if (!e || e.isTrusted === false) return;
+          const target = e.target;
+          if (!target) return;
+          const addBtn = document.getElementById("allItemsAddBtn");
+          if (
+            target === addBtn ||
+            (target.closest && target.closest("#allItemsAddBtn"))
+          )
+            return;
+          advanceOverlayAddIntent();
+        };
+        ["input", "change", "click", "keydown"].forEach((type) => {
+          allItemsOverlayEl.addEventListener(type, overlayIntentHandler, true);
+        });
+      }
+
       // ---- Modals ----
       let editingSectionIdx = null;
+      // Section-modal invocation identity + resource guards: edit repeats are
+      // suppressed per saved section id; creates are keyed by modal invocation
+      // seq so a reopened modal is independent. Completions additionally verify
+      // quote/editor ownership before mutating model or UI.
+      let secModalSeq = 0;
+      let secModalActiveSeq = null;
+      const secEditPending = new Set();
+      let secCreatePendingSeq = null;
+      function syncSecModalSaveBtn() {
+        const saveBtn = document.getElementById("secModalSave");
+        if (!saveBtn) return;
+        let pending =
+          secCreatePendingSeq !== null &&
+          secCreatePendingSeq === secModalActiveSeq;
+        if (editingSectionIdx !== null) {
+          const openSec = sections[editingSectionIdx];
+          pending =
+            pending ||
+            (openSec &&
+              openSec.id != null &&
+              secEditPending.has(String(openSec.id)));
+        }
+        saveBtn.disabled = pending;
+      }
       function openSectionModal(idx) {
         editingSectionIdx = idx !== undefined ? idx : null;
+        secModalActiveSeq = ++secModalSeq;
+        syncSecModalSaveBtn();
         const modal = document.getElementById("sectionModal");
         if (editingSectionIdx !== null) {
           document.getElementById("sectionModalTitle").textContent = "تعديل القسم";
@@ -5688,6 +6021,7 @@
       }
       function closeSectionModal() {
         document.getElementById("sectionModal").classList.remove("open");
+        secModalActiveSeq = null;
       }
       document.getElementById("secModalCancel").onclick = closeSectionModal;
       document.getElementById("sectionModal").onclick = (e) => {
@@ -5700,44 +6034,101 @@
           showToast("الكود والاسم مطلوبين");
           return;
         }
-
-        if (editingSectionIdx !== null) {
-          const sec = sections[editingSectionIdx];
-          sec.code = code;
-          sec.name = name;
-          markSectionDirty(sec);
-          if (currentQuoteId && sec.id) {
-            await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
-              method: "PUT",
-              body: JSON.stringify({ code, name }),
-            });
-          }
-        } else {
-          const newSec = {
-            code,
-            name,
-            items: [],
-            rooms: [],
-            has_rooms: 0,
-            sort_order: sections.length,
-          };
-          if (currentQuoteId) {
-            const res = await api(`/quotes/${currentQuoteId}/sections`, {
-              method: "POST",
-              body: JSON.stringify({ code, name, sort_order: sections.length }),
-            });
-            newSec.id = res.id;
-          }
-          sections.push(newSec);
-          markSectionDirty(newSec);
-          activeSectionIdx = sections.length - 1;
+        // Bind this invocation: edit repeats are keyed by saved section id,
+        // creates by the modal invocation seq; quote/array identity guards the
+        // async completion against a quote switch mid-flight.
+        const mySeq = secModalActiveSeq;
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const isEdit = editingSectionIdx !== null;
+        const boundEditSec = isEdit ? sections[editingSectionIdx] : null;
+        if (isEdit && !boundEditSec) {
+          showToast("القسم لم يعد متاحاً");
+          return;
         }
-        closeSectionModal();
-        markDirty();
-        renderAll();
-        showToast(
-          editingSectionIdx !== null ? "تم تعديل القسم" : "تمت إضافة القسم",
-        );
+        const boundEditSecId =
+          boundEditSec && boundEditSec.id != null
+            ? String(boundEditSec.id)
+            : null;
+        if (
+          isEdit &&
+          boundEditSecId !== null &&
+          secEditPending.has(boundEditSecId)
+        )
+          return;
+        if (
+          !isEdit &&
+          secCreatePendingSeq !== null &&
+          secCreatePendingSeq === secModalActiveSeq
+        )
+          return;
+        if (isEdit && boundEditSecId !== null)
+          secEditPending.add(boundEditSecId);
+        if (!isEdit) secCreatePendingSeq = secModalActiveSeq;
+        const previousActiveSection = sections[activeSectionIdx] || null;
+        syncSecModalSaveBtn();
+        try {
+          if (isEdit) {
+            const sec = boundEditSec;
+            sec.code = code;
+            sec.name = name;
+            markSectionDirty(sec);
+            if (currentQuoteId && sec.id) {
+              await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ code, name }),
+              });
+            }
+          } else {
+            const newSec = {
+              code,
+              name,
+              items: [],
+              rooms: [],
+              has_rooms: 0,
+              sort_order: sections.length,
+            };
+            if (currentQuoteId) {
+              const res = await api(`/quotes/${currentQuoteId}/sections`, {
+                method: "POST",
+                body: JSON.stringify({ code, name, sort_order: sections.length }),
+              });
+              newSec.id = res.id;
+            }
+            // Only the owning quote/editor may receive the created model: a
+            // different quote may have been loaded while pending.
+            if (sections === mySections && currentQuoteId === myQuoteId) {
+              sections.push(newSec);
+              markSectionDirty(newSec);
+            }
+          }
+          // Only the owning invocation of the owning quote may close the modal,
+          // select the created section, or render success UI: the modal may
+          // since have been reopened, or a different quote may be displayed. A
+          // stale create must never redirect the newer invocation's selection.
+          if (
+            secModalActiveSeq === mySeq &&
+            sections === mySections &&
+            currentQuoteId === myQuoteId
+          ) {
+            if (!isEdit) {
+              selectActiveSection(
+                sections.length - 1,
+                previousActiveSection,
+              );
+            }
+            closeSectionModal();
+            markDirty();
+            renderAll();
+            showToast(isEdit ? "تم تعديل القسم" : "تمت إضافة القسم");
+          }
+        } finally {
+          if (isEdit && boundEditSecId !== null)
+            secEditPending.delete(boundEditSecId);
+          if (!isEdit && secCreatePendingSeq === mySeq)
+            secCreatePendingSeq = null;
+          syncSecModalSaveBtn();
+        }
       };
 
       // ---- Copy Room Modal ----
@@ -5870,6 +6261,10 @@
           const finalTargetSec = sections[activeSectionIdx];
           const newRoomIdx = finalTargetSec.rooms.findIndex((r) => r.id === newRoom.id);
           activeRoomIdx = newRoomIdx !== -1 ? newRoomIdx : null;
+          activeRoomObj =
+            activeRoomIdx === null
+              ? null
+              : (finalTargetSec.rooms || [])[activeRoomIdx] || null;
           activeCategoryTab = null;
           // Only the owning invocation may close or clear the modal: the modal
           // may since have been reopened for a different room.
@@ -5970,10 +6365,9 @@
               _fromServer: true,
             })),
           };
+          const previousActiveSection = sections[activeSectionIdx] || null;
           sections.push(newSec);
-          activeSectionIdx = sections.length - 1;
-          activeRoomIdx = null;
-          activeCategoryTab = null;
+          selectActiveSection(sections.length - 1, previousActiveSection);
           // Only the owning invocation may close the modal: it may since have
           // been reopened for a different source section.
           if (copyDirectActiveKey === myDirectKey) {
@@ -7057,12 +7451,18 @@
         }
       }
 
+      // Picker-fill guard: the same local item filling twice while pending is a
+      // repeat (pre-id race on the create branch); different items are independent.
+      const fillItemPending = new Set();
       async function fillItemFromCatalog(idx, catItem) {
         if (!sections[activeSectionIdx]) return;
         const sec = sections[activeSectionIdx];
         const item = sec.items[idx];
         if (!item) return;
-        item.item_code = catItem.item_code || item.item_code;
+        if (fillItemPending.has(item)) return;
+        fillItemPending.add(item);
+        try {
+          item.item_code = catItem.item_code || item.item_code;
         item.name = catItem.name || item.name;
         item.description = catItem.description || item.description;
         item.unit = catItem.unit || item.unit;
@@ -7100,6 +7500,9 @@
         markDirty();
         renderAll();
         showToast("تم تعبئة البند من الكتالوج");
+        } finally {
+          fillItemPending.delete(item);
+        }
       }
 
       // ---- Data Binding ----
@@ -7164,6 +7567,7 @@
 
       // ---- Save / Load ----
       function cleanupEmptyData() {
+        const previousSection = sections[activeSectionIdx] || null;
         sections.forEach((sec) => {
           if (!sec.items) sec.items = [];
           if (!sec.rooms) sec.rooms = [];
@@ -7187,6 +7591,20 @@
           }
         });
         sections = sections.filter((sec) => sec.items.length > 0);
+        if (sections.length === 0) {
+          selectActiveSection(0, previousSection);
+          return;
+        }
+        const survivorIdx = sections.indexOf(previousSection);
+        if (survivorIdx !== -1) {
+          selectActiveSection(survivorIdx, previousSection);
+        } else {
+          const fallbackIdx = Math.max(
+            0,
+            Math.min(activeSectionIdx, sections.length - 1),
+          );
+          selectActiveSection(fallbackIdx, previousSection);
+        }
       }
       async function saveQuote() {
         const btn = document.getElementById("saveQuoteBtn");
@@ -7672,8 +8090,12 @@
         }
         activeSectionIdx = 0;
         activeRoomIdx = null;
+        activeRoomObj = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
+        mainAddDestinationKey = null;
+        mainAddIntentGeneration = 0;
+        mainAddLastProcessed = null;
         resetDirtyEntities();
 
         document.getElementById("projectName").value = state.projectName;
@@ -7867,6 +8289,7 @@
         sections = [];
         activeSectionIdx = 0;
         activeRoomIdx = null;
+        activeRoomObj = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
         document.getElementById("projectName").value = "";
@@ -8235,18 +8658,43 @@
         if (!sec.rooms) sec.rooms = [];
         sec.rooms.push(newRoom);
         activeRoomIdx = sec.rooms.length - 1;
+        activeRoomObj = (sec.rooms || [])[activeRoomIdx] || null;
         markRoomDirty(newRoom);
         markDirty();
         renderAll();
         showToast("تمت إضافة الغرفة");
       }
 
+      // Room-modal guards: renames suppressed per saved room id; creates keyed
+      // by modal invocation seq so duplicate names stay valid across reopened
+      // flows. Different names/rooms stay independent.
+      const roomRenamePending = new Set();
+      let roomModalSeq = 0;
+      let roomModalActiveSeq = null;
+      // Pending create keyed by the modal invocation seq that started it.
+      let roomCreatePendingSeq = null;
+      function syncRoomNameSaveBtn() {
+        const saveBtn = document.getElementById("roomNameSave");
+        if (!saveBtn) return;
+        let pending = false;
+        if (editingRoomIdx !== null) {
+          const curSec = sections[activeSectionIdx];
+          const curRoom = curSec && (curSec.rooms || [])[editingRoomIdx];
+          pending =
+            !!curRoom &&
+            curRoom.id > 0 &&
+            roomRenamePending.has(String(curRoom.id));
+        }
+        saveBtn.disabled = pending;
+      }
       function openRoomNameModalForEdit(rIdx) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
         const room = (sec.rooms || [])[rIdx];
         if (!room) return;
         editingRoomIdx = rIdx;
+        roomModalActiveSeq = ++roomModalSeq;
+        syncRoomNameSaveBtn();
         const input = document.getElementById("roomNameInput");
         input.value = room.name;
         document.querySelector(
@@ -8259,6 +8707,7 @@
 
       function closeRoomNameModal() {
         editingRoomIdx = null;
+        roomModalActiveSeq = null;
         closeModal("roomNameModal");
       }
 
@@ -8281,27 +8730,59 @@
             return;
           }
           const newName = name.trim();
-          if (newName !== room.name) {
-            room.name = newName;
-            markRoomDirty(room);
-            if (room.id && sec.id && room.id > 0) {
-              try {
-                await api(`/sections/${sec.id}/rooms/${room.id}`, {
-                  method: "PUT",
-                  body: JSON.stringify({ name: newName }),
-                });
-              } catch (e) {
-                showToast("تم التعديل محلياً — تعذر الحفظ: " + e.message);
+          // Only a saved room rename issues a request; guard it per room id so
+          // other rooms stay independently usable.
+          const willRequest = !!(room.id && sec.id && room.id > 0);
+          const renameKey = willRequest ? String(room.id) : null;
+          const myRoomSeq = roomModalActiveSeq;
+          if (renameKey !== null && roomRenamePending.has(renameKey)) return;
+          if (renameKey !== null) roomRenamePending.add(renameKey);
+          syncRoomNameSaveBtn();
+          try {
+            if (newName !== room.name) {
+              room.name = newName;
+              markRoomDirty(room);
+              if (willRequest) {
+                try {
+                  await api(`/sections/${sec.id}/rooms/${room.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ name: newName }),
+                  });
+                } catch (e) {
+                  showToast("تم التعديل محلياً — تعذر الحفظ: " + e.message);
+                }
               }
+              markDirty();
             }
-            markDirty();
+            // Only the owning invocation may close the modal: it may since have
+            // been reopened, even for a room at the same array index.
+            if (roomModalActiveSeq === myRoomSeq) {
+              closeRoomNameModal();
+            }
+            renderAll();
+            showToast("تم تعديل اسم الغرفة");
+          } finally {
+            if (renameKey !== null) roomRenamePending.delete(renameKey);
+            syncRoomNameSaveBtn();
           }
-          closeRoomNameModal();
-          renderAll();
-          showToast("تم تعديل اسم الغرفة");
         } else {
+          // Create is guarded by modal invocation identity: a repeat of the
+          // same open modal is suppressed, while a reopened flow (even with an
+          // identical name, which is valid) proceeds independently.
+          const myRoomSeq = roomModalActiveSeq;
+          const reopened =
+            myRoomSeq !== null &&
+            roomCreatePendingSeq !== null &&
+            roomCreatePendingSeq !== myRoomSeq;
+          if (roomCreatePendingSeq !== null && !reopened) return;
+          roomCreatePendingSeq = myRoomSeq;
           closeRoomNameModal();
-          await addRoom(name);
+          try {
+            await addRoom(name);
+          } finally {
+            if (roomCreatePendingSeq === myRoomSeq)
+              roomCreatePendingSeq = null;
+          }
         }
       };
       document.getElementById("roomNameModal").onclick = (e) => {
@@ -8349,6 +8830,7 @@
         }
         sec.rooms.splice(rIdx, 1);
         clearRoomDirty(room);
+        if (activeRoomObj === room) activeRoomObj = null;
         if (activeRoomIdx === rIdx) activeRoomIdx = null;
         else if (activeRoomIdx > rIdx) activeRoomIdx--;
         markDirty();
@@ -8367,9 +8849,14 @@
           }
           sections.splice(activeSectionIdx, 1);
           clearSectionDirty(sec);
-          if (activeSectionIdx >= sections.length)
-            activeSectionIdx = Math.max(0, sections.length - 1);
-          activeCategoryTab = null;
+          if (sections.length > 0) {
+            selectActiveSection(
+              Math.min(activeSectionIdx, sections.length - 1),
+              sec,
+            );
+          } else {
+            selectActiveSection(0, sec);
+          }
           markDirty();
           renderAll();
           showToast("تم حذف القسم");
@@ -8413,15 +8900,108 @@
         if (e.target === e.currentTarget) closeModal("leaveModal");
       };
 
-      // ---- All Items Overlay ----
-      document.getElementById("allItemsBtn").onclick = openAllItemsOverlay;
+        // ---- All Items Overlay ----
+        document.getElementById("allItemsBtn").onclick = () => {
+          allItemsOverlaySessionId += 1;
+          openAllItemsOverlay();
+        };
       document.getElementById("allItemsClose").onclick = closeAllItemsOverlay;
       document.getElementById("allItemsOverlay").onclick = (e) => {
         if (e.target === e.currentTarget) closeAllItemsOverlay();
       };
-      document.getElementById("allItemsAddBtn").onclick = addItemInOverlay;
-      document.getElementById("allItemsSecSelect").onchange =
-        updateAllItemsRoomSelect;
+      const allItemsAddBtn = document.getElementById("allItemsAddBtn");
+      allItemsAddBtn.onclick = async () => {
+        const sessionId = allItemsOverlaySessionId;
+        if (sessionId !== allItemsOverlayTrackedSessionId) {
+          allItemsOverlayTrackedSessionId = sessionId;
+          allItemsOverlayDestinationKey = null;
+          allItemsOverlayIntentGeneration = 0;
+          allItemsOverlayLastProcessed = null;
+        }
+        const overlayDestination = resolveOverlayDestination();
+        if (
+          !overlayDestination ||
+          !overlayDestination.sec ||
+          overlayDestination.staleSection
+        ) {
+          showToast("القسم المحدد غير متاح");
+          return;
+        }
+        if (overlayDestination.staleRoom) {
+          showToast("الغرفة المحددة غير متاحة");
+          return;
+        }
+        const destinationKey =
+          "overlay:section:" +
+          stableResourceKey("section", overlayDestination.sec) +
+          ":room:" +
+          (overlayDestination.room
+            ? stableResourceKey("room", overlayDestination.room)
+            : "direct");
+        if (destinationKey !== allItemsOverlayDestinationKey) {
+          allItemsOverlayDestinationKey = destinationKey;
+          allItemsOverlayIntentGeneration = 0;
+          allItemsOverlayLastProcessed = null;
+        }
+        if (
+          allItemsOverlayLastProcessed &&
+          allItemsOverlayLastProcessed.sessionId === sessionId &&
+          allItemsOverlayLastProcessed.destinationKey === destinationKey &&
+          allItemsOverlayLastProcessed.generation ===
+            allItemsOverlayIntentGeneration
+        )
+          return;
+        allItemsOverlayLastProcessed = {
+          sessionId,
+          destinationKey,
+          generation: allItemsOverlayIntentGeneration,
+        };
+        await addItemInOverlay(overlayDestination);
+      };
+      document.getElementById("allItemsSecSelect").onchange = () => {
+        updateAllItemsRoomSelect();
+        const secIdx = Number(
+          document.getElementById("allItemsSecSelect").value,
+        );
+        allItemsOverlaySelectedSection =
+          Number.isInteger(secIdx) && sections[secIdx]
+            ? sections[secIdx]
+            : null;
+        allItemsOverlaySelectedRoom = null;
+        allItemsOverlayRoomStale = false;
+        const roomSelect = document.getElementById("allItemsRoomSelect");
+        const roomIdx = Number(roomSelect.value);
+        if (
+          allItemsOverlaySelectedSection &&
+          allItemsOverlaySelectedSection.has_rooms &&
+          roomSelect.value !== "" &&
+          Number.isInteger(roomIdx)
+        ) {
+          const candidate =
+            (allItemsOverlaySelectedSection.rooms || [])[roomIdx];
+          allItemsOverlaySelectedRoom =
+            candidate === undefined ? null : candidate;
+        }
+      };
+      document.getElementById("allItemsRoomSelect").onchange = () => {
+        const sec = allItemsOverlaySelectedSection;
+        if (!sec || !sec.has_rooms) {
+          allItemsOverlaySelectedRoom = null;
+          allItemsOverlayRoomStale = false;
+          return;
+        }
+        const roomSelect = document.getElementById("allItemsRoomSelect");
+        const roomIdx = Number(roomSelect.value);
+        if (roomSelect.value === "" || !Number.isInteger(roomIdx)) {
+          allItemsOverlaySelectedRoom = null;
+          allItemsOverlayRoomStale = false;
+          return;
+        }
+        const candidate = (sec.rooms || [])[roomIdx];
+        allItemsOverlaySelectedRoom =
+          candidate === undefined ? null : candidate;
+        allItemsOverlayRoomStale = false;
+      };
 
       // ---- New Quote Button + Modal ----
       document.getElementById("newQuoteBtn").onclick = () => {
