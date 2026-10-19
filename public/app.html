@@ -59,8 +59,16 @@
         padding: 16px 16px 60px;
       }
       .wrap {
-        max-width: 1300px;
         margin: 0 auto;
+      }
+
+      /* Header / navigation keep their original reading width */
+      .topbar,
+      .project-header,
+      .sections-nav {
+        max-width: 1300px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       /* Topbar */
@@ -377,23 +385,23 @@
       /* Layout */
       .layout {
         display: flex;
+        flex-direction: column;
         gap: 16px;
-        align-items: flex-start;
+        align-items: stretch;
       }
       .main {
-        flex: 1 1 auto;
+        width: 100%;
         min-width: 0;
       }
       .sidebar {
-        flex: 0 0 320px;
-        position: sticky;
-        top: 16px;
+        width: 100%;
+        position: static;
         background: var(--surface);
         border: 1px solid var(--pewter);
         border-radius: 14px;
         padding: 18px;
-        max-height: calc(100vh - 32px);
-        overflow-y: auto;
+        max-height: none;
+        overflow: visible;
       }
 
       /* Section Panel */
@@ -768,17 +776,40 @@
         font-weight: 700;
       }
 
-      /* Payment Terms */
-      .payment-section {
-        margin-top: 14px;
+      /* Quote summary cards */
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 4px 18px;
+        align-items: start;
+      }
+      .summary-card {
         border-top: 1px solid var(--pewter);
         padding-top: 12px;
+        margin-top: 14px;
+        min-width: 0;
       }
-      .payment-section h3 {
+      .summary-card h3 {
         font-size: 13px;
         color: var(--ash);
         margin: 0 0 8px;
         font-weight: 700;
+      }
+      .summary-card--final {
+        grid-column: 1 / -1;
+      }
+      .summary-card--final .grand-total {
+        margin-top: 0;
+      }
+      /* Nested blocks supply their own divider already handled by the card */
+      .summary-card .totals-breakdown,
+      .summary-card .saved-quotes {
+        margin-top: 0;
+        border-top: 0;
+        padding-top: 0;
+      }
+      .summary-card .settings {
+        margin-top: 0;
       }
       .payment-row {
         display: flex;
@@ -2167,15 +2198,6 @@
       }
 
       @media (max-width: 860px) {
-        .layout {
-          flex-direction: column;
-        }
-        .sidebar {
-          position: static;
-          width: 100%;
-          flex-basis: auto;
-          max-height: none;
-        }
         .project-header h1 {
           font-size: 18px;
         }
@@ -2536,92 +2558,121 @@
               <h2>ملخص العرض</h2>
               <button id="allItemsBtn" class="btn-secondary">كل البنود</button>
             </div>
-            <div class="sidebar-sections" id="sidebarSections"></div>
+            <div class="summary-grid">
+              <section class="summary-card">
+                <h3>إجمالي الأقسام</h3>
+                <div class="sidebar-sections" id="sidebarSections"></div>
+              </section>
 
-            <div class="settings">
-              <label
-                >الضريبة (%)
-                <input id="taxPct" type="number" min="0" step="1" value="16" />
-              </label>
-              <label
-                >الخصم
-                <div class="discount-row">
-                  <input
-                    id="discountVal"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value="0"
-                  />
-                  <select id="discountType">
-                    <option value="fixed">د.أ</option>
-                    <option value="pct">%</option>
-                  </select>
+              <section class="summary-card">
+                <h3>المجاميع والخصم والضريبة</h3>
+                <div class="settings">
+                  <label
+                    >الضريبة (%)
+                    <input id="taxPct" type="number" min="0" step="1" value="16" />
+                  </label>
+                  <label
+                    >الخصم
+                    <div class="discount-row">
+                      <input
+                        id="discountVal"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value="0"
+                      />
+                      <select id="discountType">
+                        <option value="fixed">د.أ</option>
+                        <option value="pct">%</option>
+                      </select>
+                    </div>
+                  </label>
                 </div>
-              </label>
-            </div>
+                <div class="totals-breakdown" id="totalsBreakdown"></div>
+              </section>
 
-            <div class="totals-breakdown" id="totalsBreakdown"></div>
-            <div class="grand-total">
-              <span class="label">الإجمالي النهائي</span>
-              <span class="value" id="grandTotalVal">0.00 د.أ</span>
-            </div>
+              <section class="summary-card">
+                <h3>التكلفة والربح</h3>
+                <div
+                  class="totals-breakdown totals-breakdown--cost"
+                  id="totalsCostProfit"
+                ></div>
+              </section>
 
-            <div class="payment-section">
-              <h3>شروط الدفع</h3>
-              <div id="paymentTerms"></div>
-              <div class="meta-row">
-                <label
-                  >مدة التنفيذ (يوم)
-                  <input id="executionDays" type="number" min="1" value="45" />
-                </label>
-                <label
-                  >صلاحية العرض (يوم)
-                  <input id="validityDays" type="number" min="1" value="30" />
-                </label>
-              </div>
-            </div>
-            <div class="payment-section" style="margin-top: 10px">
-              <h3>استثناءات الأسعار</h3>
-              <textarea
-                id="priceExclusions"
-                rows="3"
-                style="
-                  width: 100%;
-                  box-sizing: border-box;
-                  padding: 6px 8px;
-                  border: 1px solid var(--pewter);
-                  border-radius: 4px;
-                  background: var(--card-bg);
-                  color: var(--text);
-                  font-size: 12px;
-                  resize: vertical;
-                "
-              >
+              <section class="summary-card">
+                <h3>شروط الدفع</h3>
+                <div id="paymentTerms"></div>
+              </section>
+
+              <section class="summary-card">
+                <h3>مدة التنفيذ والصلاحية</h3>
+                <div class="meta-row">
+                  <label
+                    >مدة التنفيذ (يوم)
+                    <input id="executionDays" type="number" min="1" value="45" />
+                  </label>
+                  <label
+                    >صلاحية العرض (يوم)
+                    <input id="validityDays" type="number" min="1" value="30" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="summary-card">
+                <h3>استثناءات الأسعار</h3>
+                <textarea
+                  id="priceExclusions"
+                  rows="3"
+                  style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 6px 8px;
+                    border: 1px solid var(--pewter);
+                    border-radius: 4px;
+                    background: var(--card-bg);
+                    color: var(--text);
+                    font-size: 12px;
+                    resize: vertical;
+                  "
+                >
 لا تشمل الأسعار: المطبخ، الحمامات، التكييف، الأجهزة الكهربائية. السعر النهائي يُؤكّد بعد القياس الفعلي.</textarea
-              >
-            </div>
+                >
+              </section>
 
-            <div class="actions">
-              <span id="autoSaveIndicator" class="auto-save-indicator"></span>
-              <button id="saveQuoteBtn" class="btn-save">حفظ العرض</button>
-              <button id="printBtn" class="btn-secondary">طباعة</button>
-              <button id="exportPdfBtn" class="btn-secondary">PDF</button>
-            </div>
-            <div class="actions">
-              <button id="saveTemplateBtn" class="btn-secondary">
-                حفظ كقالب
-              </button>
-              <button id="loadTemplateBtn" class="btn-secondary">
-                تحميل قالب
-              </button>
-            </div>
+              <section class="summary-card">
+                <h3>إجراءات العرض</h3>
+                <div class="actions">
+                  <span id="autoSaveIndicator" class="auto-save-indicator"></span>
+                  <button id="saveQuoteBtn" class="btn-save">حفظ العرض</button>
+                  <button id="printBtn" class="btn-secondary">طباعة</button>
+                  <button id="exportPdfBtn" class="btn-secondary">PDF</button>
+                </div>
+                <div class="actions">
+                  <button id="saveTemplateBtn" class="btn-secondary">
+                    حفظ كقالب
+                  </button>
+                  <button id="loadTemplateBtn" class="btn-secondary">
+                    تحميل قالب
+                  </button>
+                </div>
+              </section>
 
-            <div class="saved-quotes">
-              <h3 id="savedListTitle">عروض محفوظة</h3>
-              <div id="savedList">
-                <p class="empty-note">جاري التحميل...</p>
-              </div>
+              <section class="summary-card">
+                <h3>إدارة العروض</h3>
+                <div class="saved-quotes">
+                  <h3 id="savedListTitle">عروض محفوظة</h3>
+                  <div id="savedList">
+                    <p class="empty-note">جاري التحميل...</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="summary-card summary-card--final">
+                <div class="grand-total">
+                  <span class="label">الإجمالي النهائي</span>
+                  <span class="value" id="grandTotalVal">0.00 د.أ</span>
+                </div>
+              </section>
             </div>
           </aside>
         </div>
@@ -5737,7 +5788,8 @@
           <div class="tb-row"><span>مجموع البنود</span><span class="n">${moneyInt(subtotal)}</span></div>
           ${discount > 0 ? `<div class="tb-row"><span>الخصم</span><span class="n">- ${moneyInt(discount)}</span></div>` : ""}
           <div class="tb-row"><span>بعد الخصم</span><span class="n">${moneyInt(afterDiscount)}</span></div>
-          <div class="tb-row"><span>الضريبة (${taxPct}%)</span><span class="n">+ ${moneyInt(vat)}</span></div>
+          <div class="tb-row"><span>الضريبة (${taxPct}%)</span><span class="n">+ ${moneyInt(vat)}</span></div>`;
+        document.getElementById("totalsCostProfit").innerHTML = `
           <div class="tb-row highlight"><span>التكلفة المقدرة</span><span class="n">${moneyInt(estimatedCost)}</span></div>
           <div class="tb-row highlight"><span>هامش الربح</span><span class="n">${profitMargin}%</span></div>`;
 
