@@ -486,10 +486,24 @@
       }
 
       /* Items Table */
+      .items-scroll {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
       table.items {
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
+      }
+      /* Explicit column sizing only when the user customises field sizes.
+         table-layout:fixed makes declared column widths authoritative; the
+         explicit table width (set by applyFieldSizes) guarantees the sum of
+         configured widths is honoured and the wrapper scrolls instead of the page. */
+      .items-scroll.is-custom table.items {
+        table-layout: fixed;
+        width: var(--fs-table-w, 100%);
       }
       table.items th {
         text-align: right;
@@ -550,46 +564,70 @@
         -moz-appearance: textfield;
       }
       .col-code {
-        width: 5%;
+        width: var(--fs-code-w, 5%);
         text-align: center;
         font-weight: 600;
         color: var(--gold);
         font-size: 12px;
       }
       .col-name {
-        width: 18%;
+        width: var(--fs-name-w, 18%);
       }
       .col-desc {
-        width: 14%;
+        width: var(--fs-desc-w, 14%);
       }
       .col-img {
-        width: 40px;
+        width: var(--fs-image-w, 40px);
         text-align: center;
       }
       .col-unit {
-        width: 8%;
+        width: var(--fs-unit-w, 8%);
       }
       .col-qty {
-        width: 11%;
+        width: var(--fs-qty-w, 11%);
       }
       .col-price {
-        width: 13%;
+        width: var(--fs-price-w, 13%);
         overflow: visible;
       }
       .col-total {
-        width: 10%;
+        width: var(--fs-total-w, 10%);
         font-weight: 700;
         text-align: left;
         padding-left: 4px;
-        white-space: nowrap;
         color: var(--champagne);
       }
+      /* Totals live in an inner block: td min-height is not honoured, and an
+         inner wrapper can wrap and grow without overflowing neighbouring cells. */
+      .col-total .f-total-val {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: var(--fs-total-h, 0px);
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.35;
+        text-align: left;
+      }
       .col-notes {
-        width: 10%;
+        width: var(--fs-notes-w, 10%);
       }
       .col-del {
         width: 30px;
         text-align: center;
+      }
+      /* Deliberate filler column: absorbs leftover width when the explicitly
+         sized columns are narrower than the workspace, so configured columns
+         keep their exact widths instead of being stretched. Collapsed unless
+         the table is in custom-width mode. */
+      .col-fill {
+        width: var(--fs-fill-w, 0px);
+        padding: 0 !important;
+        border: 0 !important;
+      }
+      .items-scroll:not(.is-custom) .col-fill {
+        display: none;
       }
       .del-btn {
         border: none;
@@ -800,6 +838,87 @@
       }
       .summary-card--final .grand-total {
         margin-top: 0;
+      }
+      /* ── Pricing workspace toolbar (field-size settings entry point) ─── */
+      .workspace-tools {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+      }
+      .field-settings-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ash);
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        border-radius: 999px;
+        padding: 5px 12px;
+        cursor: pointer;
+      }
+      .field-settings-btn:hover {
+        color: var(--champagne);
+        border-color: var(--gold);
+      }
+      .field-settings-btn:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+      }
+      /* ── Field size settings modal ───────────────────────────────────── */
+      .field-settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 78px 78px;
+        gap: 6px 8px;
+        align-items: center;
+        font-size: 12.5px;
+      }
+      .field-settings-grid .fs-head {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ash);
+        text-align: center;
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--pewter);
+      }
+      .field-settings-grid .fs-label {
+        color: var(--champagne);
+      }
+      .field-settings-grid input[type="number"] {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 12px;
+        text-align: center;
+        padding: 5px 4px;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+      }
+      .field-settings-grid input[type="range"] {
+        width: 100%;
+        accent-color: var(--gold);
+      }
+      .field-settings-note {
+        font-size: 11.5px;
+        color: var(--ash);
+        line-height: 1.6;
+        margin: 0 0 12px;
+      }
+      .field-settings-row-reset {
+        font-size: 11px;
+        color: var(--ash);
+        background: none;
+        border: 1px solid var(--pewter);
+        border-radius: 5px;
+        padding: 3px 7px;
+        cursor: pointer;
+      }
+      .field-settings-row-reset:hover {
+        color: var(--champagne);
       }
       /* Nested blocks supply their own divider already handled by the card */
       .summary-card .totals-breakdown,
@@ -1039,11 +1158,30 @@
       }
 
       /* Image */
-      .item-img-btn {
-        width: 32px;
-        height: 32px;
-        border: 1px dashed var(--pewter);
+      .item-thumb-wrap {
+        position: relative;
+        display: inline-block;
+        width: var(--fs-image-w, 32px);
+        height: var(--fs-image-h, 32px);
+        min-height: var(--fs-image-h, 32px);
         border-radius: 6px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 1px solid var(--pewter);
+      }
+      .item-thumb-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: var(--surface);
+        display: block;
+      }
+      .item-thumb-wrap .item-img-btn {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        border: none;
+        border-radius: 0;
         background: transparent;
         color: var(--ash);
         cursor: pointer;
@@ -1054,25 +1192,15 @@
         padding: 0;
         transition: 0.15s;
       }
-      .item-img-btn:hover {
+      .item-thumb-wrap .item-img-btn:hover {
         background: var(--gold-glow);
         color: var(--gold);
-        border-color: var(--gold-dim);
-      }
-      .item-thumb-wrap {
-        position: relative;
-        display: inline-block;
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        overflow: hidden;
-        cursor: pointer;
-        border: 1px solid var(--pewter);
       }
       .item-thumb-wrap img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        background: var(--surface);
         display: block;
       }
       .item-thumb-rm {
@@ -1205,6 +1333,14 @@
       .modal-overlay.open {
         opacity: 1;
         pointer-events: auto;
+      }
+      /* A closed dialog must leave the keyboard tab order entirely; opacity:0
+         alone keeps its controls focusable under aria-hidden. */
+      #fieldSettingsModal {
+        visibility: hidden;
+      }
+      #fieldSettingsModal.open {
+        visibility: visible;
       }
       #confirmModal { z-index: 1100; }
       .modal {
@@ -2126,10 +2262,7 @@
         position: relative;
       }
       .fname-autocomplete {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        left: 0;
+        position: fixed;
         background: var(--surface);
         border: 1px solid var(--pewter);
         border-radius: 8px;
@@ -2349,6 +2482,11 @@
         font-size: 12px;
         min-width: 1080px;
       }
+      /* When custom widths are active, remove the 1080px minimum so
+         explicitly configured column widths are honored exactly. */
+      .all-items-body .items-scroll.is-custom table.items {
+        min-width: 0;
+      }
       .all-items-body table.items th {
         font-size: 11px;
         padding: 0 6px 6px;
@@ -2358,8 +2496,29 @@
         padding: 5px 6px;
       }
       .all-items-body table.items .item-thumb-wrap {
-        width: 68px;
-        height: 68px;
+        width: var(--fs-image-w, 68px);
+        height: var(--fs-image-h, 68px);
+        min-height: var(--fs-image-h, 68px);
+      }
+      .all-items-body table.items .item-thumb-wrap .item-img-btn {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        color: var(--ash);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        padding: 0;
+        transition: 0.15s;
+      }
+      .all-items-body table.items .item-thumb-wrap .item-img-btn:hover {
+        background: var(--gold-glow);
+        color: var(--gold);
       }
       .all-items-body table.items .col-img {
         width: 78px;
@@ -2378,6 +2537,8 @@
         width: 100%;
         min-height: 30px;
         resize: none;
+        overflow-wrap: anywhere;
+        word-break: break-word;
         overflow: hidden;
         line-height: 1.35;
         font-family: inherit;
@@ -2392,6 +2553,8 @@
         width: 100%;
         min-height: 30px;
         resize: none;
+        overflow-wrap: anywhere;
+        word-break: break-word;
         overflow: hidden;
         line-height: 1.35;
         font-family: inherit;
@@ -2402,30 +2565,108 @@
         background: var(--surface-raised);
         color: var(--champagne);
       }
+
+      /* ── Field size settings: per-field minimum heights ──────────────────
+         Height is a MINIMUM only. Textareas auto-grow past it via autoGrow(),
+         and nothing sets a fixed height, so content can never be clipped. */
+      #mainPanel table.items .col-name > .f-name,
+      .all-items-body table.items .col-name > .f-name {
+        min-height: var(--fs-name-h, 0px);
+      }
+      #mainPanel table.items .col-desc > .f-desc,
+      .all-items-body table.items .col-desc > .f-desc {
+        min-height: var(--fs-desc-h, 0px);
+      }
+      #mainPanel table.items .col-notes > .f-notes,
+      .all-items-body table.items .col-notes > .f-notes {
+        min-height: var(--fs-notes-h, 0px);
+      }
+      #mainPanel table.items .col-unit > .f-unit,
+      .all-items-body table.items .col-unit > .f-unit {
+        min-height: 0;
+      }
+      #mainPanel table.items .col-qty > .f-qty,
+      .all-items-body table.items .col-qty > .f-qty {
+        min-height: var(--fs-qty-h, 0px);
+      }
+      #mainPanel table.items .col-price > .f-price,
+      .all-items-body table.items .col-price > .f-price {
+        min-height: var(--fs-price-h, 0px);
+      }
+      /* Unit value: a wrapping presentation sits under a transparent native
+         select so the full value is always visible while selection behaviour
+         (click/keyboard/option list) is unchanged. */
+      .f-unit-wrap {
+        position: relative;
+        display: flex;
+        min-height: var(--fs-unit-h, 0px);
+      }
+      .f-unit-current {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1 1 auto;
+        box-sizing: border-box;
+        width: 100%;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 6px 7px;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.35;
+        text-align: center;
+      }
+      .f-unit-wrap:focus-within {
+        outline: 2px solid var(--gold);
+        outline-offset: 1px;
+        border-radius: 6px;
+      }
+      /* The native control stays interactive but its own text is not painted;
+         the wrapping presentation above is the visible value. */
+      .items-scroll table.items .f-unit-wrap > select.f-unit {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .all-items-body table.items .f-unit-current {
+        font-size: 12px;
+        padding: 5px 7px;
+      }
       .all-items-body table.items .col-origin {
         width: 210px;
         white-space: nowrap;
       }
       .all-items-body table.items .col-name {
-        width: 19%;
+        width: var(--fs-name-w, 19%);
       }
       .all-items-body table.items .col-desc {
-        width: 22%;
+        width: var(--fs-desc-w, 22%);
+      }
+      .all-items-body table.items .col-img {
+        width: var(--fs-image-w, 78px);
       }
       .all-items-body table.items .col-unit {
-        width: 5%;
+        width: var(--fs-unit-w, 5%);
       }
       .all-items-body table.items .col-qty {
-        width: 6%;
+        width: var(--fs-qty-w, 6%);
       }
       .all-items-body table.items .col-price {
-        width: 9%;
+        width: var(--fs-price-w, 9%);
       }
       .all-items-body table.items .col-total {
-        width: 6%;
+        width: var(--fs-total-w, 6%);
       }
       .all-items-body table.items .col-notes {
-        width: 16%;
+        width: var(--fs-notes-w, 16%);
       }
       .all-items-body table.items select.f-unit {
         width: auto;
@@ -2436,6 +2677,21 @@
       .all-items-body table.items input.f-price {
         width: 10ch;
         min-width: 60px;
+      }
+      /* Customised field sizes win over the overlay's default inner-control
+         widths so every control fills its configured column. */
+      .items-scroll.is-custom table.items select.f-unit,
+      .items-scroll.is-custom table.items input.f-qty,
+      .items-scroll.is-custom table.items input.f-price {
+        width: 100%;
+        min-width: 0;
+      }
+      /* The role-dependent cost column has no field-size control. Giving it a real
+         width (instead of auto) keeps it from absorbing leftover table space
+         and gives the width resolver a concrete default in every mode. */
+      th.col-cost,
+      td.col-cost {
+        width: 190px;
       }
       input.f-price::-webkit-inner-spin-button,
       input.f-price::-webkit-outer-spin-button {
@@ -2551,7 +2807,20 @@
         <nav class="sections-nav" id="sectionsNav"></nav>
 
         <div class="layout">
-          <main class="main" id="mainPanel"></main>
+          <main class="main">
+            <div class="workspace-tools">
+              <button
+                type="button"
+                id="fieldSettingsBtn"
+                class="field-settings-btn"
+                title="إعدادات الحقول"
+                aria-haspopup="dialog"
+              >
+                ⚙ <span>إعدادات الحقول</span>
+              </button>
+            </div>
+            <div id="mainPanel"></div>
+          </main>
 
           <aside class="sidebar">
             <div class="sidebar-head">
@@ -2868,6 +3137,50 @@
       </div>
     </div>
 
+    <!-- Field Size Settings Modal -->
+    <div class="modal-overlay" id="fieldSettingsModal" aria-hidden="true">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fieldSettingsTitle"
+      >
+        <h3 id="fieldSettingsTitle">إعدادات الحقول</h3>
+        <p class="field-settings-note">
+          حدّد عرض الحقل والارتفاع الأدنى لكل عمود. الارتفاع حدّ أدنى فقط —
+          إذا كان النص أطول، يتمدد الصف تلقائياً ولا يُقتطع أي نص. اترك الحقل
+          فارغاً لاستخدام الحجم الافتراضي. الإعدادات محفوظة في هذا المتصفح
+          على هذا الجهاز فقط، ولا تُرسل مع العرض ولا تظهر للآخرين.
+        </p>
+        <div
+          class="field-settings-note"
+          id="fieldSettingsStorageWarn"
+          style="display:none;color:var(--danger)"
+        >
+          تنبيه: التخزين في المتصفح غير متاح أو ممتلئ — التغييرات ستعمل في هذه
+          الجلسة فقط ولن تبقى بعد إعادة التحميل.
+        </div>
+        <div class="field-settings-grid" id="fieldSettingsGrid">
+          <div class="fs-head">الحقل</div>
+          <div class="fs-head">العرض (px)</div>
+          <div class="fs-head">الارتفاع الأدنى (px)</div>
+        </div>
+        <div class="modal-actions">
+          <button
+            id="fieldSettingsResetAll"
+            class="btn-secondary"
+            style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);"
+          >إعادة ضبط الكل</button>
+          <button
+            id="fieldSettingsCancel"
+            class="btn-secondary"
+            style="background:none;border:1px solid var(--pewter)!important;color:var(--ash);"
+          >إلغاء</button>
+          <button id="fieldSettingsSave" class="btn-save">حفظ وتطبيق</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Catalog Picker Modal -->
     <div class="modal-overlay" id="pickerModal">
       <div class="modal picker-modal">
@@ -2973,10 +3286,12 @@
           <button class="btn-save" id="allItemsAddBtn">+ إضافة بند</button>
         </div>
         <div class="all-items-body">
-          <table class="items" id="allItemsTable">
-            <thead id="allItemsHead"></thead>
-            <tbody id="allItemsBody"></tbody>
-          </table>
+          <div class="items-scroll" id="allItemsScroll">
+            <table class="items" id="allItemsTable">
+              <thead id="allItemsHead"></thead>
+              <tbody id="allItemsBody"></tbody>
+            </table>
+          </div>
           <div class="empty-note" id="allItemsEmpty" style="display: none">
             ما في بنود لسا.
           </div>
@@ -3000,6 +3315,29 @@
       };
 
       const UNITS = ["عدد", "م²", "متر طولي", "مقطوع", "ساعة"];
+      // Builds the unit <select> options. The active unit is ALWAYS rendered as
+      // a real option, even when it is not one of the built-in UNITS (e.g. a
+      // catalog unit such as "م ط"), so the control can never silently fall
+      // back to the first option and desync the model from the visible label.
+      function unitOptionsHtml(current) {
+        const cur = current == null ? "" : String(current);
+        const list = UNITS.includes(cur) ? UNITS : UNITS.concat([cur]);
+        return list
+          .map(
+            (u) =>
+              `<option value="${escapeAttr(u)}" ${u === cur ? "selected" : ""}>${escapeAttr(u)}</option>`,
+          )
+          .join("");
+      }
+      // After switching to a built-in unit, drop stale custom options so the
+      // native select never shows obsolete values. Preserves focus, selection,
+      // and escaping; does not remove valid built-in options or alter stored values.
+      function pruneStaleUnitOptions(select) {
+        if (!select || !UNITS.includes(select.value)) return;
+        Array.from(select.options)
+          .filter((o) => !UNITS.includes(o.value))
+          .forEach((o) => o.remove());
+      }
       const SECTION_COLORS = [
         "#8B5E3C",
         "#C97B63",
@@ -4195,6 +4533,374 @@
         return map;
       }
 
+      /* ════════════════════════════════════════════════════════════════════
+         FIELD SIZE SETTINGS  (Pricing Tool Enhancement — Slice 2)
+         ────────────────────────────────────────────────────────────────────
+         Display-only preferences. Stored in localStorage under its own key so
+         they never enter quote/state/template/draft payloads.
+         A blank value means "use the existing CSS default"; height is a
+         MINIMUM only and content is always free to grow past it.
+         ════════════════════════════════════════════════════════════════════ */
+      const FIELD_SIZES_KEY = "twins_field_sizes_v1";
+
+      const FIELD_SIZE_DEFS = [
+        { key: "name", label: "البند", wMin: 60, wMax: 600, hMin: 30, hMax: 300 },
+        { key: "desc", label: "الوصف", wMin: 60, wMax: 600, hMin: 30, hMax: 300 },
+        { key: "image", label: "الصورة", wMin: 32, wMax: 300, hMin: 32, hMax: 300 },
+        { key: "unit", label: "الوحدة", wMin: 50, wMax: 400, hMin: 30, hMax: 300 },
+        { key: "qty", label: "الكمية", wMin: 50, wMax: 300, hMin: 30, hMax: 300 },
+        { key: "price", label: "سعر البيع", wMin: 60, wMax: 400, hMin: 30, hMax: 300 },
+        { key: "total", label: "الإجمالي", wMin: 60, wMax: 400, hMin: 30, hMax: 300 },
+        { key: "notes", label: "ملاحظات", wMin: 60, wMax: 600, hMin: 30, hMax: 300 },
+      ];
+      const FIELD_SIZE_DEF_BY_KEY = {};
+      FIELD_SIZE_DEFS.forEach((d) => (FIELD_SIZE_DEF_BY_KEY[d.key] = d));
+
+      let fieldSizes = { v: 1, cols: {} };
+      let fieldSizesStorageOk = true;
+      let fieldSettingsLastFocus = null;
+
+      function sanitizeSizeValue(v, min, max) {
+        if (v === null || v === undefined) return null;
+        if (typeof v === "boolean") return null;
+        if (typeof v === "string" && v.trim() === "") return null; // blank = default
+        const n = Number(v);
+        // Invalid non-blank values are discarded, never coerced to 0.
+        if (!Number.isFinite(n)) return null;
+        return Math.min(max, Math.max(min, Math.round(n)));
+      }
+
+      function sanitizeFieldSizes(raw) {
+        const out = { v: 1, cols: {} };
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+        if (raw.v !== 1) return out; // unknown version -> ignore entirely
+        const src = raw.cols;
+        if (!src || typeof src !== "object" || Array.isArray(src)) return out;
+        FIELD_SIZE_DEFS.forEach((d) => {
+          const s = src[d.key];
+          if (!s || typeof s !== "object" || Array.isArray(s)) return;
+          const w = sanitizeSizeValue(s.w, d.wMin, d.wMax);
+          const h = sanitizeSizeValue(s.h, d.hMin, d.hMax);
+          if (w == null && h == null) return;
+          out.cols[d.key] = {};
+          if (w != null) out.cols[d.key].w = w;
+          if (h != null) out.cols[d.key].h = h;
+        });
+        return out;
+      }
+
+      function loadFieldSizes() {
+        fieldSizesStorageOk = true;
+        let rawText = null;
+        try {
+          rawText = localStorage.getItem(FIELD_SIZES_KEY);
+        } catch (e) {
+          fieldSizesStorageOk = false;
+          return;
+        }
+        if (!rawText) return;
+        try {
+          fieldSizes = sanitizeFieldSizes(JSON.parse(rawText));
+        } catch (e) {
+          fieldSizes = { v: 1, cols: {} }; // malformed storage is ignored safely
+        }
+      }
+
+      function persistFieldSizes() {
+        try {
+          localStorage.setItem(FIELD_SIZES_KEY, JSON.stringify(fieldSizes));
+          fieldSizesStorageOk = true;
+          return true;
+        } catch (e) {
+          // Quota exceeded or storage blocked: report honestly, do not claim success.
+          fieldSizesStorageOk = false;
+          return false;
+        }
+      }
+
+      function recalcFieldTextareas(root) {
+        const scope = root || document;
+        scope.querySelectorAll("table.items textarea").forEach((ta) => {
+          try {
+            autoGrow(ta);
+          } catch (e) {
+            /* non-critical */
+          }
+        });
+      }
+
+      /* Column defaults mirror the stylesheet so the resolver never has to guess.
+         Measured widths are unreliable here: in auto layout a column without a
+         hard width absorbs all leftover space, which would corrupt the sum. */
+      const FS_COL_DEFAULTS_MAIN = {
+        "col-code": { pct: 5 },
+        name: { pct: 18 },
+        desc: { pct: 14 },
+        image: { px: 40 },
+        unit: { pct: 8 },
+        qty: { pct: 11 },
+        price: { pct: 13 },
+        "col-cost": { px: 190 },
+        total: { pct: 10 },
+        notes: { pct: 10 },
+        "col-del": { px: 30 },
+      };
+      const FS_COL_DEFAULTS_OVERLAY = {
+        "col-origin": { px: 210 },
+        "col-code": { pct: 5 },
+        name: { pct: 19 },
+        desc: { pct: 22 },
+        image: { px: 78 },
+        unit: { pct: 5 },
+        qty: { pct: 6 },
+        price: { pct: 9 },
+        "col-cost": { px: 190 },
+        total: { pct: 6 },
+        notes: { pct: 16 },
+        "col-del": { px: 30 },
+      };
+
+      function resolveColumnWidth(th, defs, available) {
+        const key = th.getAttribute("data-fs-field") || th.className || "";
+        const cfg = fieldSizes.cols[key];
+        if (cfg && cfg.w != null) return { px: cfg.w };
+        const d = defs[key];
+        if (!d) return { px: 0 };
+        if (d.px != null) return { px: d.px };
+        if (d.pct != null) return { pct: d.pct };
+        return { px: 0 };
+      }
+
+      function recomputeItemsTableWidth() {
+        document.querySelectorAll(".items-scroll").forEach((wrap) => {
+          const table = wrap.querySelector("table.items");
+          if (!table) return;
+          const ths = Array.from(table.querySelectorAll("thead th"));
+          if (!wrap.classList.contains("is-custom")) {
+            table.style.removeProperty("--fs-table-w");
+            table.style.removeProperty("--fs-fill-w");
+            // Restore the stylesheet's default (auto/percent) column sizing.
+            ths.forEach((th) => th.style.removeProperty("width"));
+            return;
+          }
+          // Identify the ACTUAL containing table, not a global lookup.
+          const isOverlay =
+            table.id === "allItemsTable" ||
+            !!table.closest(".all-items-body");
+          const defs = isOverlay
+            ? FS_COL_DEFAULTS_OVERLAY
+            : FS_COL_DEFAULTS_MAIN;
+          const available = Math.max(1, Math.round(wrap.clientWidth));
+          const dataThs = ths.filter(
+            (th) => !th.classList.contains("col-fill"),
+          );
+          if (!dataThs.length) return;
+          // Resolve EVERY column to a concrete pixel width BEFORE summing.
+          // Percent defaults resolve against the full workspace (never against
+          // a residual left after the concrete columns), so an unspecified
+          // column always receives a usable width instead of collapsing.
+          const resolved = dataThs.map((th) => {
+            const r = resolveColumnWidth(th, defs, available);
+            let px;
+            if (r.px != null) px = r.px;
+            else if (r.pct != null) px = Math.round((available * r.pct) / 100);
+            else px = 0;
+            return { th, px };
+          });
+          const sum = resolved.reduce((s, e) => s + e.px, 0);
+          // Any leftover goes to the deliberate filler column; the table is
+          // never narrower than its wrapper and scrolls only when the sum of
+          // resolved widths genuinely exceeds it.
+          const filler = Math.max(0, available - sum);
+          const tableW = Math.max(available, sum);
+          table.style.setProperty("--fs-table-w", Math.ceil(tableW) + "px");
+          table.style.setProperty("--fs-fill-w", Math.floor(filler) + "px");
+          // Pin each column to its resolved pixel width so the stylesheet's
+          // percent defaults can never re-resolve against the (larger) table
+          // width and get shrunk back to a residual by the fixed layout.
+          resolved.forEach((e) => {
+            e.th.style.width = e.px + "px";
+          });
+          const fillTh = ths.find((th) => th.classList.contains("col-fill"));
+          if (fillTh) fillTh.style.width = Math.floor(filler) + "px";
+        });
+      }
+
+      function applyFieldSizes() {
+        const root = document.documentElement;
+        FIELD_SIZE_DEFS.forEach((d) => {
+          const s = fieldSizes.cols[d.key] || {};
+          ["w", "h"].forEach((dim) => {
+            const prop = "--fs-" + d.key + "-" + dim;
+            if (s[dim] == null) root.style.removeProperty(prop);
+            else root.style.setProperty(prop, s[dim] + "px");
+          });
+        });
+        // Fixed-width layout is activated ONLY by width preferences. Height-only
+        // settings must keep the normal (auto) width layout.
+        const hasCustomWidth = FIELD_SIZE_DEFS.some((d) => {
+          const s = fieldSizes.cols[d.key];
+          return !!(s && s.w != null);
+        });
+        document
+          .querySelectorAll(".items-scroll")
+          .forEach((w) => w.classList.toggle("is-custom", hasCustomWidth));
+        recomputeItemsTableWidth();
+        // Widths may have changed -> textareas must re-measure their content.
+        recalcFieldTextareas();
+      }
+
+      function positionFnameAc(ac) {
+        if (!ac || !ac.classList.contains("open")) return;
+        const host = ac.parentElement;
+        if (!host) return;
+        const r = host.getBoundingClientRect();
+        const vw = document.documentElement.clientWidth;
+        const vh = window.innerHeight;
+        const margin = 6;
+
+        // The anchor can scroll out of its overflow container or the viewport;
+        // in that case the menu must close rather than float detached.
+        const wrap = host.closest(".items-scroll");
+        if (wrap) {
+          const wr = wrap.getBoundingClientRect();
+          const clipped =
+            r.bottom <= wr.top + 1 ||
+            r.top >= wr.bottom - 1 ||
+            r.right <= wr.left + 1 ||
+            r.left >= wr.right - 1;
+          if (clipped) {
+            ac.classList.remove("open");
+            return;
+          }
+        }
+        if (r.bottom <= 0 || r.top >= vh || r.right <= 0 || r.left >= vw) {
+          ac.classList.remove("open");
+          return;
+        }
+
+        // Horizontal: keep the menu inside the viewport in both RTL and LTR.
+        const maxW = Math.max(80, vw - margin * 2);
+        const menuW = Math.min(Math.max(r.width, 180), maxW);
+        ac.style.minWidth = Math.round(Math.min(r.width, maxW)) + "px";
+        ac.style.maxWidth = Math.round(maxW) + "px";
+        const left = Math.max(margin, Math.min(r.left, vw - menuW - margin));
+        ac.style.left = Math.round(left) + "px";
+
+        // Vertical: measure the space and flip above when below is too tight.
+        const desired = Math.min(240, Math.max(120, ac.scrollHeight || 240));
+        const spaceBelow = vh - r.bottom - margin;
+        const spaceAbove = r.top - margin;
+        const placeAbove = spaceBelow < desired && spaceAbove > spaceBelow;
+        const avail = Math.max(60, placeAbove ? spaceAbove : spaceBelow);
+        const height = Math.min(desired, avail);
+        let top = placeAbove ? r.top - height - 2 : r.bottom + 2;
+        top = Math.max(margin, Math.min(top, vh - height - margin));
+        ac.style.top = Math.round(top) + "px";
+        // Bound the menu to the available space; it scrolls internally.
+        ac.style.maxHeight = Math.round(height) + "px";
+      }
+
+      function refreshOpenFnameAc() {
+        document
+          .querySelectorAll(".fname-autocomplete.open")
+          .forEach((ac) => positionFnameAc(ac));
+      }
+
+      function buildFieldSettingsUI() {
+        const grid = document.getElementById("fieldSettingsGrid");
+        if (!grid) return;
+        FIELD_SIZE_DEFS.forEach((d) => {
+          const cur = fieldSizes.cols[d.key] || {};
+          const label = document.createElement("div");
+          label.className = "fs-label";
+          label.textContent = d.label;
+          const wIn = document.createElement("input");
+          wIn.type = "number";
+          wIn.id = "fsw-" + d.key;
+          wIn.min = String(d.wMin);
+          wIn.max = String(d.wMax);
+          wIn.step = "1";
+          wIn.placeholder = "تلقائي";
+          wIn.setAttribute("aria-label", "عرض " + d.label + " بالبكسل");
+          if (cur.w != null) wIn.value = String(cur.w);
+
+          const hIn = document.createElement("input");
+          hIn.type = "number";
+          hIn.id = "fsh-" + d.key;
+          hIn.min = String(d.hMin);
+          hIn.max = String(d.hMax);
+          hIn.step = "1";
+          hIn.placeholder = "تلقائي";
+          hIn.setAttribute("aria-label", "الارتفاع الأدنى لـ " + d.label + " بالبكسل");
+          if (cur.h != null) hIn.value = String(cur.h);
+
+          grid.appendChild(label);
+          grid.appendChild(wIn);
+          grid.appendChild(hIn);
+        });
+      }
+
+      function readFieldSettingsUI() {
+        const next = { v: 1, cols: {} };
+        const clamped = [];
+        FIELD_SIZE_DEFS.forEach((d) => {
+          const wIn = document.getElementById("fsw-" + d.key);
+          const hIn = document.getElementById("fsh-" + d.key);
+          if (!wIn || !hIn) return;
+          const w = sanitizeSizeValue(wIn.value, d.wMin, d.wMax);
+          const h = sanitizeSizeValue(hIn.value, d.hMin, d.hMax);
+          // Write the sanitised value back so the UI shows what was applied.
+          if (wIn.value.trim() !== "" && w == null) clamped.push(d.label + " (عرض)");
+          else if (wIn.value.trim() !== "") wIn.value = String(w);
+          if (hIn.value.trim() !== "" && h == null) clamped.push(d.label + " (ارتفاع)");
+          else if (hIn.value.trim() !== "") hIn.value = String(h);
+          if (w == null && h == null) return;
+          next.cols[d.key] = {};
+          if (w != null) next.cols[d.key].w = w;
+          if (h != null) next.cols[d.key].h = h;
+        });
+        return { next, clamped };
+      }
+
+      function closeFieldSettings() {
+        const modal = document.getElementById("fieldSettingsModal");
+        if (!modal) return;
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+        if (fieldSettingsLastFocus && typeof fieldSettingsLastFocus.focus === "function") {
+          fieldSettingsLastFocus.focus();
+        }
+        fieldSettingsLastFocus = null;
+      }
+
+      function openFieldSettings() {
+        const modal = document.getElementById("fieldSettingsModal");
+        if (!modal) return;
+        fieldSettingsLastFocus = document.activeElement;
+        const grid = document.getElementById("fieldSettingsGrid");
+        const heads = grid ? grid.querySelectorAll(".fs-head").length : 0;
+        if (grid && grid.children.length === heads) buildFieldSettingsUI();
+        else {
+          // Refresh existing inputs from current state without rebuilding.
+          FIELD_SIZE_DEFS.forEach((d) => {
+            const cur = fieldSizes.cols[d.key] || {};
+            const wIn = document.getElementById("fsw-" + d.key);
+            const hIn = document.getElementById("fsh-" + d.key);
+            if (wIn) wIn.value = cur.w != null ? String(cur.w) : "";
+            if (hIn) hIn.value = cur.h != null ? String(cur.h) : "";
+          });
+        }
+        if (!fieldSizesStorageOk) {
+          const note = document.getElementById("fieldSettingsStorageWarn");
+          if (note) note.style.display = "block";
+        }
+        modal.classList.add("open");
+        modal.setAttribute("aria-hidden", "false");
+        const first = document.getElementById("fsw-name");
+        if (first) first.focus();
+      }
+
       function renderMainPanel() {
         const panel = document.getElementById("mainPanel");
         if (sections.length === 0) {
@@ -4327,10 +5033,10 @@
           const total = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
           const imgCell = it.image
             ? `<td class="col-img"><div class="item-thumb-wrap" data-action="view-img"><img src="${it.image}" alt=""><button class="item-thumb-rm" data-action="rm-img" title="إزالة">✕</button></div></td>`
-            : `<td class="col-img"><button class="item-img-btn" data-action="add-img" title="إرفاق صورة">📷</button></td>`;
+            : `<td class="col-img"><div class="item-thumb-wrap" data-action="add-img"><button class="item-img-btn" title="إرفاق صورة">📷</button></div></td>`;
 
           const costCell = isOwnerOrAdmin
-            ? `<td style="min-width:160px"><div class="cost-fields">
+            ? `<td class="col-cost" style="min-width:160px"><div class="cost-fields">
                 <input type="number" min="0" step="0.1" class="f-basecost" value="${it.base_cost || 0}" title="التكلفة الأساسية" />
                 <span class="pct-badge">%</span>
                 <input type="number" min="0" max="100" step="1" class="f-overhead" value="${it.overhead_pct || 35}" title="نسبة هامش الربح" />
@@ -4339,21 +5045,22 @@
 
           rows += `<tr data-idx="${origIdx}">
             <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
-            <td class="col-name" style="position:relative"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند" autocomplete="off" /><div class="fname-autocomplete" id="fnameAc_${origIdx}"></div></td>
+            <td class="col-name" style="position:relative"><textarea class="f-name" rows="1" placeholder="اسم البند" autocomplete="off">${escapeAttr(it.name)}</textarea><div class="fname-autocomplete" id="fnameAc_${origIdx}"></div></td>
             <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
             ${imgCell}
-            <td class="col-unit"><select class="f-unit">${UNITS.map((u) => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
+            <td class="col-unit"><div class="f-unit-wrap"><select class="f-unit">${unitOptionsHtml(it.unit)}</select><span class="f-unit-current" aria-hidden="true">${escapeAttr(it.unit || "")}</span></div></td>
             <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
             <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${Number(it.selling_price || 0).toFixed(2)}" ${isOwnerOrAdmin ? 'readonly style="background:var(--surface);color:var(--gold);font-weight:700;"' : ""}></td>
             ${costCell}
-            <td class="col-total">${moneyInt(total)}</td>
+            <td class="col-total"><span class="f-total-val">${moneyInt(total)}</span></td>
             <td class="col-notes"><textarea class="f-notes" rows="1" placeholder="ملاحظات">${escapeAttr(it.notes)}</textarea></td>
             <td class="col-del"><button class="del-btn" title="حذف">✕</button></td>
+            <td class="col-fill" aria-hidden="true"></td>
           </tr>`;
         });
 
         const costHeader = isOwnerOrAdmin
-          ? '<th style="min-width:160px">التكلفة + الهامش</th>'
+          ? '<th class="col-cost" style="min-width:160px">التكلفة + الهامش</th>'
           : "";
 
         panel.innerHTML = `<div class="section-panel">
@@ -4372,12 +5079,12 @@
           ${searchHtml}
           ${
             items.length
-              ? `<table class="items"><thead><tr>
-                <th class="col-code">#</th><th class="col-name">البند</th><th class="col-desc">الوصف</th><th class="col-img"></th>
-                <th class="col-unit">الوحدة</th><th class="col-qty">الكمية</th>
-                <th class="col-price">سعر البيع</th>${costHeader}
-                <th class="col-total">الإجمالي</th><th class="col-notes">ملاحظات</th><th class="col-del"></th>
-              </tr></thead><tbody>${rows}</tbody></table>`
+              ? `<div class="items-scroll" id="mainItemsScroll"><table class="items"><thead><tr>
+                <th class="col-code">#</th><th class="col-name" data-fs-field="name">البند</th><th class="col-desc" data-fs-field="desc">الوصف</th><th class="col-img" data-fs-field="image"></th>
+                <th class="col-unit" data-fs-field="unit">الوحدة</th><th class="col-qty" data-fs-field="qty">الكمية</th>
+                <th class="col-price" data-fs-field="price">سعر البيع</th>${costHeader}
+                <th class="col-total" data-fs-field="total">الإجمالي</th><th class="col-notes" data-fs-field="notes">ملاحظات</th><th class="col-del"></th><th class="col-fill" aria-hidden="true"></th>
+              </tr></thead><tbody>${rows}</tbody></table></div>`
               : `<p class="empty-note" style="padding:20px 0;">${activeCategoryTab ? "ما في بنود لهالقسم. ابدأ بإضافة أول بند." : "ما في بنود لسا. ابدأ بإضافة أول بند."}</p>`
           }
           <button class="add-item-btn" id="addItemBtn">+ إضافة بند</button>
@@ -4841,6 +5548,7 @@
           let fNameCachedItems = [];
 
           fNameInput.oninput = (e) => {
+            autoGrow(e.target);
             if (e.target.value !== item.name) {
               item.name = e.target.value;
               markItemDirty(item);
@@ -4880,7 +5588,7 @@
               if (filtered.length === 0) {
                 fNameAc.innerHTML =
                   '<div class="fname-ac-empty">ما في نتائج</div>';
-                fNameAc.classList.add("open");
+                fNameAc.classList.add("open"); positionFnameAc(fNameAc);
                 fNameHighlightIdx = -1;
                 return;
               }
@@ -4900,7 +5608,7 @@
                 </div>`,
                 )
                 .join("");
-              fNameAc.classList.add("open");
+              fNameAc.classList.add("open"); positionFnameAc(fNameAc);
               fNameAc.querySelectorAll(".fname-ac-item").forEach((el) => {
                 el.onmousedown = (ev) => {
                   ev.preventDefault();
@@ -4930,7 +5638,14 @@
           };
 
           fNameInput.onkeydown = (e) => {
-            if (!fNameAc || !fNameAc.classList.contains("open")) return;
+            // Never intercept an IME composition.
+            if (e.isComposing || e.keyCode === 229) return;
+            const isOpen = !!(fNameAc && fNameAc.classList.contains("open"));
+            if (!isOpen) {
+              // Former <input> behaviour: Enter must not insert a newline.
+              if (e.key === "Enter") e.preventDefault();
+              return;
+            }
             const acItems = fNameAc.querySelectorAll(".fname-ac-item");
             if (e.key === "ArrowDown") {
               e.preventDefault();
@@ -4952,8 +5667,8 @@
               if (acItems[fNameHighlightIdx])
                 acItems[fNameHighlightIdx].scrollIntoView({ block: "nearest" });
             } else if (e.key === "Enter") {
+              e.preventDefault();
               if (fNameHighlightIdx >= 0 && acItems[fNameHighlightIdx]) {
-                e.preventDefault();
                 acItems[fNameHighlightIdx].dispatchEvent(
                   new Event("mousedown"),
                 );
@@ -4976,8 +5691,11 @@
           autoGrow(tr.querySelector(".f-desc"));
           tr.querySelector(".f-unit").onchange = (e) => {
             item.unit = e.target.value;
+            const cur = tr.querySelector(".f-unit-current");
+            if (cur) cur.textContent = item.unit;
             markItemDirty(item);
             markDirty();
+            pruneStaleUnitOptions(e.target);
           };
           tr.querySelector(".f-notes").oninput = (e) => {
             item.notes = e.target.value;
@@ -4986,6 +5704,7 @@
             markDirty();
           };
           autoGrow(tr.querySelector(".f-notes"));
+          autoGrow(tr.querySelector(".f-name"));
 
           tr.querySelector(".f-qty").oninput = (e) => {
             item.qty = Number(e.target.value) || 0;
@@ -5305,7 +6024,7 @@
         if (countEl) countEl.textContent = totalCount + " بند";
 
         const costHeader = isOwnerOrAdmin
-          ? '<th style="min-width:120px">التكلفة + الهامش</th>'
+          ? '<th class="col-cost" style="min-width:120px">التكلفة + الهامش</th>'
           : "";
 
         let rows = "";
@@ -5341,9 +6060,9 @@
             }
             const imgCell = it.image
               ? `<td class="col-img"><div class="item-thumb-wrap" data-action="view-img"><img src="${it.image}" alt=""><button class="item-thumb-rm" data-action="rm-img" title="إزالة">✕</button></div></td>`
-              : `<td class="col-img"><button class="item-img-btn" data-action="add-img" title="إرفاق صورة">📷</button></td>`;
+              : `<td class="col-img"><div class="item-thumb-wrap" data-action="add-img"><button class="item-img-btn" title="إرفاق صورة">📷</button></div></td>`;
             const costCell = isOwnerOrAdmin
-              ? `<td style="min-width:120px"><div class="cost-fields">
+              ? `<td class="col-cost" style="min-width:120px"><div class="cost-fields">
                   <input type="number" min="0" step="0.1" class="f-basecost" value="${it.base_cost || 0}" title="التكلفة الأساسية" />
                   <span class="pct-badge">%</span>
                   <input type="number" min="0" max="100" step="1" class="f-overhead" value="${it.overhead_pct || 35}" title="نسبة هامش الربح" />
@@ -5352,16 +6071,17 @@
             rows += `<tr data-sec="${secIdx}" data-idx="${itemIdx}">
               <td class="col-origin"><span class="origin-sec">${escapeAttr(sec.name)}</span>${roomName ? ` <span class="origin-sep">—</span> <span class="origin-room${roomName === "مباشر" ? " origin-direct" : ""}">${escapeAttr(roomName)}</span>` : ""}</td>
               <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
-              <td class="col-name" style="position:relative"><input type="text" class="f-name" value="${escapeAttr(it.name)}" placeholder="اسم البند" autocomplete="off" /><div class="fname-autocomplete" id="fnameAc_S${secIdx}_I${itemIdx}"></div></td>
+              <td class="col-name" style="position:relative"><textarea class="f-name" rows="1" placeholder="اسم البند" autocomplete="off">${escapeAttr(it.name)}</textarea><div class="fname-autocomplete" id="fnameAc_S${secIdx}_I${itemIdx}"></div></td>
               <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
               ${imgCell}
-              <td class="col-unit"><select class="f-unit">${UNITS.map((u) => `<option value="${u}" ${u === it.unit ? "selected" : ""}>${u}</option>`).join("")}</select></td>
+              <td class="col-unit"><div class="f-unit-wrap"><select class="f-unit">${unitOptionsHtml(it.unit)}</select><span class="f-unit-current" aria-hidden="true">${escapeAttr(it.unit || "")}</span></div></td>
               <td class="col-qty"><input type="number" min="0" step="0.1" class="f-qty" value="${it.qty}"></td>
             <td class="col-price"><input type="number" min="0" step="0.1" class="f-price" value="${Number(it.selling_price || 0).toFixed(2)}" ${isOwnerOrAdmin ? 'readonly style="background:var(--surface);color:var(--gold);font-weight:700;"' : ""}></td>
               ${costCell}
-              <td class="col-total">${moneyInt(total)}</td>
+              <td class="col-total"><span class="f-total-val">${moneyInt(total)}</span></td>
               <td class="col-notes"><textarea class="f-notes" rows="1" placeholder="ملاحظات">${escapeAttr(it.notes)}</textarea></td>
               <td class="col-del"><button class="del-btn" title="حذف">✕</button></td>
+              <td class="col-fill" aria-hidden="true"></td>
             </tr>`;
           });
         });
@@ -5378,16 +6098,17 @@
           head.innerHTML = `<tr>
             <th class="col-origin">القسم/الغرفة</th>
             <th class="col-code">#</th>
-            <th class="col-name">البند</th>
-            <th class="col-desc">الوصف</th>
-            <th class="col-img"></th>
-            <th class="col-unit">الوحدة</th>
-            <th class="col-qty">الكمية</th>
-            <th class="col-price">سعر البيع</th>
+            <th class="col-name" data-fs-field="name">البند</th>
+            <th class="col-desc" data-fs-field="desc">الوصف</th>
+            <th class="col-img" data-fs-field="image"></th>
+            <th class="col-unit" data-fs-field="unit">الوحدة</th>
+            <th class="col-qty" data-fs-field="qty">الكمية</th>
+            <th class="col-price" data-fs-field="price">سعر البيع</th>
             ${costHeader}
-            <th class="col-total">الإجمالي</th>
-            <th class="col-notes">ملاحظات</th>
+            <th class="col-total" data-fs-field="total">الإجمالي</th>
+            <th class="col-notes" data-fs-field="notes">ملاحظات</th>
             <th class="col-del"></th>
+            <th class="col-fill" aria-hidden="true"></th>
           </tr>`;
         }
         body.innerHTML = rows;
@@ -5420,6 +6141,7 @@
         let fNameCachedItems = [];
 
         fNameInput.oninput = (e) => {
+          autoGrow(e.target);
           if (e.target.value !== item.name) {
             item.name = e.target.value;
             markItemDirty(item);
@@ -5447,7 +6169,7 @@
               .slice(0, 12);
             if (filtered.length === 0) {
               fNameAc.innerHTML = '<div class="fname-ac-empty">ما في نتائج</div>';
-              fNameAc.classList.add("open");
+              fNameAc.classList.add("open"); positionFnameAc(fNameAc);
               fNameHighlightIdx = -1;
               return;
             }
@@ -5467,7 +6189,7 @@
               </div>`,
               )
               .join("");
-            fNameAc.classList.add("open");
+            fNameAc.classList.add("open"); positionFnameAc(fNameAc);
             fNameAc.querySelectorAll(".fname-ac-item").forEach((el) => {
               el.onmousedown = (ev) => {
                 ev.preventDefault();
@@ -5499,7 +6221,14 @@
         };
 
         fNameInput.onkeydown = (e) => {
-          if (!fNameAc || !fNameAc.classList.contains("open")) return;
+          // Never intercept an IME composition.
+          if (e.isComposing || e.keyCode === 229) return;
+          const isOpen = !!(fNameAc && fNameAc.classList.contains("open"));
+          if (!isOpen) {
+            // Former <input> behaviour: Enter must not insert a newline.
+            if (e.key === "Enter") e.preventDefault();
+            return;
+          }
           const acItems = fNameAc.querySelectorAll(".fname-ac-item");
           if (e.key === "ArrowDown") {
             e.preventDefault();
@@ -5521,8 +6250,8 @@
             if (acItems[fNameHighlightIdx])
               acItems[fNameHighlightIdx].scrollIntoView({ block: "nearest" });
           } else if (e.key === "Enter") {
+            e.preventDefault();
             if (fNameHighlightIdx >= 0 && acItems[fNameHighlightIdx]) {
-              e.preventDefault();
               acItems[fNameHighlightIdx].dispatchEvent(new Event("mousedown"));
             }
           } else if (e.key === "Escape") {
@@ -5543,8 +6272,11 @@
         autoGrow(tr.querySelector(".f-desc"));
         tr.querySelector(".f-unit").onchange = (e) => {
           item.unit = e.target.value;
+          const cur = tr.querySelector(".f-unit-current");
+          if (cur) cur.textContent = item.unit;
           markItemDirty(item);
           markDirty();
+          pruneStaleUnitOptions(e.target);
         };
         tr.querySelector(".f-notes").oninput = (e) => {
           item.notes = e.target.value;
@@ -5553,6 +6285,7 @@
           markDirty();
         };
         autoGrow(tr.querySelector(".f-notes"));
+        autoGrow(tr.querySelector(".f-name"));
 
         tr.querySelector(".f-qty").oninput = (e) => {
           item.qty = Number(e.target.value) || 0;
@@ -5665,6 +6398,7 @@
           allItemsOverlaySelectedRoom = null;
         }
         renderAllItemsRows();
+        applyFieldSizes();
         document.getElementById("allItemsOverlay").classList.add("open");
       }
 
@@ -5806,7 +6540,8 @@
           if (sec && sec.items[idx]) {
             const it = sec.items[idx];
             const lt = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
-            tr.querySelector(".col-total").textContent = moneyInt(lt);
+            const totalEl = tr.querySelector(".col-total .f-total-val");
+            if (totalEl) totalEl.textContent = moneyInt(lt);
             if (isOwnerOrAdmin) {
               const priceInput = tr.querySelector(".f-price");
               if (priceInput) priceInput.value = Number(it.selling_price || 0).toFixed(2);
@@ -5826,7 +6561,8 @@
                 const it = sec.items[iIdx];
                 const lt =
                   (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
-                tr.querySelector(".col-total").textContent = moneyInt(lt);
+                const totalEl = tr.querySelector(".col-total .f-total-val");
+                if (totalEl) totalEl.textContent = moneyInt(lt);
                 if (isOwnerOrAdmin) {
                   const priceInput = tr.querySelector(".f-price");
                   if (priceInput)
@@ -5936,6 +6672,8 @@
         renderSectionsNav();
         renderMainPanel();
         renderTotals();
+        // Re-apply persisted field sizes and re-measure textareas after rerender.
+        applyFieldSizes();
       }
 
       // ---- Modals ----
@@ -8605,6 +9343,87 @@
       }
 
       // ---- Button Events ----
+      document.getElementById("fieldSettingsBtn").onclick = openFieldSettings;
+      document.getElementById("fieldSettingsCancel").onclick = closeFieldSettings;
+      document.getElementById("fieldSettingsModal").addEventListener(
+        "click",
+        (e) => {
+          if (e.target === e.currentTarget) closeFieldSettings();
+        },
+      );
+      document.addEventListener("keydown", (e) => {
+        const modal = document.getElementById("fieldSettingsModal");
+        if (!modal) return;
+        if (e.key === "Escape" && modal.classList.contains("open")) {
+          closeFieldSettings();
+          return;
+        }
+        // Keep keyboard focus inside the dialog while it is open.
+        if (e.key === "Tab" && modal.classList.contains("open")) {
+          const focusables = modal.querySelectorAll(
+            'button, input, [tabindex]:not([tabindex="-1"])',
+          );
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      });
+      document.getElementById("fieldSettingsSave").onclick = () => {
+        const { next, clamped } = readFieldSettingsUI();
+        fieldSizes = next;
+        const ok = persistFieldSizes();
+        applyFieldSizes();
+        closeFieldSettings();
+        if (!ok) {
+          showToast(
+            "تم التطبيق في هذه الجلسة فقط — تعذّر الحفظ في المتصفح.",
+          );
+        } else if (clamped.length) {
+          showToast("تم التطبيق. تم تصحيح قيم خارج النطاق: " + clamped.join("، "));
+        } else {
+          showToast("تم حفظ إعدادات الحقول");
+        }
+      };
+      document.getElementById("fieldSettingsResetAll").onclick = () => {
+        fieldSizes = { v: 1, cols: {} };
+        const ok = persistFieldSizes();
+        applyFieldSizes();
+        closeFieldSettings();
+        showToast(
+          ok
+            ? "تمت إعادة الضبط إلى الإعدادات الافتراضية"
+            : "تمت إعادة الضبط لهذه الجلسة فقط — تعذّر الحفظ في المتصفح.",
+        );
+      };
+      let fieldSizesResizeTimer = null;
+      window.addEventListener("resize", () => {
+        clearTimeout(fieldSizesResizeTimer);
+        fieldSizesResizeTimer = setTimeout(() => {
+          recomputeItemsTableWidth();
+          recalcFieldTextareas();
+          refreshOpenFnameAc();
+        }, 150);
+      });
+      // Workspace width can change without a window resize (sidebar/panel
+      // layout). Observe the persistent containers, not re-rendered wrappers.
+      if (typeof ResizeObserver === "function") {
+        const fieldSizeObserver = new ResizeObserver(() => {
+          recomputeItemsTableWidth();
+        });
+        ["mainPanel", "allItemsScroll"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) fieldSizeObserver.observe(el);
+        });
+      }
+      // Any scroll (including inside .items-scroll) re-anchors open suggestion lists.
+      document.addEventListener("scroll", refreshOpenFnameAc, true);
       document.getElementById("saveQuoteBtn").onclick = saveQuote;
       document.getElementById("printBtn").onclick = () => window.print();
       window.addEventListener("beforeprint", renderPrintTemplate);
@@ -9183,7 +10002,9 @@
         }
         loadSavedList();
         await loadPickerCategories();
+        loadFieldSizes();
         renderAll();
+        applyFieldSizes();
         console.log("[DBG-2] After init loadPickerCategories:");
         console.log(
           "  allDisciplines:",
