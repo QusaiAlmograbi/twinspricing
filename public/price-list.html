@@ -462,10 +462,17 @@
       let editingItemId = null;
       let editingDisciplineId = null;
       let creatingNewDiscipline = false;
-      let catModalSaveInFlight = false;
-      let itemModalSaveInFlight = false;
+      let catModalSaveInFlight = new Map(); // mySeq -> true
+      let itemModalSaveInFlight = new Map(); // mySeq -> true
       let catModalInvocationSeq = 0;
       let itemModalInvocationSeq = 0;
+      // Recovery survives modal reopen and is keyed by the logical create/link
+      // operation, not by a transient modal invocation.
+      const catLinkRecovery = new Map();
+
+      function categoryRecoveryKey(disciplineId, name) {
+        return `${disciplineId}:${name}`;
+      }
 
       let unlinkedCategories = [];
 
@@ -857,52 +864,96 @@
       document.getElementById("catModalSave").onclick = async () => {
         const name = document.getElementById("catModalName").value.trim();
         if (!name) { showToast("الاسم مطلوب"); return; }
-        if (catModalSaveInFlight) return;
-        catModalSaveInFlight = true;
         const mySeq = catModalInvocationSeq;
+        if (catModalSaveInFlight.get(mySeq)) return;
+        catModalSaveInFlight.set(mySeq, true);
         const myCreatingNewDiscipline = creatingNewDiscipline;
         const myEditingDisciplineId = editingDisciplineId;
         const myEditingCategoryId = editingCategoryId;
         const myActiveDisciplineId = activeDisciplineId;
+        const recoveryKey =
+          !myCreatingNewDiscipline &&
+          myEditingDisciplineId === null &&
+          myEditingCategoryId === null &&
+          myActiveDisciplineId
+            ? categoryRecoveryKey(myActiveDisciplineId, name)
+            : null;
+        const stillOwns = () => mySeq === catModalInvocationSeq;
         const catSaveBtn = document.getElementById("catModalSave");
         if (catSaveBtn) catSaveBtn.disabled = true;
         try {
-          // Discipline mode vs category mode
           if (myCreatingNewDiscipline) {
             await api("/disciplines", { method: "POST", body: JSON.stringify({ name }) });
+            if (stillOwns()) {
             showToast("تمت إضافة التخصص");
             await loadDisciplines();
+            }
           } else if (myEditingDisciplineId !== null) {
             await api(`/disciplines/${myEditingDisciplineId}`, { method: "PUT", body: JSON.stringify({ name }) });
+            if (stillOwns()) {
             showToast("تم تعديل التخصص");
             await loadDisciplines();
+            }
           } else if (myEditingDisciplineId === null && myEditingCategoryId === null) {
-            // Check context: if we're in a discipline, add category to discipline
+            let recoveredLink = false;
+            if (recoveryKey && catLinkRecovery.has(recoveryKey)) {
+              const recovery = catLinkRecovery.get(recoveryKey);
+              await api(`/disciplines/${recovery.activeDisciplineId}/sections`, { method: "POST", body: JSON.stringify({ section_id: recovery.createdCategoryId }) });
+              catLinkRecovery.delete(recoveryKey);
+              recoveredLink = true;
+            } else {
             if (myActiveDisciplineId) {
-              // First create the category, then link it
               const catRes = await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
-              await api(`/disciplines/${myActiveDisciplineId}/sections`, { method: "POST", body: JSON.stringify({ section_id: catRes.id }) });
-              showToast("تمت إضافة القسم");
+                const createdCategoryId = catRes.id;
+                try {
+                  await api(`/disciplines/${myActiveDisciplineId}/sections`, { method: "POST", body: JSON.stringify({ section_id: createdCategoryId }) });
+                } catch (linkError) {
+                  catLinkRecovery.set(recoveryKey, {
+                    createdCategoryId,
+                    activeDisciplineId: myActiveDisciplineId,
+                    name,
+                  });
+                  throw linkError;
+                }
             } else {
               await api("/price-list", { method: "POST", body: JSON.stringify({ name }) });
-              showToast("تمت إضافة القسم");
             }
+            }
+            if (stillOwns()) {
+              showToast(
+                recoveredLink
+                  ? "تمت إضافة القسم (إعادة المحاولة)"
+                  : "تمت إضافة القسم",
+              );
             await loadDisciplines();
             await loadUnlinkedCategories();
-            if (myActiveDisciplineId) await loadDisciplineSections(myActiveDisciplineId);
+              if (myActiveDisciplineId) {
+                await loadDisciplineSections(myActiveDisciplineId);
+              }
+            }
           } else if (myEditingCategoryId !== null) {
             await api(`/price-list/${myEditingCategoryId}`, { method: "PUT", body: JSON.stringify({ name }) });
+            if (stillOwns()) {
             showToast("تم تعديل القسم");
             await loadDisciplineSections();
           }
-          if (mySeq === catModalInvocationSeq) {
+          }
+          if (stillOwns()) {
             if (myEditingDisciplineId !== null) editingDisciplineId = null;
             if (myEditingCategoryId !== null) editingCategoryId = null;
             closeCatModal();
           }
+        } catch (e) {
+          if (stillOwns()) {
+            if (recoveryKey && catLinkRecovery.has(recoveryKey)) {
+              showToast("فشل الربط: " + e.message);
+            } else {
+              showToast("فشل العملية: " + e.message);
+            }
+          }
         } finally {
-          catModalSaveInFlight = false;
-          if (catSaveBtn) catSaveBtn.disabled = false;
+          catModalSaveInFlight.delete(mySeq);
+          if (stillOwns() && catSaveBtn) catSaveBtn.disabled = false;
         }
       };
 
@@ -945,28 +996,34 @@
           overhead_pct: Number(document.getElementById("itemModalOverhead").value) || 35,
         };
         if (!body.name) { showToast("اسم البند مطلوب"); return; }
-        if (itemModalSaveInFlight) return;
-        itemModalSaveInFlight = true;
         const mySeq = itemModalInvocationSeq;
+        if (itemModalSaveInFlight.get(mySeq)) return;
+        itemModalSaveInFlight.set(mySeq, true);
         const myEditingItemId = editingItemId;
         const myActiveCategoryId = activeCategoryId;
+        const stillOwns = () => mySeq === itemModalInvocationSeq;
         const itemSaveBtn = document.getElementById("itemModalSave");
         if (itemSaveBtn) itemSaveBtn.disabled = true;
         try {
           if (myEditingItemId !== null) {
             await api(`/price-list/items/${myEditingItemId}`, { method: "PUT", body: JSON.stringify(body) });
-            showToast("تم تعديل البند");
           } else {
             await api(`/price-list/${myActiveCategoryId}/items`, { method: "POST", body: JSON.stringify(body) });
-            showToast("تمت إضافة البند");
           }
-          if (mySeq === itemModalInvocationSeq) closeItemModal();
+          if (stillOwns()) {
+            showToast(
+              myEditingItemId !== null
+                ? "تم تعديل البند"
+                : "تمت إضافة البند",
+            );
+            closeItemModal();
           await loadItems();
           await loadDisciplineSections();
           await loadUnlinkedCategories();
+          }
         } finally {
-          itemModalSaveInFlight = false;
-          if (itemSaveBtn) itemSaveBtn.disabled = false;
+          itemModalSaveInFlight.delete(mySeq);
+          if (stillOwns() && itemSaveBtn) itemSaveBtn.disabled = false;
         }
       };
 

@@ -3002,38 +3002,14 @@
         ],
       };
       let sections = [];
-      // Stable per-object identity for unsaved/local resources used by the
-      // Blocker 6 destination keys. Persisted resources use their IDs.
-      const localResourceIds = new WeakMap();
-      let localResourceIdCounter = 0;
-      // Blocker 6: deterministic destination/session intent guards for the
-      // synchronous local add flows. A processed {destination/session, intent
-      // generation} tuple is never processed twice; destination changes and
-      // genuine user interactions create a new tuple.
-      let mainAddDestinationKey = null;
-      let mainAddIntentGeneration = 0;
-      let mainAddLastProcessed = null;
-      let allItemsOverlaySessionId = 0;
-      let allItemsOverlayTrackedSessionId = null;
-      let allItemsOverlayDestinationKey = null;
-      let allItemsOverlayIntentGeneration = 0;
-      let allItemsOverlayLastProcessed = null;
       let allItemsOverlaySelectedSection = null;
       let allItemsOverlaySelectedRoom = null;
       let allItemsOverlayRoomStale = false;
-      function stableResourceKey(prefix, obj) {
-        if (!obj) return prefix + ":none";
-        let key = localResourceIds.get(obj);
-        if (key === undefined) {
-          const id = obj.id;
-          if (id != null && Number(id) > 0) {
-            key = prefix + ":id:" + id;
-          } else {
-            key = prefix + ":local:" + (++localResourceIdCounter);
-          }
-          localResourceIds.set(obj, key);
+
+      function suppressRepeatedButtonKeydown(e) {
+        if (e.repeat && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
         }
-        return key;
       }
 
       function resolveMainAddDestination() {
@@ -3069,7 +3045,6 @@
           activeRoomIdx = null;
           activeRoomObj = null;
           activeCategoryTab = null;
-          advanceMainAddIntent();
           return;
         }
         if (!nextSection) return;
@@ -3087,25 +3062,6 @@
           activeRoomIdx = null;
           activeRoomObj = null;
         }
-      }
-
-      function getMainAddDestinationKey() {
-        const { sec, room } = resolveMainAddDestination();
-        const sectionKey = stableResourceKey("section", sec);
-        const roomKey = room
-          ? stableResourceKey("room", room)
-          : "direct";
-        return "main:section:" + sectionKey + ":room:" + roomKey;
-      }
-
-      function advanceMainAddIntent() {
-        const key = getMainAddDestinationKey();
-        if (key !== mainAddDestinationKey) {
-          mainAddDestinationKey = key;
-          mainAddIntentGeneration = 0;
-          mainAddLastProcessed = null;
-        }
-        mainAddIntentGeneration += 1;
       }
 
       function resolveOverlayDestination() {
@@ -3147,32 +3103,6 @@
           staleRoom = false;
         }
         return { sec, room, staleSection, staleRoom };
-      }
-
-      function getOverlayAddDestinationKey() {
-        const destination = resolveOverlayDestination();
-        if (
-          !destination ||
-          !destination.sec ||
-          destination.staleSection ||
-          destination.staleRoom
-        )
-          return "overlay:stale";
-        const sectionKey = stableResourceKey("section", destination.sec);
-        const roomKey = destination.room
-          ? stableResourceKey("room", destination.room)
-          : "direct";
-        return "overlay:section:" + sectionKey + ":room:" + roomKey;
-      }
-
-      function advanceOverlayAddIntent() {
-        const key = getOverlayAddDestinationKey();
-        if (key !== allItemsOverlayDestinationKey) {
-          allItemsOverlayDestinationKey = key;
-          allItemsOverlayIntentGeneration = 0;
-          allItemsOverlayLastProcessed = null;
-        }
-        allItemsOverlayIntentGeneration += 1;
       }
 
       let activeSectionIdx = 0;
@@ -4741,11 +4671,10 @@
         if (copyDirectBtn)
           copyDirectBtn.onclick = () => openCopyDirectModal();
 
-        // Event: add item (empty)
-        // Destination/session intent guard: same destination + same intent
-        // generation cannot create a second row; destination changes or genuine
-        // user interactions create a new generation. renderAll() does not.
-        document.getElementById("addItemBtn").onclick = async () => {
+        // Event: add item (empty). Browser click detail values greater than 1
+        // belong to the same mouse multi-click sequence and are ignored.
+        document.getElementById("addItemBtn").onclick = async (e) => {
+          if (e && e.detail > 1) return;
           const mainDestination = resolveMainAddDestination();
           if (!mainDestination.sec) {
             showToast("القسم غير متاح");
@@ -4758,28 +4687,6 @@
           }
           const destinationSec = mainDestination.sec;
           const destinationRoom = mainDestination.room;
-          const destinationKey =
-            "main:section:" +
-            stableResourceKey("section", destinationSec) +
-            ":room:" +
-            (destinationRoom
-              ? stableResourceKey("room", destinationRoom)
-              : "direct");
-          if (destinationKey !== mainAddDestinationKey) {
-            mainAddDestinationKey = destinationKey;
-            mainAddIntentGeneration = 0;
-            mainAddLastProcessed = null;
-          }
-          if (
-            mainAddLastProcessed &&
-            mainAddLastProcessed.key === destinationKey &&
-            mainAddLastProcessed.generation === mainAddIntentGeneration
-          )
-            return;
-          mainAddLastProcessed = {
-            key: destinationKey,
-            generation: mainAddIntentGeneration,
-          };
           const destinationItems = destinationSec.items || [];
           const newItem = {
             item_code: `${destinationSec.code}.${destinationItems.length + 1}`,
@@ -4820,6 +4727,8 @@
           markDirty();
           renderAll();
         };
+        document.getElementById("addItemBtn").onkeydown =
+          suppressRepeatedButtonKeydown;
 
         // Event: pick from catalog
         const pickBtn = document.getElementById("pickCatalogBtn");
@@ -5128,9 +5037,20 @@
       // Single-item create guards: same section + same catalog/name key while
       // pending is a repeat; different items stay independent.
       const itemCreatePending = new Set();
+
+      function ownsEditorTarget(quoteId, sectionsRef, sectionRef) {
+        return (
+          currentQuoteId === quoteId &&
+          sections === sectionsRef &&
+          sectionsRef.includes(sectionRef)
+        );
+      }
+
       async function addItemFromCatalog(catItem) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
         const secKey =
           sec.id != null ? String(sec.id) : "idx:" + activeSectionIdx;
         const activeRoom =
@@ -5142,6 +5062,8 @@
             ? String(activeRoom.id)
             : "none";
         const catKey =
+          String(myQuoteId) +
+          "|" +
           secKey +
           "|room:" +
           activeRoomKey +
@@ -5171,19 +5093,28 @@
               method: "POST",
               body: JSON.stringify(newItem),
             });
+            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
             newItem.id = res.id;
             newItem.selling_price = res.selling_price;
+            }
           } catch (e) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
             showToast(
               "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
             );
           }
         }
+        }
+          if (
+            ownsEditorTarget(myQuoteId, mySections, sec) &&
+            sec.items === allItems
+          ) {
         allItems.push(newItem);
         markItemDirty(newItem);
         markDirty();
         renderAll();
         showToast("تمت إضافة البند من الكتالوج");
+          }
         } finally {
           itemCreatePending.delete(catKey);
         }
@@ -5192,6 +5123,8 @@
       async function addItemManual(nameText) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
         const secKey =
           sec.id != null ? String(sec.id) : "idx:" + activeSectionIdx;
         const manualRoom =
@@ -5203,7 +5136,13 @@
             ? String(manualRoom.id)
             : "none";
         const manualKey =
-          secKey + "|room:" + manualRoomKey + "|manual:" + (nameText || "").trim();
+          String(myQuoteId) +
+          "|" +
+          secKey +
+          "|room:" +
+          manualRoomKey +
+          "|manual:" +
+          (nameText || "").trim();
         if (itemCreatePending.has(manualKey)) return;
         itemCreatePending.add(manualKey);
         const manualBtn = document.getElementById("catSearchManualBtn");
@@ -5230,23 +5169,35 @@
               method: "POST",
               body: JSON.stringify(newItem),
             });
+            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
             newItem.id = res.id;
             newItem.selling_price = res.selling_price;
+            }
           } catch (e) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
             showToast(
               "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
             );
           }
         }
+        }
+          if (
+            ownsEditorTarget(myQuoteId, mySections, sec) &&
+            sec.items === allItems
+          ) {
         allItems.push(newItem);
         markItemDirty(newItem);
         markDirty();
         renderAll();
         showToast("تمت إضافة البند يدوياً");
+          }
         } finally {
           itemCreatePending.delete(manualKey);
-          const manualBtn = document.getElementById("catSearchManualBtn");
-          if (manualBtn) manualBtn.disabled = false;
+          if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+            const currentManualBtn =
+              document.getElementById("catSearchManualBtn");
+            if (currentManualBtn === manualBtn) currentManualBtn.disabled = false;
+          }
         }
       }
 
@@ -5935,43 +5886,6 @@
         renderTotals();
       }
 
-      // Explicit re-arm boundaries for the one-shot local add guards. A later
-      // user interaction with another control/row proves a new add intention;
-      // the same activation/render never re-arms.
-      const mainPanelEl = document.getElementById("mainPanel");
-      if (mainPanelEl) {
-        const mainIntentHandler = (e) => {
-          if (!e || e.isTrusted === false) return;
-          const target = e.target;
-          if (!target) return;
-          const addBtn = document.getElementById("addItemBtn");
-          if (target === addBtn || (target.closest && target.closest("#addItemBtn")))
-            return;
-          advanceMainAddIntent();
-        };
-        ["input", "change", "click", "keydown"].forEach((type) => {
-          mainPanelEl.addEventListener(type, mainIntentHandler, true);
-        });
-      }
-      const allItemsOverlayEl = document.getElementById("allItemsOverlay");
-      if (allItemsOverlayEl) {
-        const overlayIntentHandler = (e) => {
-          if (!e || e.isTrusted === false) return;
-          const target = e.target;
-          if (!target) return;
-          const addBtn = document.getElementById("allItemsAddBtn");
-          if (
-            target === addBtn ||
-            (target.closest && target.closest("#allItemsAddBtn"))
-          )
-            return;
-          advanceOverlayAddIntent();
-        };
-        ["input", "change", "click", "keydown"].forEach((type) => {
-          allItemsOverlayEl.addEventListener(type, overlayIntentHandler, true);
-        });
-      }
-
       // ---- Modals ----
       let editingSectionIdx = null;
       // Section-modal invocation identity + resource guards: edit repeats are
@@ -6137,7 +6051,10 @@
       // must clone exactly this section/room even if the global selection changes.
       let copyRoomBoundSecId = null;
       let copyRoomBoundRoomId = null;
+      let copyRoomModalSeq = 0;
+      let copyRoomActiveSeq = null;
       function openCopyRoomModal(roomIdx) {
+        copyRoomActiveSeq = ++copyRoomModalSeq;
         copyRoomSourceIdx = roomIdx;
         const sourceSec = sections[activeSectionIdx];
         const sourceRoom =
@@ -6146,10 +6063,8 @@
           sourceSec && sourceSec.id != null ? String(sourceSec.id) : null;
         copyRoomBoundRoomId =
           sourceRoom && sourceRoom.id != null ? String(sourceRoom.id) : null;
-        copyRoomActiveKey = copyRoomBoundRoomId;
         const copyRoomSaveBtn = document.getElementById("copyRoomSave");
-        if (copyRoomSaveBtn)
-          copyRoomSaveBtn.disabled = copyRoomPending.has(copyRoomActiveKey);
+        if (copyRoomSaveBtn) copyRoomSaveBtn.disabled = false;
         const select = document.getElementById("copyRoomTargetSection");
         select.innerHTML = "";
         const placeholder = document.createElement("option");
@@ -6177,8 +6092,8 @@
       }
       function closeCopyRoomModal() {
         document.getElementById("copyRoomModal").classList.remove("open");
+        copyRoomActiveSeq = null;
         copyRoomSourceIdx = null;
-        copyRoomActiveKey = null;
         copyRoomBoundSecId = null;
         copyRoomBoundRoomId = null;
       }
@@ -6190,7 +6105,6 @@
       // id currently shown in the open modal (null when closed). Different rooms
       // stay independent; a stale completion never touches another modal instance.
       const copyRoomPending = new Set();
-      let copyRoomActiveKey = null;
       document.getElementById("copyRoomSave").onclick = async () => {
         const targetId = Number(document.getElementById("copyRoomTargetSection").value);
         if (!targetId) {
@@ -6221,32 +6135,47 @@
           return;
         }
         const roomKey = String(room.id);
-        if (copyRoomPending.has(roomKey)) return;
-        copyRoomPending.add(roomKey);
-        const myRoomKey = roomKey;
+        const targetSec = sections.find(
+          (s) => String(s.id) === String(targetId),
+        );
+        if (!targetSec) {
+          showToast("القسم الهدف غير متاح");
+          return;
+        }
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const mySeq = copyRoomActiveSeq;
+        const myRoomKey = `${myQuoteId}:${roomKey}:${targetId}`;
+        if (copyRoomPending.has(myRoomKey)) return;
+        copyRoomPending.add(myRoomKey);
+        const stillOwns = () =>
+          currentQuoteId === myQuoteId &&
+          sections === mySections &&
+          copyRoomActiveSeq === mySeq;
         const copyRoomSaveBtn = document.getElementById("copyRoomSave");
         if (copyRoomSaveBtn) copyRoomSaveBtn.disabled = true;
         try {
           const res = await api(
-            `/quotes/${currentQuoteId}/rooms/${room.id}/clone`,
+            `/quotes/${myQuoteId}/rooms/${room.id}/clone`,
             {
               method: "POST",
               body: JSON.stringify({ targetSectionId: targetId }),
             },
           );
+          if (!stillOwns()) return;
           const newRoom = { ...res.room, _fromServer: true };
           const clonedItems = (res.items || []).map((it) => ({
             ...it,
             _fromServer: true,
           }));
-          const targetIdx = sections.findIndex((s) => String(s.id) === String(targetId));
-          if (targetIdx !== -1) {
-            const targetSec = sections[targetIdx];
+          const targetIdx = sections.indexOf(targetSec);
             if (res.wasDirect) {
               targetSec.has_rooms = 1;
             }
             if (!targetSec.rooms) targetSec.rooms = [];
-            const existingRoomIdx = targetSec.rooms.findIndex((r) => r.id === newRoom.id);
+          const existingRoomIdx = targetSec.rooms.findIndex(
+            (r) => r.id === newRoom.id,
+          );
             if (existingRoomIdx === -1) {
               targetSec.rooms.push(newRoom);
             }
@@ -6256,9 +6185,8 @@
                 targetSec.items.push(it);
               }
             }
-          }
-          activeSectionIdx = targetIdx !== -1 ? targetIdx : activeSectionIdx;
-          const finalTargetSec = sections[activeSectionIdx];
+          activeSectionIdx = targetIdx;
+          const finalTargetSec = targetSec;
           const newRoomIdx = finalTargetSec.rooms.findIndex((r) => r.id === newRoom.id);
           activeRoomIdx = newRoomIdx !== -1 ? newRoomIdx : null;
           activeRoomObj =
@@ -6268,9 +6196,7 @@
           activeCategoryTab = null;
           // Only the owning invocation may close or clear the modal: the modal
           // may since have been reopened for a different room.
-          if (copyRoomActiveKey === myRoomKey) {
             closeCopyRoomModal();
-          }
           markSectionDirty(finalTargetSec);
           markRoomDirty(newRoom);
           for (const it of clonedItems) markItemDirty(it);
@@ -6278,15 +6204,12 @@
           renderAll();
           showToast("تم نسخ الغرفة بنجاح");
         } catch (e) {
-          showToast("فشل النسخ: " + e.message);
+          if (stillOwns()) showToast("فشل النسخ: " + e.message);
         } finally {
           copyRoomPending.delete(myRoomKey);
-          // Re-enable only when the currently displayed invocation is not pending.
-          const copyRoomCurKey = copyRoomActiveKey;
-          const copyRoomSaveBtn = document.getElementById("copyRoomSave");
-          if (copyRoomSaveBtn)
-            copyRoomSaveBtn.disabled =
-              copyRoomCurKey !== null && copyRoomPending.has(copyRoomCurKey);
+          if (stillOwns() && copyRoomSaveBtn) {
+            copyRoomSaveBtn.disabled = false;
+          }
         }
       };
 
@@ -6294,14 +6217,15 @@
       // Bound source section for the current modal invocation: the save handler
       // must clone exactly this section even if the global selection changes.
       let copyDirectBoundSecId = null;
+      let copyDirectModalSeq = 0;
+      let copyDirectActiveSeq = null;
       function openCopyDirectModal() {
+        copyDirectActiveSeq = ++copyDirectModalSeq;
         const directSec = sections[activeSectionIdx];
         copyDirectBoundSecId =
           directSec && directSec.id != null ? String(directSec.id) : null;
-        copyDirectActiveKey = copyDirectBoundSecId;
         const copyDirectSaveBtn = document.getElementById("copyDirectSave");
-        if (copyDirectSaveBtn)
-          copyDirectSaveBtn.disabled = copyDirectPending.has(copyDirectActiveKey);
+        if (copyDirectSaveBtn) copyDirectSaveBtn.disabled = false;
         document.getElementById("copyDirectSecName").value = "";
         document.getElementById("copyDirectSecCode").value = nextSectionCode();
         document.getElementById("copyDirectModal").classList.add("open");
@@ -6309,7 +6233,7 @@
       }
       function closeCopyDirectModal() {
         document.getElementById("copyDirectModal").classList.remove("open");
-        copyDirectActiveKey = null;
+        copyDirectActiveSeq = null;
         copyDirectBoundSecId = null;
       }
       document.getElementById("copyDirectCancel").onclick = closeCopyDirectModal;
@@ -6319,7 +6243,6 @@
       // Resource-scoped in-flight guards: pending source section ids, plus the
       // section id the open modal was started from (null when closed).
       const copyDirectPending = new Set();
-      let copyDirectActiveKey = null;
       document.getElementById("copyDirectSave").onclick = async () => {
         const code = document.getElementById("copyDirectSecCode").value.trim();
         const name = document.getElementById("copyDirectSecName").value.trim();
@@ -6342,20 +6265,28 @@
           closeCopyDirectModal();
           return;
         }
-        const directKey = String(sec.id);
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const mySeq = copyDirectActiveSeq;
+        const directKey = `${myQuoteId}:${sec.id}`;
         if (copyDirectPending.has(directKey)) return;
         copyDirectPending.add(directKey);
         const myDirectKey = directKey;
+        const stillOwns = () =>
+          currentQuoteId === myQuoteId &&
+          sections === mySections &&
+          copyDirectActiveSeq === mySeq;
         const copyDirectSaveBtn = document.getElementById("copyDirectSave");
         if (copyDirectSaveBtn) copyDirectSaveBtn.disabled = true;
         try {
           const res = await api(
-            `/quotes/${currentQuoteId}/sections/${sec.id}/clone-direct`,
+            `/quotes/${myQuoteId}/sections/${sec.id}/clone-direct`,
             {
               method: "POST",
               body: JSON.stringify({ code, name }),
             },
           );
+          if (!stillOwns()) return;
           const newSec = {
             ...res.section,
             _fromServer: true,
@@ -6370,33 +6301,31 @@
           selectActiveSection(sections.length - 1, previousActiveSection);
           // Only the owning invocation may close the modal: it may since have
           // been reopened for a different source section.
-          if (copyDirectActiveKey === myDirectKey) {
             closeCopyDirectModal();
-          }
           markSectionDirty(newSec);
           (newSec.items || []).forEach((it) => markItemDirty(it));
           markDirty();
           renderAll();
           showToast("تم نسخ المباشر بنجاح");
         } catch (e) {
-          showToast("فشل النسخ: " + e.message);
+          if (stillOwns()) showToast("فشل النسخ: " + e.message);
         } finally {
           copyDirectPending.delete(myDirectKey);
-          // Re-enable only when the currently displayed invocation is not pending.
-          const copyDirectCurKey = copyDirectActiveKey;
-          const copyDirectSaveBtn = document.getElementById("copyDirectSave");
-          if (copyDirectSaveBtn)
-            copyDirectSaveBtn.disabled =
-              copyDirectCurKey !== null && copyDirectPending.has(copyDirectCurKey);
+          if (stillOwns() && copyDirectSaveBtn) {
+            copyDirectSaveBtn.disabled = false;
+          }
         }
       };
 
       // In-flight guards: prevent double-click template save/load/delete.
       // Load/delete guards are keyed by stable template id (not button closures)
       // so they survive modal close/reopen and list re-renders.
-      let tmplSaveInFlight = false;
-      const tmplLoadPending = new Set();
-      const tmplDelPending = new Set();
+      // Invocation-scoped locks for template save/load/delete (per invocation, not global).
+      // Invocation identity is created when modal OPENS, not when button is clicked.
+      let tmplSaveInFlight = new Map(); // mySeq -> true
+      const tmplLoadPending = new Map(); // tmplId -> Set of mySeq
+      const tmplDelPending = new Map(); // tmplId -> Set of mySeq
+      let tmplModalInvocationSeq = 0;
       // Locate the currently rendered template button of a given kind by stable
       // id. Guards must reconcile this live node, never only a captured node
       // that a re-render may since have detached.
@@ -6416,6 +6345,8 @@
         const body = document.getElementById("templateModalBody");
         document.getElementById("templateModalTitle").textContent =
           mode === "save" ? "حفظ كقالب" : "تحميل قالب";
+        // Create new invocation identity when modal OPENS (not when button is clicked)
+        tmplModalInvocationSeq++;
         if (mode === "save") {
           body.innerHTML = `
             <label>اسم القالب<input id="tmplName" type="text" placeholder="مثال: قالب غرف النوم" /></label>
@@ -6432,8 +6363,10 @@
               showToast("الاسم مطلوب");
               return;
             }
-            if (tmplSaveInFlight) return;
-            tmplSaveInFlight = true;
+            // Capture invocation identity at handler entry (created when modal opened)
+            const mySeq = tmplModalInvocationSeq;
+            if (tmplSaveInFlight.get(mySeq)) return;
+            tmplSaveInFlight.set(mySeq, true);
             const tmplSaveBtn = document.getElementById("tmplSaveBtn");
             if (tmplSaveBtn) tmplSaveBtn.disabled = true;
             const data = {
@@ -6459,17 +6392,23 @@
                 }),
               });
             } finally {
-              tmplSaveInFlight = false;
-              const tmplSaveBtn = document.getElementById("tmplSaveBtn");
-              if (tmplSaveBtn) tmplSaveBtn.disabled = false;
+              tmplSaveInFlight.delete(mySeq);
+              if (mySeq === tmplModalInvocationSeq && tmplSaveBtn) {
+                tmplSaveBtn.disabled = false;
+              }
             }
+            // Only apply UI changes if this invocation still owns the modal
+            if (mySeq === tmplModalInvocationSeq) {
             closeTemplateModal();
             showToast("تم حفظ القالب");
+            }
           };
         } else {
           body.innerHTML = '<p class="empty-note">جاري تحميل القوالب...</p>';
           modal.classList.add("open");
+          const myListSeq = tmplModalInvocationSeq;
           api("/templates").then(({ templates }) => {
+            if (myListSeq !== tmplModalInvocationSeq) return;
             if (templates.length === 0) {
               body.innerHTML = '<p class="empty-note">ما في قوالب محفوظة.</p>';
               return;
@@ -6493,24 +6432,40 @@
             body.querySelectorAll(".tmpl-load-btn").forEach((btn) => {
               btn.onclick = async () => {
                 const tmplLoadId = String(btn.dataset.id);
-                if (tmplLoadPending.has(tmplLoadId)) return;
-                tmplLoadPending.add(tmplLoadId);
+                // Capture invocation identity at handler entry
+                const mySeq = tmplModalInvocationSeq;
+                if (tmplLoadPending.get(tmplLoadId)?.has(mySeq)) return;
+                if (!tmplLoadPending.has(tmplLoadId)) tmplLoadPending.set(tmplLoadId, new Set());
+                tmplLoadPending.get(tmplLoadId).add(mySeq);
                 btn.disabled = true;
                 try {
                   const res = await api(`/templates/${tmplLoadId}/clone`, {
                     method: "POST",
                   });
+                  // Ownership check BEFORE entering loadQuote
+                  if (mySeq !== tmplModalInvocationSeq) return;
                   currentQuoteId = res.id;
-                  await loadQuote(currentQuoteId);
+                  // Pass ownership guard to loadQuote
+                  await loadQuote(currentQuoteId, () => mySeq === tmplModalInvocationSeq);
+                  // Re-check ownership after loadQuote completes
+                  if (mySeq !== tmplModalInvocationSeq) return;
                   loadSavedList();
                   closeTemplateModal();
                   showToast("تم تحميل القالب");
                 } finally {
-                  tmplLoadPending.delete(tmplLoadId);
+                  const set = tmplLoadPending.get(tmplLoadId);
+                  if (set) {
+                    set.delete(mySeq);
+                    if (set.size === 0) tmplLoadPending.delete(tmplLoadId);
+                  }
+                  if (mySeq === tmplModalInvocationSeq) {
                   btn.disabled = false;
-                  const curLoadBtn = tmplFindBtn(".tmpl-load-btn", tmplLoadId);
-                  if (curLoadBtn)
-                    curLoadBtn.disabled = tmplLoadPending.has(tmplLoadId);
+                    const curLoadBtn = tmplFindBtn(
+                      ".tmpl-load-btn",
+                      tmplLoadId,
+                    );
+                    if (curLoadBtn) curLoadBtn.disabled = false;
+                  }
                 }
               };
             });
@@ -6522,24 +6477,40 @@
                   "حذف",
                   async () => {
                     const tmplId = btn.dataset.id;
-                    if (tmplDelPending.has(tmplId)) return;
-                    tmplDelPending.add(tmplId);
+                    // Capture invocation identity at handler entry
+                    const mySeq = tmplModalInvocationSeq;
+                    if (tmplDelPending.get(tmplId)?.has(mySeq)) return;
+                    if (!tmplDelPending.has(tmplId)) tmplDelPending.set(tmplId, new Set());
+                    tmplDelPending.get(tmplId).add(mySeq);
                     btn.disabled = true;
                     try {
                       await api(`/templates/${tmplId}`, { method: "DELETE" });
+                      // Only apply if this invocation still owns the modal
+                      if (mySeq === tmplModalInvocationSeq) {
                       const liveDelBtn =
                         tmplFindBtn(".tmpl-del-btn", tmplId) || btn;
                       const liveRow = liveDelBtn.closest(".saved-item");
                       if (liveRow) liveRow.remove();
                       showToast("تم حذف القالب");
+                      }
                     } catch (e) {
+                      if (mySeq === tmplModalInvocationSeq) {
                       showToast(e.message);
+                      }
                     } finally {
-                      tmplDelPending.delete(tmplId);
+                      const set = tmplDelPending.get(tmplId);
+                      if (set) {
+                        set.delete(mySeq);
+                        if (set.size === 0) tmplDelPending.delete(tmplId);
+                      }
+                      if (mySeq === tmplModalInvocationSeq) {
                       btn.disabled = false;
-                      const curDelBtn = tmplFindBtn(".tmpl-del-btn", tmplId);
-                      if (curDelBtn)
-                        curDelBtn.disabled = tmplDelPending.has(tmplId);
+                        const curDelBtn = tmplFindBtn(
+                          ".tmpl-del-btn",
+                          tmplId,
+                        );
+                        if (curDelBtn) curDelBtn.disabled = false;
+                      }
                     }
                   },
                 );
@@ -6550,6 +6521,8 @@
       }
       function closeTemplateModal() {
         document.getElementById("templateModal").classList.remove("open");
+        // Invalidate current invocation so any pending operations cannot affect future invocations
+        tmplModalInvocationSeq++;
       }
       document.getElementById("templateModal").onclick = (e) => {
         if (e.target === e.currentTarget) closeTemplateModal();
@@ -7461,6 +7434,11 @@
         if (!item) return;
         if (fillItemPending.has(item)) return;
         fillItemPending.add(item);
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const stillOwns = () =>
+          ownsEditorTarget(myQuoteId, mySections, sec) &&
+          sec.items.includes(item);
         try {
           item.item_code = catItem.item_code || item.item_code;
         item.name = catItem.name || item.name;
@@ -7480,11 +7458,15 @@
               method: "POST",
               body: JSON.stringify(item),
             });
+            if (stillOwns()) {
             item.id = res.id;
             item.selling_price = res.selling_price;
             remapDirtyId(dirtyEntities.items, item, item.id);
+            }
           } catch (e) {
+            if (stillOwns()) {
             showToast("تعذر الحفظ على السيرفر: " + e.message);
+          }
           }
         } else if (currentQuoteId && sec.id && item.id) {
           try {
@@ -7493,13 +7475,17 @@
               body: JSON.stringify(item),
             });
           } catch (e) {
+            if (stillOwns()) {
             showToast("تعذر تحديث البند على السيرفر: " + e.message);
           }
         }
+        }
+          if (stillOwns()) {
         markItemDirty(item);
         markDirty();
         renderAll();
         showToast("تم تعبئة البند من الكتالوج");
+          }
         } finally {
           fillItemPending.delete(item);
         }
@@ -8093,9 +8079,6 @@
         activeRoomObj = null;
         activeCategoryTab = null;
         hasUnsavedWork = false;
-        mainAddDestinationKey = null;
-        mainAddIntentGeneration = 0;
-        mainAddLastProcessed = null;
         resetDirtyEntities();
 
         document.getElementById("projectName").value = state.projectName;
@@ -8116,13 +8099,15 @@
         renderAll();
       }
 
-      async function loadQuote(id) {
+      async function loadQuote(id, ownershipGuard) {
         // FIX-14 correction: the canonical server-to-editor mapping lives in
         // applyQuoteToEditor and is shared verbatim with the stale-draft
         // rejection path so the two cannot drift apart. loadQuote ALSO clears
         // the local recovery draft (it loads authoritative server data);
         // applyQuoteToEditor intentionally does not touch any draft.
+        if (ownershipGuard && !ownershipGuard()) return;
         const { quote } = await api("/quotes/" + id);
+        if (ownershipGuard && !ownershipGuard()) return;
         applyQuoteToEditor(quote);
         clearDraft();
       }
@@ -8636,14 +8621,20 @@
         if (e.target === e.currentTarget) closeConfirm();
       };
 
-      async function addRoom(name) {
+      async function addRoom(name, ownerSeq) {
         const sec = sections[activeSectionIdx];
         if (!sec) return;
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const stillOwns = () =>
+          ownsEditorTarget(myQuoteId, mySections, sec) &&
+          roomModalSeq === ownerSeq;
         const newRoom = {
           name: name.trim(),
           sort_order: (sec.rooms || []).length,
         };
         if (!sec.id) newRoom.id = -Date.now();
+        let saveError = null;
         if (sec.id) {
           try {
             const res = await api(`/sections/${sec.id}/rooms`, {
@@ -8652,8 +8643,12 @@
             });
             newRoom.id = res.id;
           } catch (e) {
-            showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
+            saveError = e;
           }
+          }
+        if (!stillOwns()) return;
+        if (saveError) {
+          showToast("تمت الإضافة محلياً — تعذر الحفظ: " + saveError.message);
         }
         if (!sec.rooms) sec.rooms = [];
         sec.rooms.push(newRoom);
@@ -8778,7 +8773,7 @@
           roomCreatePendingSeq = myRoomSeq;
           closeRoomNameModal();
           try {
-            await addRoom(name);
+            await addRoom(name, myRoomSeq);
           } finally {
             if (roomCreatePendingSeq === myRoomSeq)
               roomCreatePendingSeq = null;
@@ -8902,7 +8897,6 @@
 
         // ---- All Items Overlay ----
         document.getElementById("allItemsBtn").onclick = () => {
-          allItemsOverlaySessionId += 1;
           openAllItemsOverlay();
         };
       document.getElementById("allItemsClose").onclick = closeAllItemsOverlay;
@@ -8910,14 +8904,8 @@
         if (e.target === e.currentTarget) closeAllItemsOverlay();
       };
       const allItemsAddBtn = document.getElementById("allItemsAddBtn");
-      allItemsAddBtn.onclick = async () => {
-        const sessionId = allItemsOverlaySessionId;
-        if (sessionId !== allItemsOverlayTrackedSessionId) {
-          allItemsOverlayTrackedSessionId = sessionId;
-          allItemsOverlayDestinationKey = null;
-          allItemsOverlayIntentGeneration = 0;
-          allItemsOverlayLastProcessed = null;
-        }
+      allItemsAddBtn.onclick = async (e) => {
+        if (e && e.detail > 1) return;
         const overlayDestination = resolveOverlayDestination();
         if (
           !overlayDestination ||
@@ -8931,33 +8919,9 @@
           showToast("الغرفة المحددة غير متاحة");
           return;
         }
-        const destinationKey =
-          "overlay:section:" +
-          stableResourceKey("section", overlayDestination.sec) +
-          ":room:" +
-          (overlayDestination.room
-            ? stableResourceKey("room", overlayDestination.room)
-            : "direct");
-        if (destinationKey !== allItemsOverlayDestinationKey) {
-          allItemsOverlayDestinationKey = destinationKey;
-          allItemsOverlayIntentGeneration = 0;
-          allItemsOverlayLastProcessed = null;
-        }
-        if (
-          allItemsOverlayLastProcessed &&
-          allItemsOverlayLastProcessed.sessionId === sessionId &&
-          allItemsOverlayLastProcessed.destinationKey === destinationKey &&
-          allItemsOverlayLastProcessed.generation ===
-            allItemsOverlayIntentGeneration
-        )
-          return;
-        allItemsOverlayLastProcessed = {
-          sessionId,
-          destinationKey,
-          generation: allItemsOverlayIntentGeneration,
-        };
         await addItemInOverlay(overlayDestination);
       };
+      allItemsAddBtn.onkeydown = suppressRepeatedButtonKeydown;
       document.getElementById("allItemsSecSelect").onchange = () => {
         updateAllItemsRoomSelect();
         const secIdx = Number(
