@@ -940,3 +940,39 @@ Acceptance additions:
 - [ ] Empty, short, and long lists plus save/open/delete refresh are verified.
 
 Status: approved queued product work; not implemented or verified by this document update. The §16.7 screen-fit width policy is APPROVED for later planning and is NOT implemented in this update; current behavior is unchanged here.
+
+## 16.10 Quote-summary row layout — approved
+
+This decision refines the horizontal quote-summary grouping in §2.2. It does not reopen or replace the completed quote-management-card behavior in §16.9.
+
+Desktop RTL layout:
+
+- Row 1: section totals on the right; totals/discount/tax in the middle; cost/profit on the left.
+- Row 2: execution duration/quote validity on the right; payment terms on the left.
+- Row 3: price exclusions on the right; quote actions on the left.
+- Match the approved reference proportions with three near-equal fluid columns in Row 1 and two near-equal fluid columns in Rows 2 and 3. These are proportional tracks, not fixed image pixels.
+- Place the existing gold final-total bar at full width immediately below those three rows.
+- Keep the existing quote-management cards immediately below the final total. Preserve the accepted maximum-two-complete-row collapsed state and the centered show-more/show-less toggle with approximately 12px spacing.
+
+Visual treatment from the approved reference:
+
+- Treat each summary group as a full bordered card with a rounded corner, surface background, restrained shadow, comfortable internal padding, and a strong heading. Cards in the same row share the row height determined by natural content; do not impose fixed heights that clip long content.
+- Use consistent horizontal and vertical gaps between cards. Add a subtle separator below the summary header, and keep the all-items control at the opposite inline edge from the title.
+- Use the existing gold palette for heading accents, the primary save action, cost/profit emphasis, and the final-total bar. Adapt the light reference through existing theme variables rather than hard-coding a light-only screen.
+- Present current section entries and financial/payment rows as compact structured rows; show the two current cost/profit outputs as inset value tiles; keep duration/validity controls paired; and preserve the existing action grouping with save visually primary.
+- Use the reference heading `الأقسام المسعّرة` for the existing section-totals card. This is a display-label update only; its current rows, empty state, calculations, and `#sidebarSections` binding remain unchanged.
+- Add the reference's gold line-icon treatment only as decorative styling accompanying existing headings, values, or labelled controls. Use dependency-free, non-focusable, `aria-hidden` visuals; they must not become new icon-only buttons or change an accessible name or behavior.
+- The final-total bar uses a strong gold fill across the summary width, rounded corners, a prominent amount opposite its label, and high contrast. It remains the sole after-tax grand-total presentation unless a separate product change is approved.
+
+Responsive and preservation rules:
+
+- Stack the summary groups into a usable single-column flow on narrow screens. Keep the same logical group order and provide a usable mirrored flow when the document direction is LTR.
+- Preserve every current summary capability, value, calculation, authorization rule, control identity/binding, save/autosave behavior, confirmation behavior, and action. This is a presentation reorganization, not a behavior change.
+- Preserve the existing browser-print output and server-PDF behavior; screen-summary styling must not alter either print path.
+- Do not add controls, metrics, or actions merely because they appear in a visual reference when the application does not currently provide them. Any such mismatch requires a separate product decision.
+- Specifically, do not copy the reference-only section table headers/aggregate row, duplicate after-tax total inside the totals card, payment sequence-number column/table header, or summary subtitle. Preserve the application's current rows, labels, metrics, and autosave indicator instead.
+- Keep the summary usable with long section names, many payment terms, long payment descriptions, long exclusions, large totals, and role-dependent saved-quote headings without clipping or overlap.
+
+Out of scope for this slice: section/room/item reordering, ordering-code rules or typography, screen-fit table width, unified field sizing, equal item-row heights, and print geometry changes.
+
+Status: approved for planning and implementation as a bounded summary-layout slice. No implementation or runtime verification is claimed by this product-spec update.

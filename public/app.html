@@ -708,6 +708,8 @@
         justify-content: space-between;
         gap: 8px;
         margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--pewter);
       }
       .sidebar-head h2 {
         margin: 0;
@@ -818,27 +820,385 @@
       /* Quote summary cards */
       .summary-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 4px 18px;
-        align-items: start;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .summary-row {
+        display: grid;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .summary-row--primary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .summary-row--secondary,
+      .summary-row--tertiary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .summary-card {
-        border-top: 1px solid var(--pewter);
-        padding-top: 12px;
-        margin-top: 14px;
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        border-radius: 12px;
+        padding: 16px;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
       .summary-card h3 {
-        font-size: 13px;
-        color: var(--ash);
-        margin: 0 0 8px;
+        font-size: 13.5px;
+        color: var(--gold);
+        margin: 0 0 12px;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .summary-card h3 .icon-heading {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        color: var(--gold);
+      }
+      .summary-card .sidebar-sections {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .summary-card .sidebar-sec-row {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .summary-card .sidebar-sec-row .n {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .summary-card .totals-breakdown {
+        margin-top: 8px;
+        border-top: 1px solid var(--pewter);
+        padding-top: 10px;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .summary-card .tb-row {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .summary-card .tb-row .n {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .summary-card .settings {
+        margin-top: 0;
       }
       .summary-card--final {
-        grid-column: 1 / -1;
+        margin-top: 8px;
+        padding: 0;
+        border-radius: 12px;
       }
       .summary-card--final .grand-total {
+        margin: 0;
+        border-radius: inherit;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
+        box-shadow: 0 2px 8px var(--gold-glow-strong);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .summary-card--final .grand-total .label {
+        font-size: 13.5px;
+        opacity: 0.9;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .summary-card--final .grand-total .label .icon-heading {
+        color: var(--bg);
+      }
+      .summary-card--final .grand-total .value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--bg);
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      @media (max-width: 860px) {
+        .summary-card--final .grand-total {
+          padding: 14px 16px;
+        }
+        .summary-card--final .grand-total .value {
+          font-size: 20px;
+        }
+      }
+
+      /* Icon styles */
+      .icon-btn {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        color: inherit;
+        margin-left: 6px;
+      }
+      .actions--grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .actions-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .actions-row--primary {
+        justify-content: flex-start;
+      }
+      .actions-row--secondary {
+        justify-content: flex-start;
+      }
+      .actions-row button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        min-width: 100px;
+        justify-content: center;
+      }
+      .actions-row .btn-save {
+        background: var(--gold);
+        color: var(--bg);
+      }
+      .actions-row .btn-save:hover {
+        background: var(--gold-dim);
+      }
+      .auto-save-indicator {
+        width: 100%;
+        font-size: 12px;
+        color: var(--ash);
+        margin: 4px 0 0;
+        padding: 6px 8px;
+        background: var(--surface-raised);
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        text-align: center;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.3s, color 0.3s, border-color 0.3s, background 0.3s;
+      }
+      .auto-save-indicator.saving {
+        color: var(--gold);
+        border-color: var(--gold-dim);
+        background: var(--gold-glow);
+      }
+      .auto-save-indicator.saved {
+        color: var(--success);
+        border-color: var(--success);
+        background: var(--success-tint);
+      }
+      .auto-save-indicator.error {
+        color: var(--danger);
+        font-weight: 500;
+        border-color: var(--danger);
+        background: var(--danger-tint);
+      }
+
+      /* Nested blocks supply their own divider already handled by the card */
+      .summary-card .totals-breakdown,
+      .summary-card .saved-quotes {
+        margin-top: 8px;
+        border-top: 1px solid var(--pewter);
+        padding-top: 10px;
+      }
+      .summary-card .settings {
         margin-top: 0;
+      }
+
+      /* Cost/Profit as inset tiles */
+      .summary-card .totals-breakdown--cost {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+        min-width: 0;
+      }
+      .summary-card .totals-breakdown--cost .tb-row {
+        background: var(--surface-raised);
+        border: 1px solid var(--pewter);
+        border-radius: 8px;
+        padding: 10px 12px;
+        justify-content: center;
+        text-align: center;
+        gap: 6px;
+        min-width: 0;
+      }
+      .summary-card .totals-breakdown--cost .tb-row span:first-child {
+        font-size: 11.5px;
+        color: var(--ash);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      .summary-card .totals-breakdown--cost .tb-row .n {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--gold);
+        white-space: nowrap;
+      }
+
+      /* Settings side-by-side at desktop */
+      .summary-card .settings {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        min-width: 0;
+      }
+      @media (min-width: 900px) {
+        .summary-card .settings {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .summary-card .settings label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      .summary-card .settings input,
+      .summary-card .settings select {
+        font-family: inherit;
+        font-size: 13px;
+        padding: 8px 10px;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+        min-width: 0;
+      }
+      .summary-card .discount-row {
+        display: flex;
+        gap: 8px;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .summary-card .discount-row input {
+        flex: 1 1 120px;
+        min-width: 0;
+      }
+      .summary-card .discount-row select {
+        width: 70px;
+        min-width: 70px;
+        flex-shrink: 0;
+      }
+
+      /* Meta row (duration/validity) */
+      .summary-card .meta-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 4px;
+        min-width: 0;
+      }
+      @media (min-width: 861px) {
+        .summary-card .meta-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .summary-card .meta-row label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--ash);
+        font-weight: 600;
+        min-width: 0;
+      }
+      .summary-card .meta-row input {
+        font-family: inherit;
+        font-size: 13px;
+        padding: 8px 10px;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+        min-width: 0;
+      }
+
+      /* Payment terms in card */
+      .summary-card #paymentTerms {
+        margin-top: 4px;
+        min-width: 0;
+      }
+      .summary-card .payment-row {
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .summary-card .payment-row .desc-input {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .summary-card .payment-row .amt {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .summary-card .payment-row .del-term-btn {
+        flex-shrink: 0;
+      }
+      .summary-card .add-term-btn {
+        min-width: 0;
+      }
+      .summary-card .pct-warning {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      /* Price exclusions textarea */
+      .summary-card textarea#priceExclusions {
+        margin-top: 4px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        border: 1px solid var(--pewter);
+        border-radius: 6px;
+        background: var(--surface-raised);
+        color: var(--champagne);
+        font-family: inherit;
+        font-size: 12px;
+        resize: vertical;
+        min-height: 72px;
+        min-width: 0;
+      }
+
+      /* Actions grid - allow wrapping and containment */
+      .summary-card .actions--grid {
+        min-width: 0;
+      }
+      .summary-card .actions-row {
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .summary-card .actions-row button {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      /* Auto-save indicator - prevent overflow */
+      .summary-card .auto-save-indicator {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
       }
       /* ── Pricing container (field-size settings entry point inside the container corner) ─── */
       .pricing-container {
@@ -2462,6 +2822,41 @@
         /* .project-fields forced narrow 1fr 1fr rule removed: auto-fit with
            minmax(min(200px,100%),1fr) wraps to one column at narrow widths
            without an artificially narrow two-column floor (§16.5 repair). */
+        .summary-row--primary,
+        .summary-row--secondary,
+        .summary-row--tertiary {
+          grid-template-columns: 1fr;
+        }
+        .summary-card:not(.summary-card--final) {
+          padding: 14px;
+        }
+        .summary-card h3 {
+          font-size: 13px;
+        }
+        .actions-row {
+          flex-direction: column;
+        }
+        .actions-row button {
+          width: 100%;
+        }
+        .summary-card--final .grand-total {
+          padding: 14px 16px;
+        }
+        .summary-card--final .grand-total .value {
+          font-size: 20px;
+        }
+        /* Stack cost/profit tiles on narrow */
+        .summary-card .totals-breakdown--cost {
+          grid-template-columns: 1fr;
+        }
+        /* Stack settings on narrow */
+        .summary-card .settings {
+          grid-template-columns: 1fr;
+        }
+        /* Stack meta row on narrow */
+        .summary-card .meta-row {
+          grid-template-columns: 1fr;
+        }
       }
       /* ── Print Template (hidden on screen) ── */
       #print-template {
@@ -2952,108 +3347,117 @@
               <h2>ملخص العرض</h2>
               <button id="allItemsBtn" class="btn-secondary">كل البنود</button>
             </div>
+            <div class="summary-divider"></div>
             <div class="summary-grid">
-              <section class="summary-card">
-                <h3>إجمالي الأقسام</h3>
-                <div class="sidebar-sections" id="sidebarSections"></div>
-              </section>
+              <!-- Row 1: Section totals | Totals/Discount/Tax | Cost/Profit -->
+              <div class="summary-row summary-row--primary">
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>الأقسام المسعّرة</h3>
+                  <div class="sidebar-sections" id="sidebarSections"></div>
+                </section>
 
-              <section class="summary-card">
-                <h3>المجاميع والخصم والضريبة</h3>
-                <div class="settings">
-                  <label
-                    >الضريبة (%)
-                    <input id="taxPct" type="number" min="0" step="1" value="16" />
-                  </label>
-                  <label
-                    >الخصم
-                    <div class="discount-row">
-                      <input
-                        id="discountVal"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value="0"
-                      />
-                      <select id="discountType">
-                        <option value="fixed">د.أ</option>
-                        <option value="pct">%</option>
-                      </select>
-                    </div>
-                  </label>
-                </div>
-                <div class="totals-breakdown" id="totalsBreakdown"></div>
-              </section>
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>المجاميع والخصم والضريبة</h3>
+                  <div class="settings">
+                    <label
+                      >الضريبة (%)
+                      <input id="taxPct" type="number" min="0" step="1" value="16" />
+                    </label>
+                    <label
+                      >الخصم
+                      <div class="discount-row">
+                        <input
+                          id="discountVal"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value="0"
+                        />
+                        <select id="discountType">
+                          <option value="fixed">د.أ</option>
+                          <option value="pct">%</option>
+                        </select>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="totals-breakdown" id="totalsBreakdown"></div>
+                </section>
 
-              <section class="summary-card">
-                <h3>التكلفة والربح</h3>
-                <div
-                  class="totals-breakdown totals-breakdown--cost"
-                  id="totalsCostProfit"
-                ></div>
-              </section>
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>التكلفة والربح</h3>
+                  <div
+                    class="totals-breakdown totals-breakdown--cost"
+                    id="totalsCostProfit"
+                  ></div>
+                </section>
+              </div>
 
-              <section class="summary-card">
-                <h3>شروط الدفع</h3>
-                <div id="paymentTerms"></div>
-              </section>
+              <!-- Row 2: Duration/Validity | Payment Terms -->
+              <div class="summary-row summary-row--secondary">
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>مدة التنفيذ والصلاحية</h3>
+                  <div class="meta-row">
+                    <label
+                      >مدة التنفيذ (يوم)
+                      <input id="executionDays" type="number" min="1" value="45" />
+                    </label>
+                    <label
+                      >صلاحية العرض (يوم)
+                      <input id="validityDays" type="number" min="1" value="30" />
+                    </label>
+                  </div>
+                </section>
 
-              <section class="summary-card">
-                <h3>مدة التنفيذ والصلاحية</h3>
-                <div class="meta-row">
-                  <label
-                    >مدة التنفيذ (يوم)
-                    <input id="executionDays" type="number" min="1" value="45" />
-                  </label>
-                  <label
-                    >صلاحية العرض (يوم)
-                    <input id="validityDays" type="number" min="1" value="30" />
-                  </label>
-                </div>
-              </section>
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>شروط الدفع</h3>
+                  <div id="paymentTerms"></div>
+                </section>
+              </div>
 
-              <section class="summary-card">
-                <h3>استثناءات الأسعار</h3>
-                <textarea
-                  id="priceExclusions"
-                  rows="3"
-                  style="
-                    width: 100%;
-                    box-sizing: border-box;
-                    padding: 6px 8px;
-                    border: 1px solid var(--pewter);
-                    border-radius: 4px;
-                    background: var(--card-bg);
-                    color: var(--text);
-                    font-size: 12px;
-                    resize: vertical;
-                  "
-                >
+              <!-- Row 3: Price Exclusions | Quote Actions -->
+              <div class="summary-row summary-row--tertiary">
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>استثناءات الأسعار</h3>
+                  <textarea
+                    id="priceExclusions"
+                    rows="3"
+                    style="
+                      width: 100%;
+                      box-sizing: border-box;
+                      padding: 6px 8px;
+                      border: 1px solid var(--pewter);
+                      border-radius: 4px;
+                      background: var(--surface-raised);
+                      color: var(--champagne);
+                      font-size: 12px;
+                      resize: vertical;
+                    "
+                  >
 لا تشمل الأسعار: المطبخ، الحمامات، التكييف، الأجهزة الكهربائية. السعر النهائي يُؤكّد بعد القياس الفعلي.</textarea
-                >
-              </section>
+                  >
+                </section>
 
-              <section class="summary-card">
-                <h3>إجراءات العرض</h3>
-                <div class="actions">
-                  <span id="autoSaveIndicator" class="auto-save-indicator"></span>
-                  <button id="saveQuoteBtn" class="btn-save">حفظ العرض</button>
-                  <button id="printBtn" class="btn-secondary">طباعة</button>
-                  <button id="exportPdfBtn" class="btn-secondary">PDF</button>
-                </div>
-                <div class="actions">
-                  <button id="saveTemplateBtn" class="btn-secondary">
-                    حفظ كقالب
-                  </button>
-                  <button id="loadTemplateBtn" class="btn-secondary">
-                    تحميل قالب
-                  </button>
-                </div>
-              </section>
+                <section class="summary-card">
+                  <h3><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M1 20v-2a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v2"></path><line x1="9.75" y1="17" x2="9.75" y2="9"></line><line x1="14.25" y1="17" x2="14.25" y2="9"></line></svg></span>إجراءات العرض</h3>
+                  <div class="actions actions--grid">
+                    <div class="actions-row actions-row--primary">
+                      <button id="saveQuoteBtn" class="btn-save" type="button"><span class="icon-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></span>حفظ العرض</button>
+                      <button id="printBtn" class="btn-secondary" type="button"><span class="icon-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>طباعة</button>
+                      <button id="exportPdfBtn" class="btn-secondary" type="button"><span class="icon-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>PDF</button>
+                    </div>
+                    <div class="actions-row actions-row--secondary">
+                      <button id="saveTemplateBtn" class="btn-secondary" type="button"><span class="icon-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v10"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></span>حفظ كقالب</button>
+                      <button id="loadTemplateBtn" class="btn-secondary" type="button"><span class="icon-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>تحميل قالب</button>
+                    </div>
+                    <span id="autoSaveIndicator" class="auto-save-indicator"></span>
+                  </div>
+                </section>
+              </div>
 
+              <!-- Final total bar -->
               <section class="summary-card summary-card--final">
                 <div class="grand-total">
-                  <span class="label">الإجمالي النهائي</span>
+                  <span class="label"><span class="icon-heading" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>الإجمالي النهائي</span>
                   <span class="value" id="grandTotalVal">0.00 د.أ</span>
                 </div>
               </section>
@@ -4446,8 +4850,8 @@
         if (status === "saving") {
           el.textContent = "\u062c\u0627\u0631\u064a \u0627\u0644\u062d\u0641\u0638...";
           el.className = "auto-save-indicator saving";
-        } else if (status === "saved") {
-          el.textContent = "\u0645\u062d\u0641\u0648\u0638 \u062a\u0644\u0627\u0626\u064a\u0627\u064b";
+} else if (status === "saved") {
+          el.textContent = "\u0645\u062d\u0641\u0648\u0638 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627";
           el.className = "auto-save-indicator saved";
           el._hideTimer = setTimeout(() => {
             el.textContent = "";
