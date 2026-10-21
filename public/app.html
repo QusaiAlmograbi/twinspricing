@@ -62,15 +62,6 @@
         margin: 0 auto;
       }
 
-      /* Header / navigation keep their original reading width */
-      .topbar,
-      .project-header,
-      .sections-nav {
-        max-width: 1300px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
       /* Topbar */
       .topbar {
         display: flex;
@@ -193,18 +184,27 @@
       }
       .project-fields {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        /* min(200px, 100%) lets each track shrink to the container at narrow
+           widths instead of forcing horizontal overflow (§16.5 repair). */
+        grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
         gap: 10px;
       }
-      .project-fields label {
+      .project-fields label,
+      .project-title-field {
         font-size: 11.5px;
         color: var(--ash);
         font-weight: 600;
         display: flex;
         flex-direction: column;
         gap: 4px;
+        /* grid items must be allowed to shrink below their input min-content */
+        min-width: 0;
       }
-      .project-fields input {
+      .project-title-field {
+        margin-top: 10px;
+      }
+      .project-fields input,
+      .project-title-field input {
         font-family: inherit;
         font-size: 13.5px;
         padding: 7px 10px;
@@ -212,6 +212,7 @@
         border-radius: 7px;
         background: var(--surface-raised);
         color: var(--champagne);
+        min-width: 0;
       }
 
       /* Sections Nav */
@@ -839,11 +840,21 @@
       .summary-card--final .grand-total {
         margin-top: 0;
       }
-      /* ── Pricing workspace toolbar (field-size settings entry point) ─── */
-      .workspace-tools {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 8px;
+      /* ── Pricing container (field-size settings entry point inside the container corner) ─── */
+      .pricing-container {
+        position: relative;
+      }
+      /* Reserve the container's top strip for the corner gear so no
+         content is ever hidden beneath the floating button (§10.4). */
+      .pricing-container .section-panel {
+        padding-top: 48px;
+      }
+      .pricing-container > .field-settings-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 5;
+        margin: 0;
       }
       .field-settings-btn {
         display: inline-flex;
@@ -1157,6 +1168,114 @@
         font-size: 12px;
       }
 
+      /* ── Quote management cards (§16.9): below the final total,
+            outside the financial-summary grid ─────────────────────── */
+      .quote-management {
+        margin-top: 18px;
+        border-top: 1px solid var(--pewter);
+        padding-top: 12px;
+      }
+      .quote-management > h3 {
+        font-size: 13px;
+        color: var(--ash);
+        margin: 0 0 10px;
+        font-weight: 700;
+      }
+      .quote-cards-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .quote-cards-head h3 {
+        font-size: 12.5px;
+        color: var(--ash);
+        margin: 0;
+        font-weight: 700;
+      }
+      .quote-rows-toggle {
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        background: var(--surface);
+        border: 1px solid var(--pewter);
+        color: var(--ash);
+        transition: 0.2s;
+        /* review repair: centered below the card grid with ~12px vertical
+           spacing; direction-neutral block centering works in RTL and LTR */
+        display: block;
+        margin: 12px auto 0;
+      }
+      /* keep the hidden attribute functional despite display:block */
+      .quote-rows-toggle[hidden] {
+        display: none;
+      }
+      .quote-rows-toggle:hover {
+        border-color: var(--gold-dim);
+        color: var(--gold);
+      }
+      .quote-rows-toggle:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+      }
+      .quote-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 10px 12px;
+      }
+      .quote-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--pewter);
+        border-radius: 10px;
+        background: var(--surface-raised);
+        font-size: 12.5px;
+        min-width: 0;
+      }
+      .quote-card .info {
+        min-width: 0;
+      }
+      /* Long names wrap inside the card; card height is content-driven,
+         never clipped at a fixed height (§16.9). */
+      .quote-card .name {
+        font-weight: 600;
+        color: var(--champagne);
+        overflow-wrap: anywhere;
+      }
+      .quote-card .meta {
+        color: var(--ash);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .quote-card .btns {
+        display: flex;
+        gap: 4px;
+        flex: 0 0 auto;
+        padding-top: 2px;
+      }
+      .quote-card .btns button {
+        border: 1px solid var(--pewter);
+        background: var(--surface);
+        border-radius: 5px;
+        padding: 3px 7px;
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        color: var(--ash);
+        transition: 0.2s;
+      }
+      .quote-card .btns button:hover {
+        color: var(--gold);
+        border-color: var(--gold-dim);
+      }
+
       /* Image */
       .item-thumb-wrap {
         position: relative;
@@ -1328,11 +1447,17 @@
         justify-content: center;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.2s;
+        /* A closed dialog must leave the keyboard tab order and accessibility
+           tree entirely; opacity alone keeps its controls focusable. The
+           visibility transition delays hiding until the fade-out completes. */
+        visibility: hidden;
+        transition: opacity 0.2s, visibility 0s linear 0.2s;
       }
       .modal-overlay.open {
         opacity: 1;
         pointer-events: auto;
+        visibility: visible;
+        transition: opacity 0.2s;
       }
       /* A closed dialog must leave the keyboard tab order entirely; opacity:0
          alone keeps its controls focusable under aria-hidden. */
@@ -2334,9 +2459,9 @@
         .project-header h1 {
           font-size: 18px;
         }
-        .project-fields {
-          grid-template-columns: 1fr 1fr;
-        }
+        /* .project-fields forced narrow 1fr 1fr rule removed: auto-fit with
+           minmax(min(200px,100%),1fr) wraps to one column at narrow widths
+           without an artificially narrow two-column floor (§16.5 repair). */
       }
       /* ── Print Template (hidden on screen) ── */
       #print-template {
@@ -2793,22 +2918,22 @@
                 placeholder="مثال: فيلا الشميساني"
               />
             </label>
-            <label style="grid-column: 1 / -1"
-              >عنوان العرض
-              <input
-                id="quoteTitle"
-                type="text"
-                placeholder="أعمال ترميم - Renovation works"
-              />
-            </label>
           </div>
+          <label class="project-title-field"
+            >عنوان العرض
+            <input
+              id="quoteTitle"
+              type="text"
+              placeholder="أعمال ترميم - Renovation works"
+            />
+          </label>
         </header>
 
         <nav class="sections-nav" id="sectionsNav"></nav>
 
         <div class="layout">
           <main class="main">
-            <div class="workspace-tools">
+            <div class="pricing-container" id="pricingContainer">
               <button
                 type="button"
                 id="fieldSettingsBtn"
@@ -2818,8 +2943,8 @@
               >
                 ⚙ <span>إعدادات الحقول</span>
               </button>
+              <div id="mainPanel"></div>
             </div>
-            <div id="mainPanel"></div>
           </main>
 
           <aside class="sidebar">
@@ -2926,16 +3051,6 @@
                 </div>
               </section>
 
-              <section class="summary-card">
-                <h3>إدارة العروض</h3>
-                <div class="saved-quotes">
-                  <h3 id="savedListTitle">عروض محفوظة</h3>
-                  <div id="savedList">
-                    <p class="empty-note">جاري التحميل...</p>
-                  </div>
-                </div>
-              </section>
-
               <section class="summary-card summary-card--final">
                 <div class="grand-total">
                   <span class="label">الإجمالي النهائي</span>
@@ -2943,6 +3058,28 @@
                 </div>
               </section>
             </div>
+
+            <!-- Quote management: its own full-width section BELOW the final
+                 total, outside the financial-summary grid (§16.9) -->
+            <section class="quote-management">
+              <h3>إدارة العروض</h3>
+              <div class="quote-cards-head">
+                <h3 id="savedListTitle" tabindex="-1">عروض محفوظة</h3>
+              </div>
+              <div id="savedList" class="quote-cards">
+                <p class="empty-note">جاري التحميل...</p>
+              </div>
+              <button
+                type="button"
+                id="quoteRowsToggle"
+                class="quote-rows-toggle"
+                aria-expanded="false"
+                aria-controls="savedList"
+                hidden
+              >
+                عرض المزيد
+              </button>
+            </section>
           </aside>
         </div>
       </div>
@@ -2955,8 +3092,14 @@
     </div>
 
     <!-- Confirm Modal -->
-    <div class="modal-overlay" id="confirmModal">
-      <div class="modal">
+    <div class="modal-overlay" id="confirmModal" aria-hidden="true">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirmTitle"
+        aria-describedby="confirmMessage"
+      >
         <h3 id="confirmTitle">تأكيد</h3>
         <p
           id="confirmMessage"
@@ -3132,7 +3275,7 @@
     <!-- Template Modal -->
     <div class="modal-overlay" id="templateModal">
       <div class="modal">
-        <h3 id="templateModalTitle">حفظ كقالب</h3>
+        <h3 id="templateModalTitle" tabindex="-1">حفظ كقالب</h3>
         <div id="templateModalBody"></div>
       </div>
     </div>
@@ -3534,6 +3677,25 @@
       // entities are still tracked in O(1).
       function dirtyKey(entity, id) {
         return id != null ? id : entity;
+      }
+      // Stable operation identity for destructive ops:
+      // - persisted entities: namespaced server id ("room:<id>", "section:<id>")
+      // - unsaved entities: the live object reference (incl. temporary negative ids)
+      // Caller must pass explicit type: "room" or "section".
+      function destructiveOpKey(type, entity) {
+        if (!entity) return null;
+        const id = entity.id;
+        const hasPositiveServerId =
+          (typeof id === "number" && Number.isInteger(id) && id > 0) ||
+          (typeof id === "string" && /^[1-9]\d*$/.test(id));
+        if (hasPositiveServerId) {
+          // Persisted entities use a positive server id with explicit namespace.
+          // String normalization keeps the key stable if a DB driver returns an
+          // integer id as a string after reload.
+          return type + ":" + String(id);
+        }
+        // unsaved entities (negative temp ids or no id): use object identity
+        return entity;
       }
       function markQuoteDirty() {
         dirtyEntities.quote = true;
@@ -5168,7 +5330,30 @@
                 "حذف غرفة",
                 `هل أنت متأكد من حذف غرفة "${room.name}"؟ سيتم حذف جميع بنود الغرفة.`,
                 "حذف",
-                () => deleteRoom(rIdx),
+                // Operation identity: namespaced server id for persisted rooms,
+                // object reference for unsaved. Re-entry never re-issues the
+                // deletion; guard releases on success and failure.
+                () => runDestructiveOp(destructiveOpKey("room", room), () => deleteRoom(rIdx)),
+                {
+                  // The rerender removes the opener; give the dialog a
+                  // surviving visible destination after deleteRoom resolves
+                  // (the room list is filtered by the save wave otherwise).
+                  getSuccessFocus: () => {
+                    const rows = Array.from(
+                      document.querySelectorAll(
+                        '#roomsNav .room-tab[data-room-idx]:not([data-room-idx="null"])',
+                      ),
+                    );
+                    if (!rows.length)
+                      return document.getElementById("addRoomBtn");
+                    const row = rows[Math.min(rIdx, rows.length - 1)];
+                    return (
+                      (row && row.querySelector(".room-edit")) ||
+                      (row && row.querySelector(".room-rm")) ||
+                      document.getElementById("addRoomBtn")
+                    );
+                  },
+                },
               );
             };
           });
@@ -5417,12 +5602,21 @@
           renameBtn.onclick = () => openSectionModal(activeSectionIdx);
         const deleteBtn = document.getElementById("deleteSecBtn");
         if (deleteBtn)
-          deleteBtn.onclick = () => {
+deleteBtn.onclick = () => {
             openConfirm(
               "حذف قسم",
               `هل أنت متأكد من حذف قسم "${sec.name}"؟`,
               "حذف",
-              deleteSection,
+              // Operation identity: namespaced server id for persisted sections,
+              // object reference for unsaved.
+              async () => runDestructiveOp(destructiveOpKey("section", sec), () => deleteSection()),
+              {
+                // The rerender removes the opener; the sections nav's
+                // always-present add button is the surviving visible
+                // destination after deleteSection resolves.
+                getSuccessFocus: () =>
+                  document.querySelector("#sectionsNav .add-section-btn"),
+              },
             );
           };
         const copyDirectBtn = document.getElementById("copyDirectBtn");
@@ -7261,12 +7455,25 @@
             });
             body.querySelectorAll(".tmpl-del-btn").forEach((btn) => {
               btn.onclick = () => {
+                // Row position captured at dialog entry; after the delete the
+                // surviving row at the clamped index becomes the focus
+                // destination inside the still-open template modal.
+                const rowIdx = Array.prototype.indexOf.call(
+                  document.querySelectorAll("#templateModalBody .saved-item"),
+                  btn.closest(".saved-item"),
+                );
                 openConfirm(
                   "حذف القالب",
                   "هل أنت متأكد من حذف هذا القالب؟",
                   "حذف",
                   async () => {
                     const tmplId = btn.dataset.id;
+                    // Operation identity: the persisted template id. Re-entry
+                    // never re-issues the deletion; guard releases on both
+                    // success and failure.
+                    await runDestructiveOp(
+                      "template:" + String(tmplId),
+                      async () => {
                     // Capture invocation identity at handler entry
                     const mySeq = tmplModalInvocationSeq;
                     if (tmplDelPending.get(tmplId)?.has(mySeq)) return;
@@ -7287,6 +7494,7 @@
                       if (mySeq === tmplModalInvocationSeq) {
                       showToast(e.message);
                       }
+                      throw e;
                     } finally {
                       const set = tmplDelPending.get(tmplId);
                       if (set) {
@@ -7302,6 +7510,22 @@
                         if (curDelBtn) curDelBtn.disabled = false;
                       }
                     }
+                    },
+                    );
+                  },
+                  {
+                    getSuccessFocus: () => {
+                      const rows = document.querySelectorAll(
+                        "#templateModalBody .saved-item",
+                      );
+                      if (!rows.length)
+                        return document.getElementById("templateModalTitle");
+                      const row = rows[Math.min(rowIdx, rows.length - 1)];
+                      return (
+                        (row && row.querySelector(".tmpl-load-btn")) ||
+                        (row && row.querySelector(".tmpl-del-btn"))
+                      );
+                    },
                   },
                 );
               };
@@ -8902,6 +9126,100 @@
         clearDraft();
       }
 
+      // ── Quote management cards (§16.9): collapse to two complete rows
+      //    based on the ACTUAL responsive column count; never hard-code a
+      //    desktop-only count or clip cards at a fixed height. ──────────
+      const quoteRows = { expanded: false };
+
+      function quoteColumnsPerRow(el) {
+        const cards = el.querySelectorAll(".quote-card");
+        if (!cards.length) return 1;
+        const firstTop = cards[0].offsetTop;
+        let cols = 1;
+        for (let i = 1; i < cards.length; i++) {
+          if (cards[i].offsetTop === firstTop) cols++;
+          else break;
+        }
+        return cols;
+      }
+
+      // §16.9 repair: after a confirmed delete resolves, focus must land
+      // somewhere usable — but the DESTINATION is now resolved by the shared
+      // dialog machinery (validated + guarded against superseded
+      // completions), so this helper only RETURNS the target. Success: the
+      // card that now occupies the deleted position (first/middle/last/only
+      // aware), falling back to the visible toggle, then the management
+      // heading. Failure: the originating delete button (list unchanged).
+      function quoteDeleteFocusTarget(succeeded, deletedIdx, originBtn) {
+        const head = document.getElementById("savedListTitle");
+        if (!succeeded) {
+          if (originBtn && originBtn.isConnected) return originBtn;
+          return head;
+        }
+        const cards = Array.from(
+          document.querySelectorAll("#savedList .quote-card"),
+        );
+        if (!cards.length) return head;
+        const idx = Math.min(Math.max(deletedIdx, 0), cards.length - 1);
+        const target = cards[idx];
+        const targetVisible =
+          target &&
+          target.style.display !== "none" &&
+          target.offsetParent !== null;
+        const toggle = document.getElementById("quoteRowsToggle");
+        if (!targetVisible) {
+          if (toggle && !toggle.hidden) return toggle;
+          return head;
+        }
+        const action =
+          target.querySelector(".load-btn") ||
+          target.querySelector(".del-q-btn") ||
+          (target.contains(document.activeElement)
+            ? null
+            : target.querySelector("button"));
+        if (action) return action;
+        if (toggle && !toggle.hidden) return toggle;
+        return head;
+      }
+
+      function refreshQuoteRowUI() {
+        const el = document.getElementById("savedList");
+        const toggle = document.getElementById("quoteRowsToggle");
+        if (!el || !toggle) return;
+        const cards = Array.from(el.querySelectorAll(".quote-card"));
+        if (!cards.length) {
+          quoteRows.expanded = false;
+          toggle.hidden = true;
+          toggle.setAttribute("aria-expanded", "false");
+          return;
+        }
+        // §16.9 repair: clear stale hidden-card state from an earlier width
+        // synchronously BEFORE measuring, so quoteColumnsPerRow() sees the
+        // current geometry and the cap is reapplied in the same pass (no
+        // intermediate paint between reset, measure, and rehide).
+        cards.forEach((card) => {
+          card.style.display = "";
+        });
+        const cap = quoteColumnsPerRow(el) * 2;
+        if (cards.length <= cap) quoteRows.expanded = false;
+        toggle.hidden = cards.length <= cap;
+        toggle.textContent = quoteRows.expanded ? "عرض أقل" : "عرض المزيد";
+        toggle.setAttribute("aria-expanded", String(quoteRows.expanded));
+        const willHide = cards.length > cap && !quoteRows.expanded;
+        let focusLost = false;
+        cards.forEach((card, idx) => {
+          const hide = willHide && idx >= cap;
+          if (hide && !focusLost && card.contains(document.activeElement)) {
+            focusLost = true;
+          }
+          card.style.display = hide ? "none" : "";
+        });
+        if (focusLost) {
+          toggle.hidden = false;
+          toggle.focus();
+        }
+      }
+
       async function loadSavedList() {
         const el = document.getElementById("savedList");
         document.getElementById("savedListTitle").textContent = isOwnerOrAdmin
@@ -8911,12 +9229,13 @@
           const { quotes } = await api("/quotes");
           if (!quotes.length) {
             el.innerHTML = '<p class="empty-note">ما في عروض محفوظة بعد.</p>';
+            refreshQuoteRowUI();
             return;
           }
           el.innerHTML = quotes
             .map(
               (q) => `
-            <div class="saved-item" data-id="${q.id}">
+            <div class="quote-card" data-id="${q.id}">
               <div class="info">
                 <div class="name">${escapeAttr(q.project_name)}${q.reference_no ? ' · <span style="color:var(--gold);font-weight:400;">' + escapeAttr(q.reference_no) + "</span>" : ""}${q.designer_name ? ' · <span style="color:var(--ash);font-weight:400;">' + escapeAttr(q.designer_name) + "</span>" : ""}</div>
                 <div class="meta">${new Date(q.updated_at).toLocaleDateString("ar-JO")} · ${moneyInt(q.total)}</div>
@@ -8926,7 +9245,7 @@
           `,
             )
             .join("");
-          el.querySelectorAll(".saved-item").forEach((row) => {
+          el.querySelectorAll(".quote-card").forEach((row) => {
             const id = row.getAttribute("data-id");
             const projName = row.querySelector(".name")?.textContent || "";
             row.querySelector(".load-btn").onclick = () =>
@@ -8934,24 +9253,46 @@
                 .then(() => showToast("تم فتح العرض"))
                 .catch((e) => showToast(e.message));
             row.querySelector(".del-q-btn").onclick = () => {
+              const originDelBtn = row.querySelector(".del-q-btn");
+              const deletedIdx = Array.prototype.indexOf.call(
+                document.querySelectorAll("#savedList .quote-card"),
+                row,
+              );
               openConfirm(
                 "حذف المشروع",
                 "هل أنت متأكد من حذف مشروع \"" + projName + "\"؟ سيتم حذف جميع الأقسام والبنود.",
                 "حذف",
-                async () => {
-                  try {
-                    await api("/quotes/" + id, { method: "DELETE" });
-                    loadSavedList();
-                    if (currentQuoteId == id) resetQuote();
-                  } catch (e) {
-                    showToast(e.message);
-                  }
+                // Operation identity: the persisted quote id. Re-entry never
+                // re-issues the deletion; guard releases on success/failure.
+                () =>
+                  runDestructiveOp("quote:" + String(id), async () => {
+                    try {
+                      await api("/quotes/" + id, { method: "DELETE" });
+                      // §16.9 repair: await the successful list refresh
+                      // before focus resolution happens in the dialog
+                      // machinery (via the providers below).
+                      await loadSavedList();
+                      if (currentQuoteId == id) resetQuote();
+                    } catch (e) {
+                      showToast(e.message);
+                      throw e;
+                    }
+                  }),
+                {
+                  // Success/failure destinations are resolved BY the dialog
+                  // machinery after completion (supersede-safe, validated).
+                  getSuccessFocus: () =>
+                    quoteDeleteFocusTarget(true, deletedIdx, originDelBtn),
+                  getFailureFocus: () =>
+                    quoteDeleteFocusTarget(false, deletedIdx, originDelBtn),
                 },
               );
             };
           });
+          refreshQuoteRowUI();
         } catch {
           el.innerHTML = '<p class="empty-note">تعذر تحميل العروض.</p>';
+          refreshQuoteRowUI();
         }
       }
 
@@ -9344,6 +9685,17 @@
 
       // ---- Button Events ----
       document.getElementById("fieldSettingsBtn").onclick = openFieldSettings;
+      document.getElementById("quoteRowsToggle").onclick = () => {
+        quoteRows.expanded = !quoteRows.expanded;
+        refreshQuoteRowUI();
+      };
+      // Recompute the collapsed two-row capacity when the viewport changes
+      // the card column count (§16.9 — no hard-coded item count).
+      let quoteRowsResizeTimer = null;
+      window.addEventListener("resize", () => {
+        clearTimeout(quoteRowsResizeTimer);
+        quoteRowsResizeTimer = setTimeout(refreshQuoteRowUI, 150);
+      });
       document.getElementById("fieldSettingsCancel").onclick = closeFieldSettings;
       document.getElementById("fieldSettingsModal").addEventListener(
         "click",
@@ -9470,27 +9822,248 @@
         document.getElementById(id).classList.remove("open");
       }
       let pendingConfirm = null;
-      function openConfirm(title, message, okLabel, onOk) {
+      let confirmReturnFocus = null;
+      let confirmSuccessFocus = null;
+      let confirmFailureFocus = null;
+      // Monotonic token: every openConfirm mints a token; the OK handler
+      // captures it and, after the awaited mutation resolves, acts ONLY if
+      // this token is still the newest invocation — an older completion must
+      // never close, hide, reset, or steal focus from a newer confirmation.
+      let confirmInvocationId = 0;
+      let confirmActiveToken = null;
+      function rememberConfirmOpener() {
+        const ae = document.activeElement;
+        confirmReturnFocus =
+          ae && ae !== document.body && ae.isConnected ? ae : null;
+      }
+      // Pending destructive-operation guard. The key must be a STABLE
+      // operation identity (action + entity: the server id for persisted
+      // records, or the entity object itself for unsaved ones) — never a
+      // DOM node, a display index, a label, or a single global busy flag.
+      // Re-entry through a reopened confirmation never issues a second
+      // request for the same operation; the guard is released on both
+      // success and failure. Other records are never blocked.
+      const destructiveOps = new Map();
+      function runDestructiveOp(key, fn) {
+        const existing = destructiveOps.get(key);
+        if (existing) return existing;
+        const p = (async () => {
+          try {
+            await fn();
+          } finally {
+            if (destructiveOps.get(key) === p) destructiveOps.delete(key);
+          }
+        })();
+        destructiveOps.set(key, p);
+        return p;
+      }
+      // Destination validation: connected, visible, enabled, focusable,
+      // and outside the (closing) confirmation dialog.
+      function isConfirmFocusDestinationValid(el) {
+        try {
+          if (!el || typeof el.focus !== "function") return false;
+          if (!el.isConnected || el.disabled) return false;
+          const modal = document.getElementById("confirmModal");
+          if (modal && modal.contains(el)) return false;
+          if (el.getClientRects().length === 0) return false;
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      function focusConfirmDestination(el) {
+        if (!isConfirmFocusDestinationValid(el)) return false;
+        try {
+          el.focus();
+        } catch (e) {
+          return false;
+        }
+        return document.activeElement === el;
+      }
+      // Restore focus to first valid candidate in a fallback chain; the
+      // last candidates are a stable programmatic-focus heading, so focus
+      // never stays on BODY or inside the closing dialog when the opener
+      // was disconnected by a rerender. A caller-provided destination that
+      // is still valid wins over the generic fallback.
+      function focusConfirmFallbackChain(firstInvalid) {
+        const candidates = [];
+        if (Array.isArray(firstInvalid)) candidates.push(...firstInvalid);
+        else if (firstInvalid) candidates.push(firstInvalid);
+        if (confirmReturnFocus) candidates.push(confirmReturnFocus);
+        confirmReturnFocus = null;
+        candidates.push(document.getElementById("savedListTitle"));
+        for (const cand of candidates) {
+          if (cand && focusConfirmDestination(cand)) return true;
+        }
+        return false;
+      }
+      // Restore focus only when it is stranded inside the closed dialog (or
+      // on the body after the dialog blurs its controls); explicit focus
+      // placed by a caller is respected. Covers cancel, backdrop click, and
+      // Escape.
+      function restoreFocusAfterConfirm() {
+        try {
+          const modal = document.getElementById("confirmModal");
+          const ae = document.activeElement;
+          const stranded = !ae || ae === document.body || (modal && modal.contains(ae));
+          if (!stranded) return;
+          focusConfirmFallbackChain();
+        } catch (e) {}
+        confirmReturnFocus = null;
+      }
+      // The confirmation dialog is semantically hidden (inert + aria-hidden)
+      // whenever it is closed, so it leaves the keyboard tab order and the
+      // accessibility tree synchronously — not just at the end of the CSS
+      // fade. Focus is always moved/restored BEFORE hiding so the dialog is
+      // never focused while inert; the visual fade stays CSS-only.
+      function setConfirmDialogHidden(on) {
+        const modal = document.getElementById("confirmModal");
+        if (!modal) return;
+        if (on) {
+          modal.setAttribute("aria-hidden", "true");
+          if ("inert" in modal) modal.inert = true;
+        } else {
+          modal.removeAttribute("aria-hidden");
+          if ("inert" in modal) modal.inert = false;
+        }
+      }
+      function confirmStranded() {
+        const modal = document.getElementById("confirmModal");
+        const ae = document.activeElement;
+        return !ae || ae === document.body || (modal && modal.contains(ae));
+      }
+      function openConfirm(title, message, okLabel, onOk, successOpts) {
+        // Mint a fresh token; supersedes any in-flight older completion.
+        const token = ++confirmInvocationId;
+        confirmActiveToken = token;
+        rememberConfirmOpener();
         document.getElementById("confirmTitle").textContent = title;
         document.getElementById("confirmMessage").textContent = message;
         if (okLabel)
           document.getElementById("confirmOk").textContent = okLabel;
         pendingConfirm = onOk || null;
+        confirmSuccessFocus =
+          successOpts && successOpts.getSuccessFocus
+            ? successOpts.getSuccessFocus
+            : null;
+        confirmFailureFocus =
+          successOpts && successOpts.getFailureFocus
+            ? successOpts.getFailureFocus
+            : null;
+        // remove semantic hiding synchronously BEFORE opening/focusing.
+        setConfirmDialogHidden(false);
         openModal("confirmModal");
+        // Initial focus lives inside the dialog, preferably on Cancel.
+        const cancelBtn = document.getElementById("confirmCancel");
+        if (cancelBtn && !cancelBtn.disabled) cancelBtn.focus();
       }
-      function closeConfirm() {
+      // Cancellation close paths (cancel button, backdrop, Escape): resolve
+      // the dialog state, restore usable focus, then hide the dialog
+      // semantically. Dismissing a confirmation does NOT cancel an
+      // already-issued request (see the OK handler).
+      function dismissConfirm() {
         pendingConfirm = null;
+        confirmSuccessFocus = null;
+        confirmFailureFocus = null;
+        confirmActiveToken = null;
         closeModal("confirmModal");
+        restoreFocusAfterConfirm();
+        setConfirmDialogHidden(true);
       }
-      document.getElementById("confirmCancel").onclick = closeConfirm;
-      document.getElementById("confirmOk").onclick = () => {
+      document.getElementById("confirmCancel").onclick = function () {
+        dismissConfirm();
+      };
+      document.getElementById("confirmOk").onclick = async () => {
+        // Capture THIS invocation's callback, focus resolvers, opener and
+        // operation identity before any await.
         const cb = pendingConfirm;
-        closeConfirm();
-        if (cb) cb();
+        const successFocus = confirmSuccessFocus;
+        const failureFocus = confirmFailureFocus;
+        const opener = confirmReturnFocus;
+        const token = confirmActiveToken;
+        pendingConfirm = null;
+        confirmSuccessFocus = null;
+        confirmFailureFocus = null;
+        confirmActiveToken = null;
+        // Immediate close BEFORE the awaited destructive work: move focus to
+        // a valid external destination, then hide semantically — there is
+        // no closed-state interval with focus or accessibility exposure
+        // inside the dialog.
+        if (confirmStranded()) focusConfirmFallbackChain([opener]);
+        closeModal("confirmModal");
+        setConfirmDialogHidden(true);
+        let cbFailed = false;
+        if (cb) {
+          try {
+            await cb();
+          } catch (e) {
+            cbFailed = true;
+          }
+        }
+        // A superseded (older) completion must not touch the newer
+        // confirmation's state or focus.
+        if (token === null || confirmInvocationId !== token) return;
+        // Success/failure focus applies only after completion and only when
+        // focus is still stranded. A failing mutation never receives the
+        // success-focus destination.
+        if (confirmStranded()) {
+          const chain = [];
+          if (successFocus && !cbFailed) {
+            try {
+              chain.push(successFocus());
+            } catch (e) {}
+          }
+          if (failureFocus && cbFailed) {
+            try {
+              chain.push(failureFocus());
+            } catch (e) {}
+          }
+          if (opener) chain.push(opener);
+          chain.push(document.getElementById("savedListTitle"));
+          for (const cand of chain) {
+            if (cand && focusConfirmDestination(cand)) break;
+          }
+        }
       };
       document.getElementById("confirmModal").onclick = (e) => {
-        if (e.target === e.currentTarget) closeConfirm();
+        if (e.target === e.currentTarget) {
+          dismissConfirm();
+        }
       };
+      // Bound ONCE next to the dialog wiring (no per-open listener cleanup):
+      // Escape cancels, and Tab/Shift+Tab cycle only the confirmation's own
+      // controls while the dialog is open.
+      document.getElementById("confirmModal").addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            dismissConfirm();
+            return;
+          }
+          if (e.key !== "Tab") return;
+          const focusables = [
+            document.getElementById("confirmCancel"),
+            document.getElementById("confirmOk"),
+          ].filter((el) => el && !el.disabled);
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (!focusables.includes(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+            return;
+          }
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        },
+      );
+      setConfirmDialogHidden(true);
 
       async function addRoom(name, ownerSeq) {
         const sec = sections[activeSectionIdx];
@@ -9668,16 +10241,29 @@
       );
 
       async function deleteRoom(rIdx) {
-        const sec = sections[activeSectionIdx];
+        // Capture originating identities BEFORE any await, so we can reconcile
+        // the live model by stable identity after the mutation completes.
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const myActiveSectionIdx = activeSectionIdx;
+        const sec = mySections[myActiveSectionIdx];
         if (!sec) return;
         const room = (sec.rooms || [])[rIdx];
         if (!room) return;
+        const roomId = room.id;
+        const secId = sec.id;
+        const quoteIdentity =
+          myQuoteId == null ? null : String(myQuoteId);
+        const sectionIdentity = destructiveOpKey("section", sec);
+        const roomIdentity = destructiveOpKey("room", room);
+
+        // Delete room items (locally and on server if persisted)
         const allItems = sec.items || [];
         for (let i = allItems.length - 1; i >= 0; i--) {
-          if (allItems[i].room_id === room.id) {
-            if (allItems[i].id && sec.id) {
+          if (allItems[i].room_id === roomId) {
+            if (allItems[i].id && secId) {
               try {
-                await api(`/sections/${sec.id}/items/${allItems[i].id}`, {
+                await api(`/sections/${secId}/items/${allItems[i].id}`, {
                   method: "DELETE",
                 });
               } catch {}
@@ -9687,18 +10273,60 @@
             clearItemDirty(removedItem);
           }
         }
-        if (room.id && sec.id) {
+
+        // Delete room on server if persisted
+        if (roomId && secId) {
           try {
-            await api(`/sections/${sec.id}/rooms/${room.id}`, {
+            await api(`/sections/${secId}/rooms/${roomId}`, {
               method: "DELETE",
             });
           } catch {}
         }
-        sec.rooms.splice(rIdx, 1);
-        clearRoomDirty(room);
-        if (activeRoomObj === room) activeRoomObj = null;
-        if (activeRoomIdx === rIdx) activeRoomIdx = null;
-        else if (activeRoomIdx > rIdx) activeRoomIdx--;
+
+        // RECONCILE: find the current section and room by stable identity
+        // in the live model. If the user switched to a different quote,
+        // the captured quoteId won't match currentQuoteId — do NOT mutate
+        // the unrelated editor.
+        const currentQuoteIdentity =
+          currentQuoteId == null ? null : String(currentQuoteId);
+        if (quoteIdentity !== currentQuoteIdentity) return;
+        const curSec = sections.find(
+          (s) => destructiveOpKey("section", s) === sectionIdentity,
+        );
+        if (!curSec) return;
+
+        // A same-quote reload replaces the section/items objects while the
+        // request is pending. Remove matching items from that CURRENT model and
+        // clear their current dirty keys without disturbing unrelated edits.
+        const curItems = curSec.items || [];
+        for (let i = curItems.length - 1; i >= 0; i--) {
+          if (curItems[i].room_id !== roomId) continue;
+          const removedItem = curItems[i];
+          curItems.splice(i, 1);
+          clearItemDirty(removedItem);
+        }
+
+        const roomIdx = (curSec.rooms || []).findIndex(
+          (r) => destructiveOpKey("room", r) === roomIdentity,
+        );
+        if (roomIdx !== -1) {
+          const removedRoom = curSec.rooms[roomIdx];
+          curSec.rooms.splice(roomIdx, 1);
+          clearRoomDirty(removedRoom);
+          const activeSec = sections[activeSectionIdx];
+          const deletingFromActiveSection =
+            activeSec &&
+            destructiveOpKey("section", activeSec) === sectionIdentity;
+          if (deletingFromActiveSection) {
+            if (
+              activeRoomObj &&
+              destructiveOpKey("room", activeRoomObj) === roomIdentity
+            )
+              activeRoomObj = null;
+            if (activeRoomIdx === roomIdx) activeRoomIdx = null;
+            else if (activeRoomIdx > roomIdx) activeRoomIdx--;
+          }
+        }
         markDirty();
         renderAll();
         showToast("تم حذف الغرفة");
@@ -9728,6 +10356,7 @@
           showToast("تم حذف القسم");
         } catch (e) {
           showToast(e.message);
+          throw e;
         }
       }
 
