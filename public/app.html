@@ -3846,6 +3846,7 @@
       </div>
     </div>
 
+    <script src="/quote-ordering.js"></script>
     <script src="/autosave-core.js"></script>
     <script>
       // Theme toggle
@@ -3941,6 +3942,40 @@
       let allItemsOverlaySelectedSection = null;
       let allItemsOverlaySelectedRoom = null;
       let allItemsOverlayRoomStale = false;
+
+      function resolveSectionOrder() {
+        sections.sort((a, b) => {
+          const sa = a.sort_order ?? 0;
+          const sb = b.sort_order ?? 0;
+          if (sa !== sb) return sa - sb;
+          return (a.id ?? 0) - (b.id ?? 0);
+        });
+        for (let i = 0; i < sections.length; i++) {
+          sections[i]._resolvedIndex = i;
+          if (sections[i].rooms) {
+            sections[i].rooms.sort((a, b) => {
+              const sa = a.sort_order ?? 0;
+              const sb = b.sort_order ?? 0;
+              if (sa !== sb) return sa - sb;
+              return (a.id ?? 0) - (b.id ?? 0);
+            });
+          }
+        }
+      }
+
+      function getDerivedSectionLabel(sec) {
+        if (typeof QuoteOrdering !== "undefined" && QuoteOrdering.sectionLabel) {
+          return QuoteOrdering.sectionLabel(sec._resolvedIndex ?? 0);
+        }
+        let n = (sec._resolvedIndex ?? 0);
+        let result = "";
+        do {
+          const ch = String.fromCharCode(65 + (n % 26));
+          result = ch + result;
+          n = Math.floor(n / 26) - 1;
+        } while (n >= 0);
+        return result;
+      }
 
       function suppressRepeatedButtonKeydown(e) {
         if (e.repeat && (e.key === "Enter" || e.key === " ")) {
@@ -4657,12 +4692,12 @@
                     body: JSON.stringify({
                       code: sec.code,
                       name: sec.name,
-                      sort_order: sec.sort_order,
                     }),
                   },
                   false
                 );
                 sec.id = res.id;
+                if (res.sort_order != null) sec.sort_order = res.sort_order;
                 remapDirtyIdForCycle("sections", sec, res.id);
                 if (secEntry.requiresHasRoomsSync && sec.id) {
                   await apiWithRetry(
@@ -4672,7 +4707,6 @@
                       body: JSON.stringify({
                         code: sec.code,
                         name: sec.name,
-                        sort_order: sec.sort_order,
                         has_rooms: sec.has_rooms ? 1 : 0,
                       }),
                     },
@@ -4688,7 +4722,6 @@
                     body: JSON.stringify({
                       code: sec.code,
                       name: sec.name,
-                      sort_order: sec.sort_order,
                       has_rooms: sec.has_rooms ? 1 : 0,
                     }),
                   },
@@ -4714,7 +4747,6 @@
                         method: "PUT",
                         body: JSON.stringify({
                           name: room.name,
-                          sort_order: room.sort_order,
                         }),
                       },
                       false
@@ -4726,7 +4758,6 @@
                         method: "POST",
                         body: JSON.stringify({
                           name: room.name,
-                          sort_order: room.sort_order,
                         }),
                       },
                       false
@@ -4740,6 +4771,7 @@
                       }
                     }
                     room.id = res.id;
+                    if (res.sort_order != null) room.sort_order = res.sort_order;
                   }
                   room._fromServer = true;
                 } catch (err) {
@@ -4763,11 +4795,7 @@
                 continue;
               }
               try {
-                const itemPayload = {
-                  ...item,
-                  category_id: item.category_id || null,
-                  room_id: item.room_id || null,
-                };
+                const itemPayload = itemWriterPayload(item);
                 if (itemEntry.op === "create" && sec.id) {
                   const res = await apiWithRetry(
                     "/sections/" + sec.id + "/items",
@@ -4778,6 +4806,7 @@
                     false
                   );
                   item.id = res.id;
+                  if (res.sort_order != null) item.sort_order = res.sort_order;
                   remapDirtyIdForCycle("items", item, res.id);
                 } else if (itemEntry.op === "update" && sec.id) {
                   await apiWithRetry(
@@ -4950,12 +4979,19 @@
       };
 
       function nextSectionCode() {
-        const used = sections.map((s) => s.code);
+        const used = sections.map((s) => getDerivedSectionLabel(s));
         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (const l of letters) {
           if (!used.includes(l)) return l;
         }
-        return String(used.length + 1);
+        let n = used.length;
+        let result = "";
+        do {
+          const ch = String.fromCharCode(65 + (n % 26));
+          result = ch + result;
+          n = Math.floor(n / 26) - 1;
+        } while (n >= 0);
+        return result;
       }
 
       // ---- Shared search utilities ----
@@ -5050,7 +5086,8 @@
           btn.className =
             "section-tab" + (idx === activeSectionIdx ? " active" : "");
           const count = (sec.items || []).length;
-          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ""}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
+          const derivedCode = getDerivedSectionLabel(sec);
+          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(derivedCode)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ""}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
           btn.onclick = () => {
             selectActiveSection(idx);
             renderAll();
@@ -5064,8 +5101,10 @@
         nav.appendChild(addBtn);
       }
 
-      // ملاحظة: هذه الدالة منسوخة أيضًا في routes/pdf.js. أي تعديل على منطق الترقيم هنا يجب أن يُطبّق هناك أيضًا لضمان تطابق الشاشة مع الطباعة مع PDF.
       function buildDisplayNumberMap(sec) {
+        if (typeof QuoteOrdering !== "undefined" && QuoteOrdering.buildDisplayCodeMap) {
+          return QuoteOrdering.buildDisplayCodeMap(sec);
+        }
         const map = {};
         const code = sec.code || "";
         const allItems = sec.items || [];
@@ -5097,6 +5136,42 @@
           }
         }
         return map;
+      }
+
+      function itemWriterPayload(item) {
+        if (typeof QuoteOrdering !== "undefined" && QuoteOrdering.itemWriterPayload) {
+          return QuoteOrdering.itemWriterPayload(item);
+        }
+        const {
+          id: _id,
+          sort_order: _sortOrder,
+          _fromServer,
+          _saveFailed,
+          ...payload
+        } = item;
+        return {
+          ...payload,
+          category_id: item.category_id || null,
+          room_id: item.room_id || null,
+        };
+      }
+
+      function addLiveItem(sec, room, item) {
+        if (!sec.items) sec.items = [];
+        if (!sec.items.includes(item)) sec.items.push(item);
+        if (room) {
+          if (!room.items) room.items = [];
+          if (!room.items.includes(item)) room.items.push(item);
+        }
+      }
+
+      function removeLiveItem(sec, item) {
+        if (sec.items) sec.items = sec.items.filter((candidate) => candidate !== item);
+        for (const room of sec.rooms || []) {
+          if (room.items) {
+            room.items = room.items.filter((candidate) => candidate !== item);
+          }
+        }
       }
 
       /* ════════════════════════════════════════════════════════════════════
@@ -5610,7 +5685,7 @@
             : "";
 
           rows += `<tr data-idx="${origIdx}">
-            <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
+            <td class="col-code">${escapeAttr(displayMap.get(it) || it.item_code)}</td>
             <td class="col-name" style="position:relative"><textarea class="f-name" rows="1" placeholder="اسم البند" autocomplete="off">${escapeAttr(it.name)}</textarea><div class="fname-autocomplete" id="fnameAc_${origIdx}"></div></td>
             <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
             ${imgCell}
@@ -5629,8 +5704,9 @@
           ? '<th class="col-cost" style="min-width:160px">التكلفة + الهامش</th>'
           : "";
 
+        const derivedCode = getDerivedSectionLabel(sec);
         panel.innerHTML = `<div class="section-panel">
-          <h2><span class="sec-code">${escapeAttr(sec.code)}</span>${escapeAttr(sec.name)}</h2>
+          <h2><span class="sec-code">${escapeAttr(derivedCode)}</span>${escapeAttr(sec.name)}</h2>
           <p class="section-sub">أضف بنود هذا القسم — التكلفة والهامش يظهر فقط للمدير/المالك.</p>
           <div class="section-actions">
             <button class="btn-rename" id="renameSecBtn">تعديل الاسم</button>
@@ -6069,16 +6145,17 @@ deleteBtn.onclick = () => {
               try {
                 const res = await api(`/sections/${sec.id}/items`, {
                   method: "POST",
-                  body: JSON.stringify(newItem),
+                  body: JSON.stringify(itemWriterPayload(newItem)),
                 });
                 newItem.id = res.id;
                 newItem.selling_price = res.selling_price;
+                if (res.sort_order != null) newItem.sort_order = res.sort_order;
               } catch (e) {
                 showToast("تمت الإضافة محلياً — تعذر الحفظ: " + e.message);
               }
             }
           }
-          allItems.push(newItem);
+          addLiveItem(sec, destinationRoom, newItem);
           markItemDirty(newItem);
           markDirty();
           renderAll();
@@ -6111,7 +6188,7 @@ deleteBtn.onclick = () => {
               : null,
               room_id: activeRoom ? activeRoom.id : null,
             };
-            allItems.push(newItem);
+            addLiveItem(sec, activeRoom, newItem);
             markItemDirty(newItem);
             markDirty();
             renderAll();
@@ -6349,7 +6426,7 @@ deleteBtn.onclick = () => {
                 method: "DELETE",
               });
             }
-            allItems.splice(idx, 1);
+            removeLiveItem(sec, item);
             clearItemDirty(item);
             markDirty();
             renderAll();
@@ -6406,11 +6483,18 @@ deleteBtn.onclick = () => {
       // pending is a repeat; different items stay independent.
       const itemCreatePending = new Set();
 
-      function ownsEditorTarget(quoteId, sectionsRef, sectionRef) {
+      function ownsEditorTarget(
+        quoteId,
+        sectionsRef,
+        sectionRef,
+        destinationRoom = null,
+      ) {
         return (
           currentQuoteId === quoteId &&
           sections === sectionsRef &&
-          sectionsRef.includes(sectionRef)
+          sectionsRef.includes(sectionRef) &&
+          (destinationRoom === null ||
+            (sectionRef.rooms || []).includes(destinationRoom))
         );
       }
 
@@ -6459,14 +6543,15 @@ deleteBtn.onclick = () => {
           try {
             const res = await api(`/sections/${sec.id}/items`, {
               method: "POST",
-              body: JSON.stringify(newItem),
+              body: JSON.stringify(itemWriterPayload(newItem)),
             });
-            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec, activeRoom)) {
             newItem.id = res.id;
             newItem.selling_price = res.selling_price;
+            if (res.sort_order != null) newItem.sort_order = res.sort_order;
             }
           } catch (e) {
-            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec, activeRoom)) {
             showToast(
               "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
             );
@@ -6474,10 +6559,10 @@ deleteBtn.onclick = () => {
         }
         }
           if (
-            ownsEditorTarget(myQuoteId, mySections, sec) &&
+            ownsEditorTarget(myQuoteId, mySections, sec, activeRoom) &&
             sec.items === allItems
           ) {
-        allItems.push(newItem);
+        addLiveItem(sec, activeRoom, newItem);
         markItemDirty(newItem);
         markDirty();
         renderAll();
@@ -6535,14 +6620,15 @@ deleteBtn.onclick = () => {
           try {
             const res = await api(`/sections/${sec.id}/items`, {
               method: "POST",
-              body: JSON.stringify(newItem),
+              body: JSON.stringify(itemWriterPayload(newItem)),
             });
-            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec, manualRoom)) {
             newItem.id = res.id;
             newItem.selling_price = res.selling_price;
+            if (res.sort_order != null) newItem.sort_order = res.sort_order;
             }
           } catch (e) {
-            if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+            if (ownsEditorTarget(myQuoteId, mySections, sec, manualRoom)) {
             showToast(
               "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
             );
@@ -6550,10 +6636,10 @@ deleteBtn.onclick = () => {
         }
         }
           if (
-            ownsEditorTarget(myQuoteId, mySections, sec) &&
+            ownsEditorTarget(myQuoteId, mySections, sec, manualRoom) &&
             sec.items === allItems
           ) {
-        allItems.push(newItem);
+        addLiveItem(sec, manualRoom, newItem);
         markItemDirty(newItem);
         markDirty();
         renderAll();
@@ -6561,10 +6647,12 @@ deleteBtn.onclick = () => {
           }
         } finally {
           itemCreatePending.delete(manualKey);
-          if (ownsEditorTarget(myQuoteId, mySections, sec)) {
+          if (ownsEditorTarget(myQuoteId, mySections, sec, manualRoom)) {
             const currentManualBtn =
               document.getElementById("catSearchManualBtn");
-            if (currentManualBtn === manualBtn) currentManualBtn.disabled = false;
+            if (currentManualBtn && currentManualBtn === manualBtn) {
+              currentManualBtn.disabled = false;
+            }
           }
         }
       }
@@ -6578,7 +6666,7 @@ deleteBtn.onclick = () => {
           sections
             .map(
               (sec, i) =>
-                `<option value="${i}">${escapeAttr(sec.code)} — ${escapeAttr(sec.name)}</option>`,
+                `<option value="${i}">${escapeAttr(getDerivedSectionLabel(sec))} — ${escapeAttr(sec.name)}</option>`,
             )
             .join("");
         if (sections[activeSectionIdx] !== undefined) {
@@ -6668,7 +6756,7 @@ deleteBtn.onclick = () => {
               : "";
             rows += `<tr data-sec="${secIdx}" data-idx="${itemIdx}">
               <td class="col-origin"><span class="origin-sec">${escapeAttr(sec.name)}</span>${roomName ? ` <span class="origin-sep">—</span> <span class="origin-room${roomName === "مباشر" ? " origin-direct" : ""}">${escapeAttr(roomName)}</span>` : ""}</td>
-              <td class="col-code">${escapeAttr(displayMap[it.id] || it.item_code)}</td>
+              <td class="col-code">${escapeAttr(displayMap.get(it) || it.item_code)}</td>
               <td class="col-name" style="position:relative"><textarea class="f-name" rows="1" placeholder="اسم البند" autocomplete="off">${escapeAttr(it.name)}</textarea><div class="fname-autocomplete" id="fnameAc_S${secIdx}_I${itemIdx}"></div></td>
               <td class="col-desc"><textarea class="f-desc" rows="1" placeholder="وصف تفصيلي">${escapeAttr(it.description)}</textarea></td>
               ${imgCell}
@@ -6934,7 +7022,7 @@ deleteBtn.onclick = () => {
               showToast("تعذر حذف البند من السيرفر: " + e.message);
             }
           }
-          sec.items.splice(itemIdx, 1);
+          removeLiveItem(sec, item);
           clearItemDirty(item);
           markDirty();
           renderAllItemsRows();
@@ -7045,10 +7133,11 @@ deleteBtn.onclick = () => {
             try {
               const res = await api(`/sections/${sec.id}/items`, {
                 method: "POST",
-                body: JSON.stringify(newItem),
+                body: JSON.stringify(itemWriterPayload(newItem)),
               });
               newItem.id = res.id;
               newItem.selling_price = res.selling_price;
+              if (res.sort_order != null) newItem.sort_order = res.sort_order;
             } catch (e) {
               showToast(
                 "تمت الإضافة محلياً — تعذر الحفظ على السيرفر: " + e.message,
@@ -7056,7 +7145,7 @@ deleteBtn.onclick = () => {
             }
           }
         }
-        allItems.push(newItem);
+        addLiveItem(sec, room, newItem);
         markItemDirty(newItem);
         markDirty();
         renderAllItemsRows();
@@ -7088,7 +7177,7 @@ deleteBtn.onclick = () => {
                   s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0),
                 0,
               );
-              return `<div class="sidebar-sec-row"><span>${escapeAttr(sec.code)}: ${escapeAttr(sec.name)}</span><span class="n">${moneyInt(sub)}</span></div>`;
+              return `<div class="sidebar-sec-row"><span>${escapeAttr(getDerivedSectionLabel(sec))}: ${escapeAttr(sec.name)}</span><span class="n">${moneyInt(sub)}</span></div>`;
             })
             .join("") || '<p class="empty-note">ابدأ بإضافة أقسام.</p>';
 
@@ -7267,6 +7356,7 @@ deleteBtn.onclick = () => {
       }
 
       function renderAll() {
+        resolveSectionOrder();
         renderSectionsNav();
         renderMainPanel();
         renderTotals();
@@ -7312,10 +7402,19 @@ deleteBtn.onclick = () => {
           document.getElementById("sectionModalTitle").textContent = "إضافة قسم جديد";
           document.getElementById("secModalSave").textContent = "حفظ";
         }
-        document.getElementById("secModalCode").value =
-          editingSectionIdx !== null
-            ? sections[editingSectionIdx].code
-            : nextSectionCode();
+        const codeInput = document.getElementById("secModalCode");
+        if (editingSectionIdx !== null) {
+          const sec = sections[editingSectionIdx];
+          const derivedCode = getDerivedSectionLabel(sec);
+          codeInput.value = derivedCode;
+          codeInput.readOnly = true;
+          codeInput.title = "كود القسم مشتق من ترتيبه ولا يمكن تعديله يدوياً";
+        } else {
+          const nextCode = nextSectionCode();
+          codeInput.value = nextCode;
+          codeInput.readOnly = true;
+          codeInput.title = "كود القسم الجديد سيُحدد تلقائياً بناءً على ترتيبه";
+        }
         document.getElementById("secModalName").value =
           editingSectionIdx !== null ? sections[editingSectionIdx].name : "";
         modal.classList.add("open");
@@ -7372,13 +7471,12 @@ deleteBtn.onclick = () => {
         try {
           if (isEdit) {
             const sec = boundEditSec;
-            sec.code = code;
             sec.name = name;
             markSectionDirty(sec);
             if (currentQuoteId && sec.id) {
               await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
                 method: "PUT",
-                body: JSON.stringify({ code, name }),
+                body: JSON.stringify({ name }),
               });
             }
           } else {
@@ -7393,9 +7491,10 @@ deleteBtn.onclick = () => {
             if (currentQuoteId) {
               const res = await api(`/quotes/${currentQuoteId}/sections`, {
                 method: "POST",
-                body: JSON.stringify({ code, name, sort_order: sections.length }),
+                body: JSON.stringify({ code, name }),
               });
               newSec.id = res.id;
+              if (res.sort_order != null) newSec.sort_order = res.sort_order;
             }
             // Only the owning quote/editor may receive the created model: a
             // different quote may have been loaded while pending.
@@ -7465,7 +7564,7 @@ deleteBtn.onclick = () => {
           if (sec.id === sourceSec.id) return;
           const opt = document.createElement("option");
           opt.value = sec.id;
-          opt.textContent = `${sec.code} — ${sec.name}`;
+          opt.textContent = `${getDerivedSectionLabel(sec)} — ${sec.name}`;
           select.appendChild(opt);
         });
         if (select.options.length <= 1) {
@@ -7556,6 +7655,7 @@ deleteBtn.onclick = () => {
             ...it,
             _fromServer: true,
           }));
+          newRoom.items = clonedItems;
           const targetIdx = sections.indexOf(targetSec);
             if (res.wasDirect) {
               targetSec.has_rooms = 1;
@@ -7615,7 +7715,11 @@ deleteBtn.onclick = () => {
         const copyDirectSaveBtn = document.getElementById("copyDirectSave");
         if (copyDirectSaveBtn) copyDirectSaveBtn.disabled = false;
         document.getElementById("copyDirectSecName").value = "";
-        document.getElementById("copyDirectSecCode").value = nextSectionCode();
+        const codeInput = document.getElementById("copyDirectSecCode");
+        const nextCode = nextSectionCode();
+        codeInput.value = nextCode;
+        codeInput.readOnly = true;
+        codeInput.title = "كود القسم الجديد سيُحدد تلقائياً بناءً على ترتيبه";
         document.getElementById("copyDirectModal").classList.add("open");
         document.getElementById("copyDirectSecName").focus();
       }
@@ -8539,6 +8643,18 @@ deleteBtn.onclick = () => {
           return;
         }
         const allItems = sec.items || [];
+        const myQuoteId = currentQuoteId;
+        const mySections = sections;
+        const targetRoom =
+          targetRoomId == null
+            ? null
+            : (sec.rooms || []).find((r) => r.id === targetRoomId) || null;
+        const ownsBulkTarget = () =>
+          currentQuoteId === myQuoteId &&
+          sections === mySections &&
+          mySections.includes(sec) &&
+          (targetRoomId == null ||
+            (targetRoom && (sec.rooms || []).includes(targetRoom)));
         const selectedItems = Array.from(bulkSelectedItems.values());
         if (selectedItems.length === 0) return;
         if (bulkAddInFlight) return;
@@ -8580,6 +8696,7 @@ deleteBtn.onclick = () => {
                 method: "POST",
                 body: JSON.stringify({ items: payloadItems }),
               });
+              if (!ownsBulkTarget()) return;
               const results = data.results || [];
               const processed = new Set();
               results.forEach((r) => {
@@ -8590,8 +8707,9 @@ deleteBtn.onclick = () => {
                   const newItem = Object.assign({}, payloadItems[r.index], {
                     id: r.id,
                     selling_price: r.selling_price,
+                    sort_order: r.sort_order,
                   });
-                  allItems.push(newItem);
+                  addLiveItem(sec, targetRoom, newItem);
                   markItemDirty(newItem);
                   bulkSelectedIds.delete(Number(catItem.id));
                   bulkSelectedItems.delete(Number(catItem.id));
@@ -8629,7 +8747,7 @@ deleteBtn.onclick = () => {
                 category_id: catItem.category_id != null ? catItem.category_id : null,
                 room_id: roomId,
               };
-              allItems.push(newItem);
+              addLiveItem(sec, targetRoom, newItem);
               markItemDirty(newItem);
               bulkSelectedIds.delete(Number(catItem.id));
               bulkSelectedItems.delete(Number(catItem.id));
@@ -8638,6 +8756,7 @@ deleteBtn.onclick = () => {
           }
 
           // Single final render — never once per item
+          if (!ownsBulkTarget()) return;
           if (succeeded > 0) markDirty();
           if (succeeded > 0) renderAll();
           updateBulkSelectionBar();
@@ -8874,11 +8993,12 @@ deleteBtn.onclick = () => {
           try {
             const res = await api(`/sections/${sec.id}/items`, {
               method: "POST",
-              body: JSON.stringify(item),
+              body: JSON.stringify(itemWriterPayload(item)),
             });
             if (stillOwns()) {
             item.id = res.id;
             item.selling_price = res.selling_price;
+            if (res.sort_order != null) item.sort_order = res.sort_order;
             remapDirtyId(dirtyEntities.items, item, item.id);
             }
           } catch (e) {
@@ -8890,7 +9010,7 @@ deleteBtn.onclick = () => {
           try {
             await api(`/sections/${sec.id}/items/${item.id}`, {
               method: "PUT",
-              body: JSON.stringify(item),
+              body: JSON.stringify(itemWriterPayload(item)),
             });
           } catch (e) {
             if (stillOwns()) {
@@ -8975,19 +9095,24 @@ deleteBtn.onclick = () => {
         sections.forEach((sec) => {
           if (!sec.items) sec.items = [];
           if (!sec.rooms) sec.rooms = [];
-          sec.items = sec.items.filter((it) => {
+          const keptItems = [];
+          for (const it of sec.items) {
             const hasData =
               (it.name || "").trim() !== "" ||
               (Number(it.selling_price) || 0) > 0 ||
               (Number(it.base_cost) || 0) > 0;
-            if (!hasData && it.id && sec.id) {
-              api(`/sections/${sec.id}/items/${it.id}`, {
-                method: "DELETE",
-              }).catch(() => {});
-              return false;
+            if (!hasData) {
+              if (it.id && sec.id) {
+                api(`/sections/${sec.id}/items/${it.id}`, {
+                  method: "DELETE",
+                }).catch(() => {});
+              }
+              removeLiveItem(sec, it);
+            } else if (hasData) {
+              keptItems.push(it);
             }
-            return hasData;
-          });
+          }
+          sec.items = keptItems;
           if (sec.has_rooms) {
             sec.rooms = sec.rooms.filter((room) =>
               sec.items.some((it) => it.room_id === room.id),
@@ -9095,7 +9220,6 @@ deleteBtn.onclick = () => {
                     sections: newSections.map((sec) => ({
                       code: sec.code,
                       name: sec.name,
-                      sort_order: sec.sort_order,
                     })),
                   }),
                 }
@@ -9111,6 +9235,7 @@ deleteBtn.onclick = () => {
               const entry = batchOk ? batchResults[idx] || {} : {};
               if (entry.id != null && !entry.error) {
                 sec.id = entry.id;
+                if (entry.sort_order != null) sec.sort_order = entry.sort_order;
                 let synced = true;
                 if (sec.has_rooms) {
                   // batch create defaults has_rooms to 0 — keep it in sync
@@ -9122,7 +9247,6 @@ deleteBtn.onclick = () => {
                         body: JSON.stringify({
                           code: sec.code,
                           name: sec.name,
-                          sort_order: sec.sort_order,
                           has_rooms: 1,
                         }),
                       }
@@ -9161,7 +9285,6 @@ deleteBtn.onclick = () => {
                   body: JSON.stringify({
                     code: sec.code,
                     name: sec.name,
-                    sort_order: sec.sort_order,
                     has_rooms: sec.has_rooms ? 1 : 0,
                   }),
                 });
@@ -9207,7 +9330,6 @@ deleteBtn.onclick = () => {
                     body: JSON.stringify({
                       rooms: newRooms.map((room) => ({
                         name: room.name,
-                        sort_order: room.sort_order,
                       })),
                     }),
                   });
@@ -9222,6 +9344,7 @@ deleteBtn.onclick = () => {
                   if (entry.id != null && !entry.error) {
                     const oldId = room.id;
                     room.id = entry.id;
+                    if (entry.sort_order != null) room.sort_order = entry.sort_order;
                     room._fromServer = true;
                     if (oldId && oldId < 0) {
                       roomRemaps.push({ oldId, newId: entry.id, sec });
@@ -9250,7 +9373,6 @@ deleteBtn.onclick = () => {
                   method: "PUT",
                   body: JSON.stringify({
                     name: room.name,
-                    sort_order: room.sort_order,
                   }),
                 });
                 room._fromServer = true;
@@ -9307,10 +9429,11 @@ deleteBtn.onclick = () => {
 
                 const existingPutResultsPromise = Promise.allSettled(
                   existingItems.map(async (item) => {
+                    const { id: _itemId, sort_order: _itemSortOrder, _fromServer, _saveFailed, ...itemPayload } = item;
                     await api(`/sections/${sec.id}/items/${item.id}`, {
                       method: "PUT",
                       body: JSON.stringify({
-                        ...item,
+                        ...itemPayload,
                         category_id: item.category_id || null,
                         room_id: item.room_id || null,
                       }),
@@ -9329,7 +9452,16 @@ deleteBtn.onclick = () => {
                       method: "POST",
                       body: JSON.stringify({
                         items: chunk.map((item) => ({
-                          ...item,
+                          name: item.name,
+                          item_code: item.item_code,
+                          description: item.description,
+                          unit: item.unit,
+                          qty: item.qty,
+                          image: item.image,
+                          base_cost: item.base_cost,
+                          overhead_pct: item.overhead_pct,
+                          selling_price: item.selling_price,
+                          notes: item.notes,
                           category_id: item.category_id || null,
                           room_id: item.room_id || null,
                         })),
@@ -9345,6 +9477,7 @@ deleteBtn.onclick = () => {
                     const entry = batchOk ? batchResults[idx] || {} : {};
                     if (entry.id != null && !entry.error) {
                       item.id = entry.id;
+                      if (entry.sort_order != null) item.sort_order = entry.sort_order;
                       item._fromServer = true;
                       itemOutcomes.push({
                         label: item.name || item.item_code || `#${entry.id}`,
@@ -9478,17 +9611,15 @@ deleteBtn.onclick = () => {
         }));
         // Also load room items into section items
         for (const s of sections) {
+          if (typeof QuoteOrdering !== "undefined" && QuoteOrdering.linkRoomItemInstances) {
+            QuoteOrdering.linkRoomItemInstances(s);
+          }
           for (const room of s.rooms || []) {
             for (const ri of room.items || []) {
-              if (!s.items.some((it) => it.id === ri.id)) {
-                s.items.push({
-                  ...ri,
-                  _fromServer: true,
-                  qty: Number(ri.qty) || 1,
-                  category_id:
-                    ri.category_id != null ? Number(ri.category_id) : null,
-                });
-              }
+              ri._fromServer = true;
+              ri.qty = Number(ri.qty) || 1;
+              ri.category_id =
+                ri.category_id != null ? Number(ri.category_id) : null;
             }
           }
         }
@@ -9498,6 +9629,7 @@ deleteBtn.onclick = () => {
         activeCategoryTab = null;
         hasUnsavedWork = false;
         resetDirtyEntities();
+        resolveSectionOrder();
 
         document.getElementById("projectName").value = state.projectName;
         document.getElementById("referenceNo").value = state.referenceNo;
@@ -9856,11 +9988,18 @@ deleteBtn.onclick = () => {
       }
 
       function renderPrintTemplate() {
+        resolveSectionOrder();
+        function getSectionItems(sec) {
+          return [
+            ...(sec.items || []).filter((item) => !item.room_id),
+            ...(sec.rooms || []).flatMap((room) => room.items || []),
+          ];
+        }
         // Compute totals
         let subtotal = 0,
           estimatedCost = 0;
         sections.forEach((sec) => {
-          (sec.items || []).forEach((it) => {
+          getSectionItems(sec).forEach((it) => {
             subtotal += (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
             estimatedCost +=
               (Number(it.qty) || 0) * (Number(it.base_cost) || 0);
@@ -9880,12 +10019,12 @@ deleteBtn.onclick = () => {
 
         // Section subtotals
         const sectionSubtotals = sections.map((sec) => {
-          const sub = (sec.items || []).reduce(
+          const sub = getSectionItems(sec).reduce(
             (s, it) =>
               s + (Number(it.qty) || 0) * (Number(it.selling_price) || 0),
             0,
           );
-          return { code: sec.code, name: sec.name, subtotal: sub };
+          return { code: getDerivedSectionLabel(sec), name: sec.name, subtotal: sub };
         });
 
         // Helper
@@ -9933,7 +10072,7 @@ deleteBtn.onclick = () => {
               (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
             const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td>${escapeAttr(displayMap[it.id] || it.item_code || "")}</td>
+              <td>${escapeAttr(displayMap.get(it) || it.item_code || "")}</td>
               <td>${escapeAttr(secNameEn.substring(0, 12))}</td>
               <td>${escapeAttr(it.name || "")}</td>
               <td>${escapeAttr(it.description || "")}</td>
@@ -9972,13 +10111,14 @@ deleteBtn.onclick = () => {
 
         for (const sec of sections) {
           const secNameEn = getSectionNameEn(sec.name);
+          const derivedCode = getDerivedSectionLabel(sec);
           // Section header row
           const secHeader = document.createElement("tr");
           secHeader.className = "pt-sec-header";
-          secHeader.innerHTML = `<td colspan="9">القسم ${escapeAttr(sec.code)} : ${escapeAttr(sectionLabel(sec.name))}</td>`;
+          secHeader.innerHTML = `<td colspan="9">القسم ${escapeAttr(derivedCode)} : ${escapeAttr(sectionLabel(sec.name))}</td>`;
           tbody.appendChild(secHeader);
 
-          const allItems = sec.items || [];
+          const allItems = (sec.items || []).filter((item) => !item.room_id);
           const displayMap = buildDisplayNumberMap(sec);
           if (!sec.has_rooms) {
             // No rooms: print items directly without a room label (current behavior)
@@ -9990,14 +10130,14 @@ deleteBtn.onclick = () => {
               renderRoomBlock("المباشر", directItems, secNameEn, false, displayMap);
             // Then each room in tab order
             for (const room of sec.rooms || []) {
-              const roomItems = allItems.filter((it) => it.room_id === room.id);
+              const roomItems = room.items || [];
               if (roomItems.length)
                 renderRoomBlock(room.name, roomItems, secNameEn, true, displayMap);
             }
           }
 
           // Section subtotal
-          const secSub = sectionSubtotals.find((s) => s.code === sec.code);
+          const secSub = sectionSubtotals.find((s) => s.code === derivedCode);
           if (secSub && secSub.subtotal > 0) {
             const subRow = document.createElement("tr");
             subRow.className = "pt-sec-subtotal";
@@ -10479,7 +10619,6 @@ deleteBtn.onclick = () => {
           roomModalSeq === ownerSeq;
         const newRoom = {
           name: name.trim(),
-          sort_order: (sec.rooms || []).length,
         };
         if (!sec.id) newRoom.id = -Date.now();
         let saveError = null;
@@ -10490,6 +10629,7 @@ deleteBtn.onclick = () => {
               body: JSON.stringify({ name: name.trim() }),
             });
             newRoom.id = res.id;
+            if (res.sort_order != null) newRoom.sort_order = res.sort_order;
           } catch (e) {
             saveError = e;
           }
@@ -10673,7 +10813,7 @@ deleteBtn.onclick = () => {
               } catch {}
             }
             const removedItem = allItems[i];
-            allItems.splice(i, 1);
+            removeLiveItem(sec, removedItem);
             clearItemDirty(removedItem);
           }
         }

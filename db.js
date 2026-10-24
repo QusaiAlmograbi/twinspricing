@@ -1300,6 +1300,11 @@ function withSqliteTransaction(fn) {
   return sqliteDb.transaction(fn)();
 }
 
+function withSqliteImmediateTransaction(fn) {
+  const sqliteDb = getSqliteDb();
+  return sqliteDb.transaction(fn).immediate();
+}
+
 async function withPostgresTransaction(fn) {
   const pool = getPool();
   const client = await pool.connect();
@@ -1365,5 +1370,6 @@ module.exports.smartMergeDefaultPriceList = smartMergeDefaultPriceList;
 module.exports.getPool = getPool;
 module.exports.isSqlite = isSqlite;
 module.exports.withSqliteTransaction = withSqliteTransaction;
+module.exports.withSqliteImmediateTransaction = withSqliteImmediateTransaction;
 module.exports.withPostgresTransaction = withPostgresTransaction;
 module.exports.createClientPrep = createClientPrep;

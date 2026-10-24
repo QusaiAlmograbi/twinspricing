@@ -3,11 +3,13 @@ const db = require("../db");
 const {
   isSqlite,
   withSqliteTransaction,
+  withSqliteImmediateTransaction,
   withPostgresTransaction,
   createClientPrep,
 } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
+const { validateOrderPayload } = require("../utils/order-validation");
 
 const MAX_BATCH_SECTIONS = 100;
 
@@ -32,15 +34,20 @@ router.get("/:quoteId/sections", asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
   }
   const sections = await db
-    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
+    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC, id ASC")
     .all(quoteId);
 
   const ids = sections.map((sec) => sec.id);
   const items = ids.length
     ? await db
         .prepare(
-          "SELECT * FROM items WHERE section_id IN (" + ids.map(() => "?").join(",") + ") ORDER BY sort_order ASC"
+          "SELECT * FROM items WHERE section_id IN (" + ids.map(() => "?").join(",") + ") ORDER BY sort_order ASC, id ASC"
         )
+        .all(...ids)
+    : [];
+  const rooms = ids.length
+    ? await db
+        .prepare("SELECT * FROM rooms WHERE section_id IN (" + ids.map(() => "?").join(",") + ") ORDER BY sort_order ASC, id ASC")
         .all(...ids)
     : [];
   const bySection = new Map();
@@ -48,8 +55,14 @@ router.get("/:quoteId/sections", asyncHandler(async (req, res) => {
     if (!bySection.has(it.section_id)) bySection.set(it.section_id, []);
     bySection.get(it.section_id).push(it);
   }
+  const roomsBySection = new Map();
+  for (const room of rooms) {
+    if (!roomsBySection.has(room.section_id)) roomsBySection.set(room.section_id, []);
+    roomsBySection.get(room.section_id).push(room);
+  }
   for (const sec of sections) {
     sec.items = bySection.get(sec.id) || [];
+    sec.rooms = roomsBySection.get(sec.id) || [];
   }
 
   res.json({ sections });
@@ -65,17 +78,38 @@ router.post("/:quoteId/sections", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "الكود والاسم مطلوبين" });
   }
 
-  const maxOrder = await db
-    .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?")
-    .get(quoteId);
-
-  const info = await db
-    .prepare(
-      "INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)",
-    )
-    .run(quoteId, code.trim(), name.trim(), sort_order ?? maxOrder.next_order);
-
-  res.json({ id: info.lastInsertRowid, code: code.trim(), name: name.trim() });
+  let info;
+  let assignedOrder;
+  if (isSqlite()) {
+    const result = withSqliteImmediateTransaction(() => {
+      const maxOrder = db.prepare(
+        "SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?",
+      ).get(quoteId);
+      const next = sort_order ?? maxOrder.next_order;
+      const inserted = db.prepare(
+        "INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)",
+      ).run(quoteId, code.trim(), name.trim(), next);
+      return { info: inserted, assignedOrder: next };
+    });
+    info = result.info;
+    assignedOrder = result.assignedOrder;
+  } else {
+    const result = await withPostgresTransaction(async (client) => {
+      await client.query("LOCK TABLE sections IN SHARE ROW EXCLUSIVE MODE");
+      const prep = createClientPrep(client);
+      const maxOrder = await prep(
+        "SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?",
+      ).get(quoteId);
+      const next = sort_order ?? maxOrder.next_order;
+      const inserted = await prep(
+        "INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)",
+      ).run(quoteId, code.trim(), name.trim(), next);
+      return { info: inserted, assignedOrder: next };
+    });
+    info = result.info;
+    assignedOrder = result.assignedOrder;
+  }
+  res.json({ id: info.lastInsertRowid, code: code.trim(), name: name.trim(), sort_order: assignedOrder });
 }));
 
 router.post("/:quoteId/sections/batch", asyncHandler(async (req, res) => {
@@ -97,12 +131,8 @@ router.post("/:quoteId/sections/batch", asyncHandler(async (req, res) => {
       .json({ error: `الحد الأقصى ${MAX_BATCH_SECTIONS} قسم في الطلب الواحد` });
   }
 
-  const baseOrder = await db
-    .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?")
-    .get(quoteId);
-  const base = Number(baseOrder.next_order);
-
   const results = [];
+  let batchBaseOrder = null;
   for (let idx = 0; idx < sections.length; idx++) {
     const raw = sections[idx];
     try {
@@ -115,16 +145,35 @@ router.post("/:quoteId/sections/batch", asyncHandler(async (req, res) => {
         results.push({ index: idx, error: "الكود والاسم مطلوبين" });
         continue;
       }
-      const info = await db
-        .prepare(
-          "INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)",
-        )
-        .run(quoteId, code.trim(), name.trim(), sort_order ?? base + idx);
+      let info;
+      let assignedOrder;
+      if (isSqlite()) {
+        const inserted = withSqliteImmediateTransaction(() => {
+          const max = db.prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?").get(quoteId);
+          if (batchBaseOrder === null) batchBaseOrder = max.next_order;
+          const next = sort_order ?? Math.max(batchBaseOrder + idx, max.next_order);
+          return { info: db.prepare("INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)").run(quoteId, code.trim(), name.trim(), next), assignedOrder: next };
+        });
+        info = inserted.info;
+        assignedOrder = inserted.assignedOrder;
+      } else {
+        const inserted = await withPostgresTransaction(async (client) => {
+          await client.query("LOCK TABLE sections IN SHARE ROW EXCLUSIVE MODE");
+          const prep = createClientPrep(client);
+          const max = await prep("SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE quote_id = ?").get(quoteId);
+          if (batchBaseOrder === null) batchBaseOrder = max.next_order;
+          const next = sort_order ?? Math.max(batchBaseOrder + idx, max.next_order);
+          return { info: await prep("INSERT INTO sections (quote_id, code, name, sort_order) VALUES (?,?,?,?)").run(quoteId, code.trim(), name.trim(), next), assignedOrder: next };
+        });
+        info = inserted.info;
+        assignedOrder = inserted.assignedOrder;
+      }
       results.push({
         index: idx,
         id: info.lastInsertRowid,
         code: code.trim(),
         name: name.trim(),
+        sort_order: assignedOrder,
       });
     } catch (err) {
       results.push({ index: idx, error: err.message });
@@ -167,7 +216,7 @@ router.post("/:quoteId/rooms/:roomId/clone", asyncHandler(async (req, res) => {
   }
   let result;
   if (isSqlite()) {
-    result = withSqliteTransaction(() => {
+    result = withSqliteImmediateTransaction(() => {
       if (!targetSection.has_rooms) {
         db.prepare("UPDATE sections SET has_rooms = 1 WHERE id = ?").run(targetSectionId);
       }
@@ -201,6 +250,8 @@ router.post("/:quoteId/rooms/:roomId/clone", asyncHandler(async (req, res) => {
     });
   } else {
     result = await withPostgresTransaction(async (client) => {
+      await client.query("LOCK TABLE rooms IN SHARE ROW EXCLUSIVE MODE");
+      await client.query("LOCK TABLE items IN SHARE ROW EXCLUSIVE MODE");
       const prep = createClientPrep(client);
 
       if (!targetSection.has_rooms) {
@@ -267,7 +318,7 @@ router.post("/:quoteId/sections/:id/clone-direct", asyncHandler(async (req, res)
 
   let result;
   if (isSqlite()) {
-    result = withSqliteTransaction(() => {
+    result = withSqliteImmediateTransaction(() => {
       const maxSecOrder = db
         .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 as next FROM sections WHERE quote_id = ?")
         .get(quoteId);
@@ -297,6 +348,8 @@ router.post("/:quoteId/sections/:id/clone-direct", asyncHandler(async (req, res)
     });
   } else {
     result = await withPostgresTransaction(async (client) => {
+      await client.query("LOCK TABLE sections IN SHARE ROW EXCLUSIVE MODE");
+      await client.query("LOCK TABLE items IN SHARE ROW EXCLUSIVE MODE");
       const prep = createClientPrep(client);
 
       const maxSecOrder = await prep(
@@ -339,6 +392,120 @@ router.post("/:quoteId/sections/:id/clone-direct", asyncHandler(async (req, res)
   res.status(201).json({ section: newSection });
 }));
 
+// Section reorder endpoint - compare-and-set (must come before generic :id route)
+router.put("/:quoteId/sections/reorder", asyncHandler(async (req, res) => {
+  const quoteId = Number(req.params.quoteId);
+  if (!(await verifyQuoteAccess(quoteId, req.user.id, req.user.role))) {
+    return res.status(403).json({ error: "ما عندك صلاحية لهذا العرض" });
+  }
+  if (!(await db.prepare("SELECT 1 FROM quotes WHERE id = ?").get(quoteId))) {
+    return res.status(404).json({ error: "العرض غير موجود" });
+  }
+  const { expected, order } = req.body && typeof req.body === "object" ? req.body : {};
+  const validated = validateOrderPayload(expected, order);
+  if (validated.error) return res.status(400).json({ error: validated.error });
+  const { expectedIds, orderIds } = validated;
+
+  // Perform read+validation+write in a single transaction
+  if (isSqlite()) {
+    const result = withSqliteImmediateTransaction(() => {
+      const current = db
+        .prepare("SELECT id, sort_order FROM sections WHERE quote_id = ? ORDER BY sort_order ASC, id ASC")
+        .all(quoteId);
+      const currentIds = current.map((r) => String(r.id));
+      const currentIdsSorted = [...currentIds].sort();
+      const expectedIdsSorted = [...expectedIds].sort();
+      const targetAlreadyApplied =
+        currentIds.length === orderIds.length &&
+        currentIds.every((id, index) => id === orderIds[index] && current[index].sort_order === index);
+      if (targetAlreadyApplied) {
+        return { ok: true, already_applied: true, positions: current.map((row, idx) => ({ id: row.id, position: idx })) };
+      }
+
+      // Check membership
+      if (JSON.stringify(currentIdsSorted) !== JSON.stringify(expectedIdsSorted)) {
+        return { error: "ترتيب القائمة تغيّر، يرجى إعادة التحميل", code: "ORDER_CONFLICT", status: 409 };
+      }
+
+      // Check exact baseline (sort_order for each ID)
+      const expectedMap = new Map(expected.map((e) => [String(e.id), e.sort_order]));
+      let baselineMatches = true;
+      for (const row of current) {
+        if (expectedMap.get(String(row.id)) !== row.sort_order) {
+          baselineMatches = false;
+          break;
+        }
+      }
+
+      if (!baselineMatches) {
+        return { error: "ترتيب القائمة تغيّر، يرجى إعادة التحميل", code: "ORDER_CONFLICT", status: 409 };
+      }
+
+      // Apply reorder
+      const stmt = db.prepare("UPDATE sections SET sort_order = ? WHERE id = ? AND quote_id = ?");
+      const currentById = new Map(current.map((row) => [String(row.id), row.id]));
+      for (let i = 0; i < orderIds.length; i++) {
+        const info = stmt.run(i, currentById.get(orderIds[i]), quoteId);
+        if (info.rowCount !== 1) throw new Error("section reorder update affected an unexpected row");
+      }
+
+      const positions = orderIds.map((id, idx) => ({ id: currentById.get(id), position: idx }));
+      return { ok: true, already_applied: false, positions };
+    });
+
+    if (result.error) {
+      return res.status(result.status).json({ error: result.error, code: result.code });
+    }
+    return res.json(result);
+  } else {
+    const result = await withPostgresTransaction(async (client) => {
+      await client.query("LOCK TABLE sections IN SHARE ROW EXCLUSIVE MODE");
+      const prep = createClientPrep(client);
+
+      const current = await prep("SELECT id, sort_order FROM sections WHERE quote_id = $1 ORDER BY sort_order ASC, id ASC").all(quoteId);
+      const normalizeId = (v) => String(v);
+      const currentIds = current.map((r) => normalizeId(r.id));
+      const currentIdsSorted = [...currentIds].sort();
+      const expectedIdsSorted = [...expectedIds].sort();
+      if (current.length === orderIds.length &&
+          current.every((row, index) => currentIds[index] === orderIds[index] && Number(row.sort_order) === index)) {
+        return { ok: true, already_applied: true, positions: current.map((row, idx) => ({ id: row.id, position: idx })) };
+      }
+
+      // Check membership
+      if (JSON.stringify(currentIdsSorted) !== JSON.stringify(expectedIdsSorted)) {
+        return { error: "ترتيب القائمة تغيّر، يرجى إعادة التحميل", code: "ORDER_CONFLICT", status: 409 };
+      }
+
+      const expectedMap = new Map(expected.map((e) => [normalizeId(e.id), e.sort_order]));
+      let baselineMatches = true;
+      for (const row of current) {
+        if (expectedMap.get(normalizeId(row.id)) !== row.sort_order) {
+          baselineMatches = false;
+          break;
+        }
+      }
+
+      if (!baselineMatches) {
+        return { error: "ترتيب القائمة تغيّر، يرجى إعادة التحميل", code: "ORDER_CONFLICT", status: 409 };
+      }
+
+      for (let i = 0; i < orderIds.length; i++) {
+        const info = await prep("UPDATE sections SET sort_order = $1 WHERE id = $2 AND quote_id = $3").run(i, orderIds[i], quoteId);
+        if (info.rowCount !== 1) throw new Error("section reorder update affected an unexpected row");
+      }
+
+      const positions = orderIds.map((id, idx) => ({ id, position: idx }));
+      return { ok: true, already_applied: false, positions };
+    });
+
+    if (result.error) {
+      return res.status(result.status).json({ error: result.error, code: result.code });
+    }
+    return res.json(result);
+  }
+}));
+
 router.put("/:quoteId/sections/:id", asyncHandler(async (req, res) => {
   const quoteId = Number(req.params.quoteId);
   if (!(await verifyQuoteAccess(quoteId, req.user.id, req.user.role))) {
@@ -347,9 +514,9 @@ router.put("/:quoteId/sections/:id", asyncHandler(async (req, res) => {
   const { code, name, sort_order, has_rooms } = req.body;
   await db
     .prepare(
-      "UPDATE sections SET code = COALESCE(?, code), name = COALESCE(?, name), sort_order = COALESCE(?, sort_order), has_rooms = COALESCE(?, has_rooms) WHERE id = ? AND quote_id = ?",
+      "UPDATE sections SET code = COALESCE(?, code), name = COALESCE(?, name), has_rooms = COALESCE(?, has_rooms) WHERE id = ? AND quote_id = ?",
     )
-    .run(code, name, sort_order, has_rooms !== undefined ? (has_rooms ? 1 : 0) : null, req.params.id, quoteId);
+    .run(code, name, has_rooms !== undefined ? (has_rooms ? 1 : 0) : null, req.params.id, quoteId);
   res.json({ ok: true });
 }));
 

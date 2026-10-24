@@ -858,6 +858,7 @@ The currently deployed legacy application is temporary while a separately develo
 ## 16.3 Equal row heights and centered content — approved
 
 - If any item requires more height because of content or an image, all item rows across the quote use a common height sufficient for the tallest item, not merely equal cells within that one row.
+- Future ordinary and manager printing must likewise make every item row and every field in that row match the tallest content-driven item row; this is approved backlog scope only and is not implemented in Slice 1.
 - Respect content, unified minimum, and field-specific minimums. A smaller field minimum cannot force clipping or make its row shorter than the common row height.
 - Column widths remain consistent across item rows; different columns may retain individual width overrides.
 - Center content horizontally and vertically. Multiline text is centered as a whole block, expanding above/below its center; do not leave a fixed empty area above wrapped text.
@@ -976,3 +977,71 @@ Responsive and preservation rules:
 Out of scope for this slice: section/room/item reordering, ordering-code rules or typography, screen-fit table width, unified field sizing, equal item-row heights, and print geometry changes.
 
 Status: approved for planning and implementation as a bounded summary-layout slice. No implementation or runtime verification is claimed by this product-spec update.
+
+## 16.11 Persistent hierarchy ordering and position-based display codes — approved for planning
+
+This decision refines and expands the item-only direction in §§4, 5, 11 Slice 3, and 14. It is the next bounded feature after Feature 003. It does not reopen screen-fit width, unified sizing, typography, print geometry, internal/customer print modes, margin persistence, or manual-item catalog save.
+
+### Position is the display-code source of truth
+
+- Sections can be reordered. Their displayed letters follow their current quote position: first `A`, second `B`, third `C`, and so on. Moving the first section to second changes that section's displayed prefix from `A` to `B` and changes the other section's prefix from `B` to `A`.
+- Section lettering continues spreadsheet-style after `Z`: `AA`, `AB`, and so on, with no 26-section display limit.
+- Direct items always occupy display group `1`, including in sections that also contain rooms. Their item sequence follows direct-item order: `A 1.1`, `A 1.2`, `A 1.3`.
+- Group `1` remains reserved when a section has no direct items. The first room is display group `2`, the second room is group `3`, and later rooms continue sequentially.
+- Rooms can be reordered only within their current section. Room group numbers and descendant item display codes follow the new room order.
+- Items can be reordered only within their current direct-item or room group. Their final sequence component follows that group-local order.
+- Adding or deleting a section, room, or item recalculates the affected position-based presentation without changing stable entity IDs, catalog linkage, names, prices, images, calculations, or ownership.
+- Quote display codes are derived, read-only presentation. Existing stored `sections.code` values remain compatibility data and must not be deleted, backfilled, or rewritten merely to match a quote position. Persisted section/item IDs and catalog `item_code` values remain identity/snapshot data and must not be rewritten merely to match a quote position.
+
+### Persistence and consistency
+
+- Section, room, and item order is real quote data. Save/autosave, reopen, local draft recovery, quote templates/copies where applicable, browser print, server PDF, and every in-repository screen/reference that presents quote ordering codes must resolve the same order and codes.
+- Existing `sort_order` values are the persistence mechanism unless implementation evidence disproves their adequacy. No schema migration or new index is approved by this product decision.
+- Legacy gaps, negative values, and duplicate positions must not hide or discard entities. Until a scope is explicitly reordered, resolve it deterministically by stored position first and stable database ID second. A successful reorder may normalize only that affected sibling scope to contiguous positions.
+- An order write must be all-or-nothing for its affected sibling scope, validate every submitted persisted ID, and compare the caller's exact previously observed order state before writing. Exact membership alone is insufficient: two clients may reorder the same IDs. A request may apply only when the stored state matches its expected baseline, or succeed as an already-applied retry when stored state already matches its target. Any other state is a conflict and must not be overwritten.
+- Unsaved entities may be reordered locally and remain distinct without fabricated database IDs. On save, they are created in current local sequence using the existing append behavior to obtain real IDs; after all creations for that scope succeed, one atomic reorder persists the complete intended scope. If any creation fails, no incomplete reorder is sent, successful creations remain deterministically appended, and the intended local order stays pending for retry/reconciliation.
+- New entities append to their applicable scope by default. Deletion may leave stored gaps; displayed numbers remain contiguous because they are derived from the resolved current order.
+
+### Interaction and accessibility
+
+- Preserve the existing TWiNS visual language and compact navigation/table structure.
+- Provide clear move-up and move-down controls for sections, rooms, and item rows. These controls are the guaranteed mouse, touch, and keyboard path and are disabled at scope boundaries.
+- Retain a clear item reorder/grab handle and permit direct dragging where safely supported, but dragging must never be the only way to reorder.
+- Keep focus on the moved entity after rerender and announce its new position through a non-visual status message. Reordering must not trigger section selection, room selection, row editing, deletion, copying, or a cross-scope move.
+- Item controls operate against the complete direct/room group. When a category filter hides siblings, do not offer a control whose result would be invisible or ambiguous; return to the group's all-items view before reordering.
+
+## 16.12 Approved queued print and layout follow-ups — documentation only
+
+The following requests are approved for backlog planning only. They are not implemented, runtime-verified, or part of Feature 004 Slice 1:
+
+- Temporarily hide the existing PDF action and replace its label with `طباعة للمدير`.
+- Define a manager print that includes cost, margin, and all other quote fields, available only to manager and owner through the application's verified role mapping and enforced authorization. Ordinary printing retains its current behavior and permissions.
+- Add an optional `show item images` setting to ordinary and manager printing.
+- Investigate blurred uploaded images across upload, compression, storage, and rendering before selecting a fix.
+- Ensure screen-fit has no horizontal scrolling or clipped field content; coordinate manual column widths within the available width.
+- Make field content expand height automatically, equalize fields in a row to the tallest field, and equalize displayed pricing-table item rows to the tallest item row.
+- Keep each column's width consistent across rows while allowing different columns to use different widths.
+- Apply equivalent alignment and complete-content visibility to printing within paper width.
+
+Technical planning questions remain open for the manager role mapping, manager-print authorization boundary, image-setting persistence and scope, image-quality diagnosis, and the browser/PDF sizing contract. No implementation behavior should be inferred until those questions are resolved.
+
+### Existing separate behavior and non-goals
+
+- Cross-section room movement is not part of reordering. The existing explicit room-copy action remains a copy to another section, not a move.
+- Cross-group or cross-section item movement is not introduced by this feature. Existing item creation into a chosen destination and any existing API ability to update `room_id` remain separate behavior and must not be surfaced as reorder.
+- The unused `GET /api/quotes/:id/calculate` response keeps its current stored `code` semantics. Feature 004 does not add a derived `display_code` without a demonstrated consumer requirement.
+- Reordering must not change calculations, item content, catalog identity, permissions, delete/copy semantics, autosave timing, or general UI geometry.
+
+### Acceptance additions
+
+- [ ] Reordering two sections containing direct items and rooms changes their displayed letters and every descendant quote display code without changing stable IDs or content.
+- [ ] Reordering rooms changes room group numbers while direct items remain in reserved group `1`.
+- [ ] Reordering direct items and each room's items changes only that group's sequence.
+- [ ] Save/reopen and template/copy flows preserve the same resolved order and codes where those flows carry the quote hierarchy.
+- [ ] Editor, all-items view, browser print, and server PDF agree on order and display codes.
+- [ ] Names, prices, images, calculations, ownership, catalog codes, and totals remain unchanged.
+- [ ] Failed, stale, or repeated order saves do not partially reorder persisted siblings or silently clear pending order work.
+- [ ] Duplicate/gapped legacy positions resolve deterministically without dropping data.
+- [ ] Reordering is operable with mouse, touch, and keyboard without requiring drag.
+
+Status: approved product behavior with the Feature 004 advisor decisions recorded, and approved for planning. No implementation or runtime verification is claimed by this documentation update.

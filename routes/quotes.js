@@ -42,7 +42,7 @@ router.get("/", asyncHandler(async (req, res) => {
   res.json({ quotes: rows });
 }));
 
-router.get("/:id", asyncHandler(async (req, res) => {
+router.get("/:id([^/]+)", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -60,27 +60,27 @@ router.get("/:id", asyncHandler(async (req, res) => {
 
   // Fetch sections with items
   const sections = await db
-    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
+    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC, id ASC")
     .all(q.id);
 
   const sectionIds = sections.map((s) => s.id);
 
   const allRooms = sectionIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC, id ASC`)
         .all(...sectionIds)
     : [];
 
   const sectionItems = sectionIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC, id ASC`)
         .all(...sectionIds)
     : [];
 
   const roomIds = allRooms.map((r) => r.id);
   const roomItems = roomIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC, id ASC`)
         .all(...roomIds)
     : [];
 
@@ -161,7 +161,7 @@ router.post("/", quoteRules, handleValidation, asyncHandler(async (req, res) => 
   res.json({ id: info.lastInsertRowid });
 }));
 
-router.post("/:id/access", asyncHandler(async (req, res) => {
+router.post("/:id([^/]+)/access", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -191,7 +191,7 @@ router.post("/:id/access", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-router.delete("/:id/access/:userId?", asyncHandler(async (req, res) => {
+router.delete("/:id([^/]+)/access/:userId?", asyncHandler(async (req, res) => {
   if (!isAdminOrOwner(req.user.role)) {
     return res
       .status(403)
@@ -217,7 +217,8 @@ router.delete("/:id/access/:userId?", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-router.put("/:id", asyncHandler(async (req, res) => {
+router.put("/:id([^/]+)", asyncHandler(async (req, res) => {
+  console.log('[DEBUG] Quotes PUT endpoint hit', req.params.id, req.path);
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -276,7 +277,7 @@ router.put("/:id", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-router.delete("/:id", asyncHandler(async (req, res) => {
+router.delete("/:id([^/]+)", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
@@ -315,14 +316,14 @@ router.delete("/:id", asyncHandler(async (req, res) => {
 }));
 
 // Calculation endpoint
-router.get("/:id/calculate", asyncHandler(async (req, res) => {
+router.get("/:id([^/]+)/calculate", asyncHandler(async (req, res) => {
   const q = await db
     .prepare("SELECT * FROM quotes WHERE id = ?")
     .get(req.params.id);
   if (!q) return res.status(404).json({ error: "العرض غير موجود" });
 
   const sections = await db
-    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
+    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC, id ASC")
     .all(q.id);
 
   const sectionSubtotals = [];
@@ -331,16 +332,16 @@ router.get("/:id/calculate", asyncHandler(async (req, res) => {
 
   for (const sec of sections) {
     const items = await db
-      .prepare("SELECT * FROM items WHERE section_id = ? ORDER BY sort_order ASC")
+      .prepare("SELECT * FROM items WHERE section_id = ? ORDER BY sort_order ASC, id ASC")
       .all(sec.id);
 
     const rooms = await db
-      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC")
+      .prepare("SELECT * FROM rooms WHERE section_id = ? ORDER BY sort_order ASC, id ASC")
       .all(sec.id);
 
     for (const room of rooms) {
       const roomItems = await db
-        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC")
+        .prepare("SELECT * FROM items WHERE room_id = ? ORDER BY sort_order ASC, id ASC")
         .all(room.id);
       items.push(...roomItems);
     }

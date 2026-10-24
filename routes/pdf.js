@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const db = require("../db");
 const QRCode = require("qrcode");
 const { asyncHandler } = require("../utils/asyncHandler");
+const QuoteOrdering = require("../public/quote-ordering.js");
 
 const arabicReshaper = require("arabic-reshaper");
 const bidi = require("bidi-js");
@@ -101,27 +102,27 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   }
 
   const sections = await db
-    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC")
+    .prepare("SELECT * FROM sections WHERE quote_id = ? ORDER BY sort_order ASC, id ASC")
     .all(q.id);
 
   const sectionIds = sections.map((s) => s.id);
 
   const allRooms = sectionIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM rooms WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) ORDER BY sort_order ASC, id ASC`)
         .all(...sectionIds)
     : [];
 
   const sectionItems = sectionIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM items WHERE section_id IN (${sectionIds.map(() => "?").join(",")}) AND room_id IS NULL ORDER BY sort_order ASC, id ASC`)
         .all(...sectionIds)
     : [];
 
   const roomIds = allRooms.map((r) => r.id);
   const roomItems = roomIds.length > 0
     ? await db
-        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC`)
+        .prepare(`SELECT * FROM items WHERE room_id IN (${roomIds.map(() => "?").join(",")}) ORDER BY sort_order ASC, id ASC`)
         .all(...roomIds)
     : [];
 
@@ -138,6 +139,32 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     paymentTerms = JSON.parse(q.payment_terms || "[]");
   } catch {
     paymentTerms = [];
+  }
+
+  // Resolve section order for derived labels
+  function resolveSectionOrder(sections) {
+    sections.sort((a, b) => {
+      const sa = a.sort_order ?? 0;
+      const sb = b.sort_order ?? 0;
+      if (sa !== sb) return sa - sb;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+    for (let i = 0; i < sections.length; i++) {
+      sections[i]._resolvedIndex = i;
+      if (sections[i].rooms) {
+        sections[i].rooms.sort((a, b) => {
+          const sa = a.sort_order ?? 0;
+          const sb = b.sort_order ?? 0;
+          if (sa !== sb) return sa - sb;
+          return (a.id ?? 0) - (b.id ?? 0);
+        });
+      }
+    }
+  }
+  resolveSectionOrder(sections);
+
+  function getDerivedSectionLabel(sec) {
+    return QuoteOrdering.sectionLabel(sec._resolvedIndex ?? 0);
   }
 
   // ── Calculate totals ──
@@ -157,7 +184,8 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
       sectionCost += (item.qty || 0) * (item.base_cost || 0);
     }
     const secNameEn = getSectionNameEn(sec.name);
-    sectionSubtotals.push({ code: sec.code, name: sec.name, name_en: secNameEn, subtotal: sectionTotal });
+    const derivedCode = getDerivedSectionLabel(sec);
+    sectionSubtotals.push({ code: derivedCode, name: sec.name, name_en: secNameEn, subtotal: sectionTotal });
     totalSelling += sectionTotal;
     totalEstimatedCost += sectionCost;
   }
@@ -352,7 +380,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
     const notesText = displayText(item.notes || "");
     const secLabel = displayText(sectionLabelEn);
     const itemUnit = displayText(item.unit || "");
-    const itemCode = displayMap[item.id] || String(item.item_code || "");
+    const itemCode = displayMap.get(item) || String(item.item_code || "");
 
     const values = [
       itemCode,
@@ -400,9 +428,10 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
       atY = drawTableHeader(atY);
     }
     const secNameEn = getSectionNameEn(sec.name);
+    const derivedCode = getDerivedSectionLabel(sec);
     doc.rect(40, atY - 2, contentW, 15).fill(sectionBg);
     doc.font(fontBold).fontSize(8).fillColor(darkText);
-    const secHeaderText = `\u200Fالقسم ${sec.code} : ${sectionLabel(sec.name)}`;
+    const secHeaderText = `\u200Fالقسم ${derivedCode} : ${sectionLabel(sec.name)}`;
     doc.text(secHeaderText, 44, atY + 1, { width: contentW - 8, align: "right" });
     return atY + 17;
   }
@@ -422,36 +451,9 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
   }
 
   // ملاحظة: هذه الدالة منسوخة أيضًا في public/app.html. أي تعديل على منطق الترقيم هنا يجب أن يُطبّق هناك أيضًا لضمان تطابق الشاشة مع الطباعة مع PDF.
+  // Use shared QuoteOrdering helper for consistent display codes
   function buildDisplayNumberMap(sec) {
-    const map = {};
-    const code = sec.code || "";
-    const allItems = sec.items || [];
-    const rooms = sec.rooms || [];
-    let seq = 0;
-    if (sec.has_rooms) {
-      const directItems = allItems.filter((it) => !it.room_id);
-      seq++;
-      let sub = 0;
-      for (const d of directItems) {
-        sub++;
-        map[d.id] = `${code} ${seq}.${sub}`;
-      }
-      for (const room of rooms) {
-        seq++;
-        const roomItems = allItems.filter((it) => it.room_id === room.id);
-        sub = 0;
-        for (const ri of roomItems) {
-          sub++;
-          map[ri.id] = `${code} ${seq}.${sub}`;
-        }
-      }
-    } else {
-      for (const it of allItems) {
-        seq++;
-        map[it.id] = `${code} ${seq}.1`;
-      }
-    }
-    return map;
+    return QuoteOrdering.buildDisplayCodeMap(sec);
   }
 
   for (const sec of sections) {
@@ -473,7 +475,7 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
         }
       }
       for (const room of sec.rooms || []) {
-        const roomItems = (sec.items || []).filter((it) => it.room_id === room.id);
+        const roomItems = room.items || [];
         if (roomItems.length > 0) {
           y = renderRoomHeader(room.name, y);
           for (const item of roomItems) {
@@ -483,8 +485,9 @@ router.get("/:id/pdf", authViaQueryOrHeader, asyncHandler(async (req, res) => {
       }
     }
 
+    const derivedCode = getDerivedSectionLabel(sec);
     // Section subtotal
-    const secSub = sectionSubtotals.find((s) => s.code === sec.code);
+    const secSub = sectionSubtotals.find((s) => s.code === derivedCode);
     if (secSub) {
       y += 2;
       doc.font(fontBold).fontSize(8.5).fillColor(gold);
