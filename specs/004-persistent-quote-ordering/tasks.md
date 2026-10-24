@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/reorder-api.md](contracts/reorder-api.md), and [quickstart.md](quickstart.md)
 
-**Execution rule**: Only one implementation slice may be active. Slice 1 requires separate approval and independent review before Slice 2; Slice 2 requires review before Slice 3. These tasks do not authorize implementation, staging, commit, push, deployment, branch changes, or application-data mutation.
+**Execution rule**: Only one implementation slice may be active. Slice 1 is independently approved and closed. Slice 2 is the next bounded implementation candidate and still requires explicit implementation authorization; it requires independent review before Slice 3. These tasks do not themselves authorize implementation, staging, commit, push, deployment, branch changes, or application-data mutation.
 
 **Tests**: Required because the approved feature explicitly requires pure order/code proof, transactional engine checks, save/reopen parity, and narrow browser/print verification.
 
@@ -12,7 +12,7 @@
 
 - [x] T001 Reconfirm actual HEAD, branch, worktrees, untracked files, and cause-scoped baseline in `AGENTS.md` and `specs/004-persistent-quote-ordering/plan.md`; source remains consistent with the plan.
 - [x] T002 Record advisor decisions: `AA`/`AB` continuation; derived read-only section labels with stored `sections.code` and catalog `item_code` preserved; no calculate-endpoint `display_code`.
-- [x] T003 Slice 1 only is authorized for this takeover; Copilot owns implementation and the independent-review gate remains before Slices 2–3. Slices 2–3 remain inactive.
+- [x] T003 Historical Slice 1 authorization was limited to its foundation; it is now independently approved and closed. The independent-review gate remains between Slice 2 and Slice 3.
 
 ---
 
@@ -56,7 +56,7 @@ Slice 1 is independently approved and closed. The implementation and focused evi
 
 The implementer did not have Chrome/Chromium tooling; independent Codex completed the Chrome verification separately. Earlier PostgreSQL initialization warnings remain pre-existing and out of scope: the `app_settings` seed update requests `RETURNING id`, initialization queries `sqlite_master`, and concurrent cold-start initializers can collide with SQLSTATE `23505`.
 
-Slice 2, Slice 3, and the approved future printing/image/sizing requests remain pending. No reorder controls or those future requests were implemented in this closeout.
+Slice 2 is now planning-ready but not implemented. Slice 3 and the approved future printing/image/sizing requests remain inactive. No reorder controls or those future requests were implemented in this documentation task.
 
 ---
 
@@ -68,19 +68,20 @@ Slice 2, Slice 3, and the approved future printing/image/sizing requests remain 
 
 ### Tests first
 
-- [ ] T020 [US1] Add failing pure/frontend-state tests for section move boundaries, scope version ownership, stale completion, conflict reconciliation without resurrecting deleted members, and focus target identity in `test/quote-ordering.test.js` or a narrowly extracted helper test file.
-- [ ] T021 [US1] Add failing integration tests for section reorder followed by manual save, autosave, reopen, already-applied retry, and stale different-target conflict in `test/reorder.test.js` and only directly affected save tests.
+- [x] T020 [US1] Extend `test/quote-ordering.test.js` with failing pure cases for adjacent section movement, first/last boundaries, projected local positions versus an immutable persisted baseline, surviving-ID conflict merge, server-only/deleted IDs, and distinct unsaved object identity. Do not change display-code expectations.
+- [ ] T021 [US1] Add focused failing coordination cases in `test/auto-save.test.js`, `test/save-batch.test.js`, `test/draft-restore.test.js`, and `test/frontend-ownership.test.js`: captured scope version, newer move behind an in-flight payload, partial section creation, draft/server reconciliation, and quote/hierarchy replacement. Add only a narrow section save/reopen/already-applied smoke to `test/reorder.test.js`; do not repeat Slice 1's backend concurrency matrix.
 
 ### Implementation
 
-- [ ] T022 [US1] Add compact section grab/up/down controls, event isolation, boundary states, focus restoration, and one polite live region in `public/app.html` using existing visual variables.
-- [ ] T023 [US1] Add section-scope pending expected/target state, same-scope create/delete/reorder queue, conflict read/reconciliation, and identical timeout/unknown-result retry in `public/app.html`; never fall back to per-row order writes.
-- [ ] T024 [US1] Integrate section-order pending/confirmed state and append-then-reorder creation with existing manual save, selective autosave, shared lock, draft save/restore, and quote-switch ownership guards without changing debounce timing.
-- [ ] T025 [US1] Verify section order through template save/load and direct-copy append behavior; modify `routes/templates.js` or `public/app.html` only for a proven order-loss defect.
+- [x] T022 [US1] Add only the needed pure movement/projected-position/baseline-target/reconciliation helpers to `public/quote-ordering.js`. Keep fetch, promises, DOM, and dirty state in the editor.
+- [x] T023 [US1] In `public/app.html`, create the sole `orderScopes` registry and editor-generation owner, plus a reorder-specific request path that preserves HTTP `status`/`code`. Keep the existing generic API behavior and autosave timing unchanged.
+- [x] T024 [US1] Replace the section pill's earlier/later buttons with a primary drag handle, visible insertion indicator, ordinary-click selection isolation, keyboard handle mode with instructions/cancellation, active-object preservation, focus restoration, and the single polite live region.
+- [x] T025 [US1] Serialize section reorder with immediate/batch create, delete, and direct-copy append through the quote-section queue. Record every successful append position, send no reorder after partial creation, coalesce rapid moves, freeze unknown-outcome payloads, and reconcile `409` without replacing surviving edited objects or issuing per-row writes.
+- [x] T026 [US1] Integrate captured section-scope versions with manual save, selective autosave, shared lock, draft save/restore, and all hierarchy replacement paths. A save is not clean while captured order work is unresolved; a later edit remains dirty. Verify template load resets ownership; change template/backend files only if focused evidence proves a defect.
 
 ### Slice checkpoint
 
-- [ ] T026 [US1] Execute the two-populated-section acceptance example across editor, reopen, browser print, and server PDF; assert stable IDs/content/catalog codes and byte/value-equivalent totals.
+- [ ] T027 [US1] Execute the two-populated-section acceptance example, including rapid input, timeout-after-commit, same/different membership conflict, partial unsaved creation, quote switch, RTL/LTR keyboard order, editor/all-items/browser-print parity, and accepted server-PDF helper parity. Coordinator, conflict, retry, membership, offline, keyboard, and output-parity portions were independently approved; quote-switch and other explicitly pending runtime portions remain open.
 
 ---
 
@@ -92,18 +93,26 @@ Slice 2, Slice 3, and the approved future printing/image/sizing requests remain 
 
 ### Tests first
 
-- [ ] T027 [US2] Add failing room move/active-object/scope-version tests and direct-group reservation assertions in the focused pure/frontend test file.
-- [ ] T028 [US2] Add failing room persistence tests for stale membership, repeat, autosave/manual save, reopen, and room-copy non-regression in `test/reorder.test.js` and `test/clone-room.test.js` only where directly relevant.
+- [ ] T028 [US2] Add failing pure/frontend cases for named-room movement, first/last named-room boundaries, `activeRoomObj` preservation, direct-group reservation, room-scope version ownership, and mixed persisted/unsaved room reconciliation.
+- [ ] T029 [US2] Add focused manual-save/autosave/draft/reopen cases for partial room creation, already-applied retry, conflict, and quote switch. Add `test/clone-room.test.js` coverage only because the target room-scope queue hook changes; do not broaden clone behavior.
 
 ### Implementation
 
-- [ ] T029 [US2] Add compact named-room grab/up/down controls, event isolation from tab/copy/edit/delete, boundary states, focus restoration, and live announcements in `public/app.html`; keep the direct tab fixed.
-- [ ] T030 [US2] Reuse expected/target state, same-scope queue, append-then-reorder creation, and timeout/conflict reconciliation for rooms; preserve `activeRoomObj`, section membership, draft state, and existing room create/delete/copy behavior.
+- [x] T030 [US2] Replace named-room earlier/later buttons with a primary drag handle and visible insertion indicator, plus keyboard handle mode with instructions/cancellation, event isolation, focus/live announcement, and RTL/LTR checks. Keep the direct tab fixed and non-reorderable.
+- [x] T031 [US2] Reuse the single coordinator for each section's room scope. Serialize immediate/batch room create, room delete, and target room-copy append; preserve `activeRoomObj`, unsaved content, `section_id`, descendant membership, and direct group `1`; issue one complete reorder only when every intended room is persisted.
+- [x] T032 [US2] Extend the existing draft metadata/reconciliation to room scopes and active room identity. On unavailable server keep the draft visible but block blind persisted reorder; on conflict preserve surviving edits/unsaved rooms and never auto-recreate an externally deleted persisted room.
 
 ### Slice 2 verification and stop gate
 
-- [ ] T031 [US2] Execute the room acceptance examples, focused tests, disposable SQLite and available disposable PostgreSQL checks, syntax/diff checks, and narrow pointer/touch/keyboard browser checks; report exact counts/limitations.
-- [ ] T032 Stop for independent Slice 2 review; do not begin item controls until blockers are resolved and Slice 3 is explicitly approved.
+- [ ] T033 [US2] Execute room acceptance with/without direct items, boundaries, reopen, partial creation, rapid actions, conflict, timeout/retry, quote switching, pointer/touch, and trusted Enter/Space in RTL/LTR. Verify direct group `1`, rooms `2+`, codes, all-items, browser print, and unchanged totals. Reuse accepted backend/PDF evidence; run no external PostgreSQL or broad PDF/layout battery unless a dependency changed. Coordinator and tested CDP drag-flow portions were approved; physical-pointer drag, outside-drop, pointer-cancel, touch, and template/quote-switch portions remain pending, not failed.
+- [ ] T034 Run `node --check` on modified/new JavaScript (including an extracted inline app script), focused affected tests, then `node --test test/*.test.js` once. Report actual pass/fail/skipped counts, browser/PostgreSQL limitations, `git diff --check`, and a cause-scoped diff proving no schema/index/dependency/auth/pricing/autosave-timing/item-control/print-geometry changes. Focused syntax/tests and `git diff --check` passed, but the full suite was not run.
+- [x] T035 Stop for independent Slice 2 review; do not begin item controls until blockers are resolved and Slice 3 is explicitly approved. Codex approved Slice 2 with no blocking findings; Slice 3 remains pending.
+
+### Slice 2 closeout
+
+Codex independently approved Slice 2 with no blocking findings. The production coordinator, 409 recovery, frozen-request retries with newer intent, membership coordination, offline draft blocking, keyboard operation, and tested CDP drag flows passed as documented. The focused production regression file reports 8 passed, 0 failed, and 0 skipped; exact output is retained at `/tmp/feature004-slice2-interaction-repair-20261024/verification.txt`. Earlier coordinator/save evidence is retained at `/tmp/codex-feature004-slice2-repair-20261024-final/focused-verification.txt`.
+
+Physical-pointer drag, outside-drop, pointer-cancel, touch, and template/quote-switch tests remain pending; they were not failures. No full test suite or physical touch test is claimed. The current closeout was recorded by OpenCode; uncertain historical executor attribution is intentionally not inferred. No Slice 3 task is approved or complete.
 
 ---
 
@@ -115,15 +124,15 @@ Slice 2, Slice 3, and the approved future printing/image/sizing requests remain 
 
 ### Tests first
 
-- [ ] T033 [US3] Add failing pure tests for extracting/splicing one item group into flat `section.items`, unsaved object positions, insertion/deletion, and category-filter rejection in the focused order helper tests.
-- [ ] T034 [US3] Add failing item endpoint and editor persistence tests for direct/room scopes, foreign room/section rejection, multiple unsaved object identity, append-then-reorder, partial creation failure/reconciliation, save/reopen, and print/PDF parity.
+- [ ] T036 [US3] Add failing pure tests for extracting/splicing one item group into flat `section.items`, unsaved object positions, insertion/deletion, and category-filter rejection in the focused order helper tests.
+- [ ] T037 [US3] Add failing item endpoint and editor persistence tests for direct/room scopes, foreign room/section rejection, multiple unsaved object identity, append-then-reorder, partial creation failure/reconciliation, save/reopen, and print/PDF parity.
 
 ### Implementation
 
-- [ ] T035 [US3] Add a compact item reorder cell with grab/up/down controls and accessible names to main item rows in `public/app.html`, without altering the ordering-code sizing contract or unrelated table geometry.
-- [ ] T036 [US3] Implement complete-group item splicing and category-filter protection in `public/app.html`; never change `section_id`, `room_id`, `category_id`, or `item_code`.
-- [ ] T037 [US3] Reuse pending expected/target state, same-scope mutation queue, append-then-reorder creation, conflict reconciliation, identical unknown-outcome retry, focus/live announcement, manual save, autosave, and draft handling for nullable-room item scopes.
-- [ ] T038 [US3] Add optional constrained item-row drag behavior in `public/app.html` only after button movement passes; keep up/down controls fully functional and prevent cross-group drops.
+- [ ] T038 [US3] Add a compact item reorder cell with grab/up/down controls and accessible names to main item rows in `public/app.html`, without altering the ordering-code sizing contract or unrelated table geometry.
+- [ ] T039 [US3] Implement complete-group item splicing and category-filter protection in `public/app.html`; never change `section_id`, `room_id`, `category_id`, or `item_code`.
+- [ ] T040 [US3] Reuse pending expected/target state, same-scope mutation queue, append-then-reorder creation, conflict reconciliation, identical unknown-outcome retry, focus/live announcement, manual save, autosave, and draft handling for nullable-room item scopes.
+- [ ] T041 [US3] Add optional constrained item-row drag behavior in `public/app.html` only after button movement passes; keep up/down controls fully functional and prevent cross-group drops.
 
 ---
 
@@ -133,10 +142,10 @@ Slice 2, Slice 3, and the approved future printing/image/sizing requests remain 
 
 **Independent Test**: Complete each move with keyboard and touch-style activation, retain focus/announcement, then inject stale/failure/repeat cases and observe no partial persisted order.
 
-- [ ] T039 [US4] Run keyboard-only and pointer/touch-style checks for section, room, and item controls, disabled boundaries, focus restoration, live announcements, and event isolation in an isolated browser fixture.
-- [ ] T040 [US4] Run rapid repeat, pending newer move, stale membership, network failure, quote switch, draft restore, and retry scenarios; prove failed order state is not silently cleared.
-- [ ] T041 [US4] Compare editor, all-items view, saved/reopened quote, browser print, and server PDF against all concrete examples in `specs/004-persistent-quote-ordering/quickstart.md`.
-- [ ] T042 [US4] Prove names, prices, images, calculations, ownership, stable IDs, parent IDs, catalog codes, and totals remain unchanged with targeted before/after assertions.
+- [ ] T042 [US4] Run keyboard-only and pointer/touch-style checks for section, room, and item controls, disabled boundaries, focus restoration, live announcements, and event isolation in an isolated browser fixture.
+- [ ] T043 [US4] Run rapid repeat, pending newer move, stale membership, network failure, quote switch, draft restore, and retry scenarios; prove failed order state is not silently cleared.
+- [ ] T044 [US4] Compare editor, all-items view, saved/reopened quote, browser print, and server PDF against all concrete examples in `specs/004-persistent-quote-ordering/quickstart.md`.
+- [ ] T045 [US4] Prove names, prices, images, calculations, ownership, stable IDs, parent IDs, catalog codes, and totals remain unchanged with targeted before/after assertions.
 
 ---
 
@@ -144,11 +153,11 @@ Slice 2, Slice 3, and the approved future printing/image/sizing requests remain 
 
 **Purpose**: Verify the complete Feature 004 boundary and stop.
 
-- [ ] T043 Run `node --test test/*.test.js` and report exact current pass/fail/skipped counts; do not substitute historical counts.
-- [ ] T044 Run all modified JavaScript syntax checks, `git diff --check`, consumer inventory grep, duplicate-control-ID checks, and a cause-scoped diff review.
-- [ ] T045 Report SQLite and PostgreSQL runtime evidence separately, explicitly marking unavailable browser/PDF/PostgreSQL checks as not runtime-verified.
-- [ ] T046 Confirm the diff contains no schema/index/dependency/auth/pricing/autosave-timing/screen-fit/sizing/typography/print-geometry changes and no unrelated summary/dialog batteries.
-- [ ] T047 Stop for advisor assessment with exact files changed, implementation behavior, tests/counts, runtime limitations, diff scope, commit status, and push status; do not commit or push without explicit approval.
+- [ ] T046 Run `node --test test/*.test.js` and report exact current pass/fail/skipped counts; do not substitute historical counts.
+- [ ] T047 Run all modified JavaScript syntax checks, `git diff --check`, consumer inventory grep, duplicate-control-ID checks, and a cause-scoped diff review.
+- [ ] T048 Report SQLite and PostgreSQL runtime evidence separately, explicitly marking unavailable browser/PDF/PostgreSQL checks as not runtime-verified.
+- [ ] T049 Confirm the diff contains no schema/index/dependency/auth/pricing/autosave-timing/screen-fit/sizing/typography/print-geometry changes and no unrelated summary/dialog batteries.
+- [ ] T050 Stop for advisor assessment with exact files changed, implementation behavior, tests/counts, runtime limitations, diff scope, commit status, and push status; do not commit or push without explicit approval.
 
 ## Dependencies and execution order
 
@@ -170,6 +179,6 @@ Advisor decisions + Slice 1 approval
 - US4 is final behavioral acceptance after all three entity controls exist.
 - No task is marked `[P]` because the active slice intentionally avoids concurrent edits to shared `public/app.html`/route/test surfaces.
 
-## Suggested first implementation boundary
+## Prepared next implementation boundary
 
-Slice 1 only (T004–T019) after T001–T003. It is independently reviewable, adds the minimal atomic contract, corrects positional display derivation, proves engine behavior, and introduces no reorder UI. Stop after its review gate.
+Slice 2 only (T020–T035), in task order. Slice 1 (T004–T019) is accepted and must not be reopened without contradictory current-source evidence. Stop after T035; do not implement T036 or later item-order work.

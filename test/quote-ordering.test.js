@@ -365,3 +365,56 @@ test("ordinary item writer payload omits persistence and ordering metadata", () 
     room_id: null,
   });
 });
+
+test("moveAdjacent moves one entity and preserves unsaved object identity", () => {
+  const first = { id: 1 };
+  const unsaved = { id: null };
+  const last = { id: 3 };
+  const moved = QuoteOrdering.moveAdjacent([first, unsaved, last], 2, "earlier");
+  assert.equal(moved.moved, true);
+  assert.deepEqual(moved.items, [first, last, unsaved]);
+  assert.equal(moved.items[2], unsaved);
+});
+
+test("moveAdjacent reports native boundary no-op for first and last entities", () => {
+  const items = [{ id: 1 }, { id: 2 }];
+  assert.equal(QuoteOrdering.moveAdjacent(items, 0, "earlier").moved, false);
+  assert.equal(QuoteOrdering.moveAdjacent(items, 1, "later").moved, false);
+  assert.deepEqual(items.map((item) => item.id), [1, 2]);
+});
+
+test("room movement remains a named-room scope independent of direct group", () => {
+  const direct = { id: 10, room_id: null };
+  const roomOne = { id: 20, room_id: 1 };
+  const roomTwo = { id: 30, room_id: 2 };
+  const movedRooms = QuoteOrdering.moveAdjacent([roomOne, roomTwo], 1, "earlier").items;
+  assert.deepEqual(movedRooms.map((room) => room.id), [30, 20]);
+  assert.equal(direct.room_id, null);
+  assert.equal(roomTwo.room_id, 2);
+});
+
+test("scope baseline and target remain separate from projected positions", () => {
+  const first = { id: 1, sort_order: 0 };
+  const second = { id: 2, sort_order: 1 };
+  const projected = QuoteOrdering.moveAdjacent([first, second], 1, "earlier").items;
+  assert.deepEqual(QuoteOrdering.scopeBaseline([first, second]), [
+    { id: 1, sort_order: 0 },
+    { id: 2, sort_order: 1 },
+  ]);
+  assert.deepEqual(QuoteOrdering.scopeTarget(projected), [2, 1]);
+  assert.equal(projected[0], second);
+});
+
+test("reconcileScopeOrder preserves surviving local objects and unsaved siblings", () => {
+  const localA = { id: 1, name: "edited" };
+  const localDeleted = { id: 2, name: "removed remotely" };
+  const unsaved = { id: null, name: "new" };
+  const serverOnly = { id: 3, name: "server" };
+  const merged = QuoteOrdering.reconcileScopeOrder(
+    [localA, localDeleted, unsaved],
+    [serverOnly, { id: 1, name: "server value" }],
+  );
+  assert.deepEqual(merged, [serverOnly, localA, unsaved]);
+  assert.equal(merged[1], localA);
+  assert.equal(merged[2], unsaved);
+});

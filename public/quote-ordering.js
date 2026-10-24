@@ -49,14 +49,14 @@
     const groups = [];
 
     if (hasRooms) {
-      const sortedDirect = resolveScopeOrder(directItems);
+      const sortedDirect = directItems;
       if (sortedDirect.length > 0) {
         groups.push({ kind: "direct", groupNumber: 1, items: sortedDirect, roomId: null });
       } else {
         // Reserve group 1 even when empty
         groups.push({ kind: "direct", groupNumber: 1, items: [], roomId: null });
       }
-      const sortedRooms = resolveScopeOrder(rooms);
+      const sortedRooms = rooms;
       for (let i = 0; i < sortedRooms.length; i++) {
         const room = sortedRooms[i];
         const items = resolveScopeOrder(roomItemsByRoom.get(room.id) || []);
@@ -148,6 +148,65 @@
     return `${sectionPrefix} ${groupNumber}.${itemSequence}`;
   }
 
+  function moveAdjacent(items, index, direction) {
+    const result = [...items];
+    const nextIndex = index + (direction === "earlier" ? -1 : 1);
+    if (index < 0 || index >= result.length || nextIndex < 0 || nextIndex >= result.length) {
+      return { items: result, moved: false, from: index, to: index };
+    }
+    const moved = result.splice(index, 1)[0];
+    result.splice(nextIndex, 0, moved);
+    return { items: result, moved: true, from: index, to: nextIndex };
+  }
+
+  function scopeBaseline(items) {
+    return items
+      .filter((item) => item && item.id != null)
+      .map((item) => ({ id: item.id, sort_order: item.sort_order ?? 0 }));
+  }
+
+  function scopeTarget(items) {
+    return items.filter((item) => item && item.id != null).map((item) => item.id);
+  }
+
+  function projectedPositions(items) {
+    const positions = new Map();
+    items.forEach((item, index) => positions.set(item, index));
+    return positions;
+  }
+
+  function reconcileScopeOrder(localItems, serverItems) {
+    const server = serverItems.filter((item) => item && item.id != null);
+    const serverIds = new Set(server.map((item) => String(item.id)));
+    const localById = new Map(
+      localItems
+        .filter((item) => item && item.id != null)
+        .map((item) => [String(item.id), item]),
+    );
+    const survivors = localItems.filter(
+      (item) => item && (item.id == null || serverIds.has(String(item.id))),
+    );
+    const serverOnly = server.filter((item) => !localById.has(String(item.id)));
+    const merged = [...survivors];
+    // Insert server-only entities at their authoritative relative positions;
+    // local survivors retain their projected order and object identity.
+    for (const item of serverOnly) {
+      const serverIndex = server.indexOf(item);
+      let beforeCount = 0;
+      for (let i = 0; i < serverIndex; i++) {
+        if (serverIds.has(String(server[i].id)) && localById.has(String(server[i].id))) {
+          beforeCount++;
+        }
+      }
+      const insertedBefore = serverOnly.filter(
+        (candidate) => server.indexOf(candidate) < serverIndex,
+      ).length;
+      const insertionIndex = Math.min(beforeCount + insertedBefore, merged.length);
+      merged.splice(insertionIndex, 0, item);
+    }
+    return merged;
+  }
+
   return {
     sectionLabel,
     compareBySortOrderThenId,
@@ -159,5 +218,10 @@
     resolveQuoteHierarchy,
     resolveAllDisplayCodes,
     getItemDisplayCode,
+    moveAdjacent,
+    scopeBaseline,
+    scopeTarget,
+    projectedPositions,
+    reconcileScopeOrder,
   };
 });

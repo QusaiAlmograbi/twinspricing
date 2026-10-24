@@ -1,6 +1,6 @@
 # Validation Quickstart: Persistent Quote Ordering
 
-This is an implementation-phase guide, not evidence that Feature 004 is currently implemented or verified.
+This remains the reproducible validation guide. Slice 2 was independently approved by Codex with no blocking findings; this document does not claim that pending physical-pointer, outside-drop, pointer-cancel, touch, or template/quote-switch gates were executed.
 
 ## Safety prerequisites
 
@@ -108,8 +108,8 @@ After all moves:
 
 ## Narrow browser checks
 
-- Use up/down controls with mouse click, touch-style pointer activation, Enter, and Space.
-- Verify first/last boundary controls are disabled.
+- Drag section and named-room handles to visible insertion points with mouse or touch.
+- Use Enter/Space to enter or cancel keyboard handle mode, ArrowUp/ArrowDown to move, and Escape to cancel; verify focus and announcements after rerender.
 - Verify clicking a reorder control does not select, edit, copy, or delete the entity.
 - Verify active section/room remains the same object after moving.
 - Verify focus follows the moved control and the live region announces the new position.
@@ -127,3 +127,10 @@ Report separately:
 - runtime-proven browser/print/PDF checks and limitations;
 - source-proven unchanged fields/formulas/auth/save timing;
 - exact files changed, diff scope, commit status, and push status.
+
+Slice 2 closeout evidence:
+
+- Focused production coordinator/save regression: **8 passed, 0 failed, 0 skipped**, `/tmp/feature004-slice2-interaction-repair-20261024/verification.txt`.
+- Earlier focused save/retry and coordinator evidence: `/tmp/codex-feature004-slice2-repair-20261024-final/focused-verification.txt`.
+- Tested CDP drag-flow evidence: `/tmp/codex-feature004-slice2-review-20261024/browser-reorder-runtime.txt` and `/tmp/codex-feature004-slice2-review-20261024/browser-room-delayed-response.txt`.
+- Physical-pointer drag, outside-drop, pointer-cancel, touch, and template/quote-switch gates remain pending; these are not recorded as failures. No full suite or physical touch test is claimed.

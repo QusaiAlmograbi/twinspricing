@@ -382,6 +382,55 @@
         color: var(--gold);
         margin-left: 4px;
       }
+      .order-handle {
+        border: 1px solid var(--pewter);
+        border-radius: 5px;
+        min-width: 30px;
+        min-height: 30px;
+        padding: 3px 7px;
+        background: transparent;
+        color: inherit;
+        cursor: grab;
+        font: inherit;
+        line-height: 1;
+        touch-action: none;
+      }
+      .order-handle:hover,
+      .order-handle:focus-visible,
+      .order-handle.dragging {
+        background: var(--gold-glow);
+        color: var(--gold);
+      }
+      .section-tab.order-insertion-before,
+      .room-tab.order-insertion-before {
+        box-shadow: inset 3px 0 var(--gold);
+      }
+      .section-tab.order-insertion-after,
+      .room-tab.order-insertion-after {
+        box-shadow: inset -3px 0 var(--gold);
+      }
+      [dir="rtl"] .section-tab.order-insertion-before,
+      [dir="rtl"] .room-tab.order-insertion-before {
+        box-shadow: inset -3px 0 var(--gold);
+      }
+      [dir="rtl"] .section-tab.order-insertion-after,
+      [dir="rtl"] .room-tab.order-insertion-after {
+        box-shadow: inset 3px 0 var(--gold);
+      }
+      .keyboard-ordering {
+        outline: 2px solid var(--gold);
+      }
+      .order-status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
 
       /* Layout */
       .layout {
@@ -3325,6 +3374,7 @@
         </header>
 
         <nav class="sections-nav" id="sectionsNav"></nav>
+        <div id="orderStatus" class="order-status" role="status" aria-live="polite" aria-atomic="true"></div>
 
         <div class="layout">
           <main class="main">
@@ -3942,23 +3992,508 @@
       let allItemsOverlaySelectedSection = null;
       let allItemsOverlaySelectedRoom = null;
       let allItemsOverlayRoomStale = false;
+      // Order state is editor-owned. `sections`/`rooms` are the projected UI
+      // arrays; confirmed baselines are retained separately and never rebuilt
+      // from optimistic positions.
+      let orderScopes = new Map();
+      let editorGeneration = 0;
+      let orderFocus = null;
+      const orderEntityTokens = new WeakMap();
+      let nextOrderEntityToken = 1;
+      let orderReconciliationAvailable = true;
+
+      function resetOrderScopes() {
+        orderScopes = new Map();
+        editorGeneration++;
+        orderFocus = null;
+        orderReconciliationAvailable = true;
+      }
+
+      function orderScopeKey(kind, owner) {
+        if (kind === "sections") return "sections:" + String(currentQuoteId ?? "draft");
+        return "rooms:" + String(owner && owner.id != null
+          ? owner.id
+          : "draft:" + orderEntityToken(owner));
+      }
+
+      function orderEntityToken(entity) {
+        if (!orderEntityTokens.has(entity)) {
+          orderEntityTokens.set(entity, "local-" + nextOrderEntityToken++);
+        }
+        return entity.id != null ? String(entity.id) : orderEntityTokens.get(entity);
+      }
+
+      function scopeItems(scope) {
+        return scope.kind === "sections" ? sections : scope.owner.rooms || [];
+      }
+
+      function getOrderScope(kind, owner, create = true) {
+        const key = orderScopeKey(kind, owner);
+        let scope = orderScopes.get(key);
+        if (!scope && create) {
+          const items = kind === "sections" ? sections : (owner && owner.rooms) || [];
+          scope = {
+            key,
+            kind,
+            owner,
+            generation: editorGeneration,
+            confirmed: new Map(
+              QuoteOrdering.scopeBaseline(items).map((entry) => [String(entry.id), entry.sort_order]),
+            ),
+            pending: false,
+            frozen: null,
+            inFlight: false,
+            conflict: false,
+            version: 0,
+            status: "clean",
+            tail: Promise.resolve(),
+            desired: items.slice(),
+            blocked: !orderReconciliationAvailable,
+            status: orderReconciliationAvailable ? "clean" : "offline",
+            frozenVersion: null,
+            keyboardEntity: null,
+            keyboardActive: false,
+          };
+          orderScopes.set(key, scope);
+        }
+        return scope;
+      }
+
+      function refreshOrderScope(scope) {
+        if (!scope || scope.generation !== editorGeneration) return;
+        for (const item of scopeItems(scope)) {
+          if (item.id != null && !scope.confirmed.has(String(item.id))) {
+            // New persisted positions are only accepted after a create response.
+            item._orderAppendPosition = item.sort_order;
+          }
+        }
+      }
+
+      function recordOrderAppend(kind, owner, entity) {
+        if (!entity || entity.id == null) return;
+        const scope = getOrderScope(kind, owner);
+        scope.confirmed.set(String(entity.id), Number(entity.sort_order));
+        scope.desired = scopeItems(scope).slice();
+        scope.status = scope.pending ? "needs-create" : "clean";
+        if (scope.pending) scheduleOrderFlush(scope);
+      }
+
+      function recordOrderRemoval(kind, owner, entity) {
+        const scope = getOrderScope(kind, owner, false);
+        if (!scope || !entity || entity.id == null) return;
+        scope.confirmed.delete(String(entity.id));
+        scope.desired = scopeItems(scope).slice();
+        scope.status = "needs-create";
+      }
+
+      function enqueueOrderMutation(scope, operation) {
+        if (!scope) return Promise.resolve();
+        const run = scope.tail.then(operation, operation);
+        scope.tail = run.catch(() => {});
+        return run;
+      }
+
+      function hasPendingOrderWork() {
+        for (const scope of orderScopes.values()) {
+          if (scope.pending || scope.frozen || scope.conflict) return true;
+        }
+        return false;
+      }
+
+      function announceOrder(entity, position, total, kind) {
+        const status = document.getElementById("orderStatus");
+        if (status) {
+          const label = entity && (entity.name || entity.code) || (kind === "sections" ? "القسم" : "الغرفة");
+          status.textContent = `${label} — نقل إلى الموضع ${position} من ${total}`;
+        }
+      }
+
+      function focusOrderControl(scope, entity, direction) {
+        orderFocus = { scopeKey: scope.key, entity, direction };
+      }
+
+      function restoreOrderFocus() {
+        if (!orderFocus) return;
+        const focus = orderFocus;
+        orderFocus = null;
+        setTimeout(() => {
+          const escape = (value) =>
+            typeof CSS !== "undefined" && CSS.escape
+              ? CSS.escape(value)
+              : String(value).replace(/["\\]/g, "\\$&");
+          const selector = `[data-order-scope="${escape(focus.scopeKey)}"][data-order-entity="${escape(orderEntityToken(focus.entity))}"]`;
+          const controls = Array.from(document.querySelectorAll(selector));
+          const preferred = controls.find((el) => el.dataset.orderDirection === focus.direction && !el.disabled);
+          const fallback = controls.find((el) => !el.disabled);
+          (preferred || fallback || controls[0])?.focus();
+        }, 0);
+      }
+
+      async function reorderRequest(path, payload, generation) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        try {
+          const response = await fetch("/api" + path, {
+            method: "PUT",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const error = new Error(body.error || "تعذر حفظ الترتيب");
+            error.status = response.status;
+            error.code = body.code;
+            throw error;
+          }
+
+          if (generation !== editorGeneration) return { stale: true, body };
+          return { body };
+        } catch (error) {
+          if (error.name === "AbortError" || !error.status) {
+            error.unknownOutcome = true;
+          }
+          throw error;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function orderScopeFetch(path) {
+        const response = await fetch("/api" + path, {
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(body.error || "تعذر تحديث ترتيب النطاق");
+          error.status = response.status;
+          error.code = body.code;
+          throw error;
+        }
+        return body;
+      }
+
+      async function reconcileOrderConflict(scope) {
+        const path = scope.kind === "sections"
+          ? `/quotes/${currentQuoteId}/sections`
+          : `/sections/${scope.owner.id}/rooms`;
+        const response = await orderScopeFetch(path);
+        orderReconciliationAvailable = true;
+        const serverItems = scope.kind === "sections" ? response.sections || [] : response.rooms || [];
+        const liveItems = scope.desired && scope.desired.length ? scope.desired : scopeItems(scope);
+        const merged = QuoteOrdering.reconcileScopeOrder(liveItems, serverItems);
+        if (scope.kind === "sections") sections = merged;
+        else scope.owner.rooms = merged;
+        scope.confirmed = new Map(QuoteOrdering.scopeBaseline(serverItems).map((entry) => [String(entry.id), entry.sort_order]));
+        scope.conflict = true;
+        scope.pending = true;
+        scope.status = "conflict";
+        scope.desired = merged.slice();
+        renderAll();
+      }
+
+      async function flushOrderScope(scope) {
+        if (!scope || scope.blocked || scope.inFlight || !scope.pending || scope.generation !== editorGeneration) return;
+        const items = scopeItems(scope);
+        if (items.some((item) => item.id == null || Number(item.id) < 0)) return;
+        const order = QuoteOrdering.scopeTarget(items);
+        const expected = items.map((item) => ({
+          id: item.id,
+          sort_order: scope.confirmed.get(String(item.id)),
+        }));
+        if (expected.some((item) => item.sort_order == null)) return;
+        // A frozen request always gets resolved before a normal projected-state
+        // shortcut. It may have committed even when its response was lost.
+        if (!scope.frozen && !scope.conflict &&
+            expected.every((item) => item.sort_order === order.indexOf(item.id))) {
+          scope.pending = false;
+          scope.status = "clean";
+          return;
+        }
+        if (!scope.frozen) {
+          scope.frozen = { expected, order };
+          scope.frozenVersion = scope.version;
+        }
+        const payload = scope.frozen;
+        scope.inFlight = true;
+        const generation = editorGeneration;
+        const frozenVersion = scope.frozenVersion;
+        try {
+          const path = scope.kind === "sections"
+            ? `/quotes/${currentQuoteId}/sections/reorder`
+            : `/sections/${scope.owner.id}/rooms/reorder`;
+          const result = await enqueueOrderMutation(scope, () =>
+            reorderRequest(path, payload, generation)
+          );
+          if (result.stale) return;
+          const acknowledgementOrder = payload.order;
+          const positions = result.body.positions;
+          const acknowledged = new Map(
+            Array.isArray(positions)
+              ? positions.map((entry) => [String(entry && entry.id), entry])
+              : [],
+          );
+          if (!Array.isArray(positions) ||
+              positions.length !== acknowledgementOrder.length ||
+              acknowledgementOrder.some((id, index) => {
+                const entry = acknowledged.get(String(id));
+                return !entry || !Number.isInteger(entry.position) || entry.position !== index;
+              })) {
+            const error = new Error("Malformed reorder acknowledgement");
+            error.definiteFailure = true;
+            throw error;
+          }
+          scope.confirmed = new Map(acknowledgementOrder.map((id) => [
+            String(id),
+            acknowledged.get(String(id)).position,
+          ]));
+          const byId = new Map(items.map((item) => [String(item.id), item]));
+          positions.forEach((entry) => {
+            const item = byId.get(String(entry.id));
+            if (item) item.sort_order = entry.position;
+          });
+          scope.frozen = null;
+          scope.frozenVersion = null;
+          scope.conflict = false;
+          const liveItems = scopeItems(scope);
+          const desiredIds = liveItems.map((item) => item.id).filter((id) => id != null);
+          const confirmedDesired = desiredIds.length === liveItems.length &&
+            desiredIds.every((id, index) =>
+              scope.confirmed.get(String(id)) === index
+            );
+          scope.pending = scope.version !== frozenVersion || !confirmedDesired;
+          scope.status = scope.pending ? "pending" : "clean";
+          if (!scope.pending) scope.desired = liveItems.slice();
+        } catch (error) {
+          if (error.status === 409 && error.code === "ORDER_CONFLICT") {
+            scope.frozen = null;
+            await reconcileOrderConflict(scope);
+          } else if (error.definiteFailure) {
+            scope.status = "conflict";
+            scope.pending = true;
+          } else {
+            // Unknown outcomes retain the exact frozen payload for retry.
+            scope.pending = true;
+            scope.status = "unknown";
+          }
+        } finally {
+          scope.inFlight = false;
+        }
+        if (scope.pending && !scope.frozen && !scope.conflict && scope.status !== "unknown") {
+          queueMicrotask(() => flushOrderScope(scope));
+        }
+      }
+
+      function scheduleOrderFlush(scope) {
+        if (!scope) return;
+        scope.pending = true;
+        queueMicrotask(() => flushOrderScope(scope));
+      }
+
+      function moveOrderEntity(kind, owner, entity, direction) {
+        const scope = getOrderScope(kind, owner);
+        const items = scopeItems(scope);
+        const index = items.indexOf(entity);
+        const activeSection = kind === "sections" ? sections[activeSectionIdx] : null;
+        const moved = QuoteOrdering.moveAdjacent(items, index, direction);
+        if (!moved.moved) return;
+        if (kind === "sections") sections = moved.items;
+        else owner.rooms = moved.items;
+        moved.items.forEach((item, itemIndex) => {
+          item.sort_order = itemIndex;
+        });
+        if (kind === "sections") {
+          if (activeSection) activeSectionIdx = sections.indexOf(activeSection);
+        } else if (activeRoomObj && owner.rooms.includes(activeRoomObj)) {
+          activeRoomIdx = owner.rooms.indexOf(activeRoomObj);
+        }
+        scope.pending = true;
+        scope.version++;
+        scope.desired = moved.items.slice();
+        scope.status = "pending";
+        focusOrderControl(scope, entity, direction);
+        announceOrder(entity, moved.to + 1, moved.items.length, kind);
+        markSectionDirty(kind === "sections" ? entity : owner);
+        if (kind === "rooms") markRoomDirty(entity);
+        markDirty();
+        renderAll();
+        scheduleOrderFlush(scope);
+      }
+
+      function moveOrderEntityTo(kind, owner, entity, targetIndex) {
+        const scope = getOrderScope(kind, owner);
+        const items = scopeItems(scope);
+        const from = items.indexOf(entity);
+        if (from < 0 || targetIndex < 0 || targetIndex >= items.length || from === targetIndex) return;
+        const selectedSection = sections[activeSectionIdx];
+        const moved = items.slice();
+        moved.splice(from, 1);
+        moved.splice(targetIndex, 0, entity);
+        if (kind === "sections") sections = moved;
+        else owner.rooms = moved;
+        moved.forEach((item, index) => { item.sort_order = index; });
+        if (kind === "sections") activeSectionIdx = sections.indexOf(selectedSection);
+        else if (activeRoomObj) activeRoomIdx = owner.rooms.indexOf(activeRoomObj);
+        scope.pending = true;
+        scope.version++;
+        scope.desired = moved.slice();
+        scope.status = "pending";
+        focusOrderControl(scope, entity, "keyboard");
+        announceOrder(entity, targetIndex + 1, moved.length, kind);
+        markSectionDirty(kind === "sections" ? entity : owner);
+        if (kind === "rooms") markRoomDirty(entity);
+        markDirty();
+        renderAll();
+        scheduleOrderFlush(scope);
+      }
+
+      function orderDropPlacement(event, element) {
+        const rect = element.getBoundingClientRect();
+        const direction =
+          (element.closest && element.closest("[dir]")?.getAttribute("dir")) ||
+          document.documentElement?.dir ||
+          document.dir ||
+          "ltr";
+        const before = direction === "rtl"
+          ? event.clientX > rect.left + rect.width / 2
+          : event.clientX < rect.left + rect.width / 2;
+        return before ? "before" : "after";
+      }
+
+      function clearOrderInsertionIndicators() {
+        document.querySelectorAll(".order-insertion-before,.order-insertion-after")
+          .forEach((el) => el.classList.remove("order-insertion-before", "order-insertion-after"));
+      }
+
+      function markEntitySaved(entity) {
+        entity._fromServer = true;
+        delete entity._saveFailed;
+      }
+
+      function setupOrderHandle(handle, kind, owner, entity, index, total, parent) {
+        const scope = getOrderScope(kind, owner);
+        handle.draggable = true;
+        let touchDragging = false;
+        let touchTarget = null;
+        let touchPlacement = "before";
+        const clearTouch = () => {
+          touchDragging = false;
+          touchTarget = null;
+          parent.classList.remove("dragging");
+          clearOrderInsertionIndicators();
+        };
+        handle.addEventListener("pointerdown", (event) => {
+          if (event.pointerType !== "touch") return;
+          touchDragging = true;
+          touchTarget = null;
+          touchPlacement = "before";
+          handle.setPointerCapture?.(event.pointerId);
+          parent.classList.add("dragging");
+        });
+        handle.addEventListener("pointermove", (event) => {
+          if (!touchDragging) return;
+          const candidate = document.elementFromPoint(event.clientX, event.clientY)?.closest(
+            ".section-tab, .room-tab",
+          );
+          if (!candidate || candidate.parentElement !== parent.parentElement) return;
+          touchTarget = candidate;
+          clearOrderInsertionIndicators();
+          touchPlacement = orderDropPlacement(event, candidate);
+          candidate.classList.add(
+            touchPlacement === "before"
+              ? "order-insertion-before"
+              : "order-insertion-after",
+          );
+        });
+        handle.addEventListener("pointerup", (event) => {
+          if (!touchDragging) return;
+          const siblings = kind === "sections" ? sections : owner.rooms || [];
+          const targetEntity = siblings.find((item) =>
+            item && touchTarget && orderEntityToken(item) ===
+              touchTarget.querySelector(".order-handle")?.dataset.orderEntity
+          );
+          let targetIndex = targetEntity ? siblings.indexOf(targetEntity) : -1;
+          if (targetIndex >= 0 && touchPlacement === "after") targetIndex++;
+          const sourceIndex = siblings.indexOf(entity);
+          if (sourceIndex >= 0 && sourceIndex < targetIndex) targetIndex--;
+          if (targetIndex >= 0) moveOrderEntityTo(kind, owner, entity, targetIndex);
+          clearTouch();
+          handle.releasePointerCapture?.(event.pointerId);
+        });
+        handle.addEventListener("pointercancel", clearTouch);
+        handle.addEventListener("dragstart", (event) => {
+          event.stopPropagation();
+          handle.classList.add("dragging");
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", orderEntityToken(entity));
+          parent.dataset.orderDrag = "true";
+        });
+        handle.addEventListener("dragend", () => {
+          handle.classList.remove("dragging");
+          parent.dataset.orderDrag = "";
+          clearOrderInsertionIndicators();
+        });
+        parent.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          clearOrderInsertionIndicators();
+          const placement = orderDropPlacement(event, parent);
+          parent.classList.toggle("order-insertion-before", placement === "before");
+          parent.classList.toggle("order-insertion-after", placement === "after");
+        });
+        parent.addEventListener("drop", (event) => {
+          event.preventDefault();
+          clearOrderInsertionIndicators();
+          const token = event.dataTransfer.getData("text/plain");
+          const source = (kind === "sections" ? sections : owner.rooms || [])
+            .find((item) => orderEntityToken(item) === token);
+          if (!source) return;
+          let target = index + (orderDropPlacement(event, parent) === "after" ? 1 : 0);
+          const sourceIndex = (kind === "sections" ? sections : owner.rooms || []).indexOf(source);
+          if (sourceIndex < target) target--;
+          moveOrderEntityTo(kind, owner, source, target);
+        });
+        handle.addEventListener("keydown", (event) => {
+          if (!["Enter", " ", "ArrowUp", "ArrowDown", "Escape"].includes(event.key)) return;
+          event.preventDefault();
+          if (event.key === "Escape") {
+            scope.keyboardActive = false;
+            scope.keyboardEntity = null;
+            parent.classList.remove("keyboard-ordering");
+            clearOrderInsertionIndicators();
+            announceOrder(entity, index + 1, total, kind);
+            handle.focus();
+            return;
+          }
+          if (event.key === "Enter" || event.key === " ") {
+            scope.keyboardEntity = orderEntityToken(entity);
+            scope.keyboardActive = !scope.keyboardActive;
+            parent.classList.toggle("keyboard-ordering", scope.keyboardActive);
+            announceOrder(entity, index + 1, total, kind);
+            return;
+          }
+          if (!scope.keyboardActive || scope.keyboardEntity !== orderEntityToken(entity)) return;
+          const currentIndex = (kind === "sections" ? sections : owner.rooms || []).indexOf(entity);
+          const target = currentIndex + (event.key === "ArrowDown" ? 1 : -1);
+          if (target >= 0 && target < total) moveOrderEntityTo(kind, owner, entity, target);
+        });
+        if (scope.keyboardActive && scope.keyboardEntity === orderEntityToken(entity)) {
+          parent.classList.add("keyboard-ordering");
+        }
+      }
+
+      async function flushAllOrderScopes() {
+        const scopes = Array.from(orderScopes.values());
+        for (const scope of scopes) await flushOrderScope(scope);
+        return !hasPendingOrderWork();
+      }
 
       function resolveSectionOrder() {
-        sections.sort((a, b) => {
-          const sa = a.sort_order ?? 0;
-          const sb = b.sort_order ?? 0;
-          if (sa !== sb) return sa - sb;
-          return (a.id ?? 0) - (b.id ?? 0);
-        });
         for (let i = 0; i < sections.length; i++) {
           sections[i]._resolvedIndex = i;
           if (sections[i].rooms) {
-            sections[i].rooms.sort((a, b) => {
-              const sa = a.sort_order ?? 0;
-              const sb = b.sort_order ?? 0;
-              if (sa !== sb) return sa - sb;
-              return (a.id ?? 0) - (b.id ?? 0);
-            });
+            for (const room of sections[i].rooms) room._resolvedIndex = room.sort_order;
           }
         }
       }
@@ -4413,6 +4948,16 @@
           sections,
           currentQuoteId,
           activeSectionIdx,
+          activeSectionId: sections[activeSectionIdx]?.id ?? null,
+          activeRoomId: activeRoomObj?.id ?? null,
+          orderScopes: Array.from(orderScopes.values()).map((scope) => ({
+            key: scope.key,
+            kind: scope.kind,
+            ownerId: scope.owner?.id ?? null,
+            confirmed: Array.from(scope.confirmed.entries()),
+            pending: !!scope.pending,
+            conflict: !!scope.conflict,
+          })),
           stripped: false,
         };
         try {
@@ -4473,6 +5018,84 @@
         try {
           localStorage.removeItem(DRAFT_KEY);
         } catch (e) {}
+      }
+
+      function restoreOrderMetadata(metadata) {
+        if (!Array.isArray(metadata)) return;
+        for (const entry of metadata) {
+          const owner = entry.kind === "sections"
+            ? null
+            : sections.find((section) => String(section.id) === String(entry.ownerId));
+          if (entry.kind !== "sections" && !owner) continue;
+          const scope = getOrderScope(entry.kind, owner);
+          scope.confirmed = new Map(Array.isArray(entry.confirmed) ? entry.confirmed : []);
+          scope.pending = !!entry.pending;
+          scope.conflict = !!entry.conflict;
+          if (!currentQuoteId) scope.blocked = true;
+        }
+      }
+
+      function reconcileRestoredOrderScopes(serverQuote) {
+        const serverSections = serverQuote && Array.isArray(serverQuote.sections)
+          ? serverQuote.sections
+          : null;
+        if (!serverSections) {
+          orderReconciliationAvailable = false;
+          for (const scope of orderScopes.values()) {
+            scope.blocked = true;
+            scope.status = "offline";
+            scope.pending = true;
+          }
+          return;
+        }
+        orderReconciliationAvailable = true;
+        const sectionScope = getOrderScope("sections", null);
+        const mergedSections = QuoteOrdering.reconcileScopeOrder(sections, serverSections);
+        sections = mergedSections;
+        sectionScope.confirmed = new Map(
+          QuoteOrdering.scopeBaseline(serverSections).map((entry) => [
+            String(entry.id),
+            entry.sort_order,
+          ]),
+        );
+        sectionScope.desired = sections.slice();
+        sectionScope.blocked = false;
+        sectionScope.pending = sections.some((item) => item.id == null) ||
+          sections.some((item, index) =>
+            item.id != null && sectionScope.confirmed.get(String(item.id)) !== index
+          );
+        sectionScope.status = sectionScope.pending ? "pending" : "clean";
+
+        for (const section of sections) {
+          if (!section.has_rooms) continue;
+          const serverSection = serverSections.find(
+            (candidate) => String(candidate.id) === String(section.id),
+          );
+          const scope = getOrderScope("rooms", section);
+          const serverRooms = serverSection && Array.isArray(serverSection.rooms)
+            ? serverSection.rooms
+            : null;
+          if (!serverRooms) {
+            scope.blocked = true;
+            scope.status = "offline";
+            scope.pending = true;
+            continue;
+          }
+          section.rooms = QuoteOrdering.reconcileScopeOrder(section.rooms || [], serverRooms);
+          scope.confirmed = new Map(
+            QuoteOrdering.scopeBaseline(serverRooms).map((entry) => [
+              String(entry.id),
+              entry.sort_order,
+            ]),
+          );
+          scope.desired = section.rooms.slice();
+          scope.blocked = false;
+          scope.pending = section.rooms.some((item) => item.id == null) ||
+            section.rooms.some((item, index) =>
+              item.id != null && scope.confirmed.get(String(item.id)) !== index
+            );
+          scope.status = scope.pending ? "pending" : "clean";
+        }
       }
       function draftFallbackHandler(e) {
         if (hasUnsavedWork) {
@@ -4685,19 +5308,20 @@
             const sec = secEntry.obj;
             try {
               if (secEntry.op === "create") {
-                const res = await apiWithRetry(
-                  `/quotes/${currentQuoteId}/sections`,
-                  {
-                    method: "POST",
-                    body: JSON.stringify({
-                      code: sec.code,
-                      name: sec.name,
-                    }),
-                  },
-                  false
+                const res = await enqueueOrderMutation(
+                  getOrderScope("sections", null),
+                  () => apiWithRetry(
+                    `/quotes/${currentQuoteId}/sections`,
+                    {
+                      method: "POST",
+                      body: JSON.stringify({ code: sec.code, name: sec.name }),
+                    },
+                    false,
+                  ),
                 );
                 sec.id = res.id;
                 if (res.sort_order != null) sec.sort_order = res.sort_order;
+                recordOrderAppend("sections", null, sec);
                 remapDirtyIdForCycle("sections", sec, res.id);
                 if (secEntry.requiresHasRoomsSync && sec.id) {
                   await apiWithRetry(
@@ -4713,7 +5337,7 @@
                     false
                   );
                 }
-                sec._fromServer = true;
+                markEntitySaved(sec);
               } else if (secEntry.op === "update") {
                 await apiWithRetry(
                   `/quotes/${currentQuoteId}/sections/${sec.id}`,
@@ -4727,7 +5351,7 @@
                   },
                   false
                 );
-                sec._fromServer = true;
+                markEntitySaved(sec);
               }
             } catch (err) {
               throw new Error(
@@ -4752,15 +5376,16 @@
                       false
                     );
                   } else {
-                    const res = await apiWithRetry(
-                      "/sections/" + sec.id + "/rooms",
-                      {
-                        method: "POST",
-                        body: JSON.stringify({
-                          name: room.name,
-                        }),
-                      },
-                      false
+                    const res = await enqueueOrderMutation(
+                      getOrderScope("rooms", sec),
+                      () => apiWithRetry(
+                        "/sections/" + sec.id + "/rooms",
+                        {
+                          method: "POST",
+                          body: JSON.stringify({ name: room.name }),
+                        },
+                        false,
+                      ),
                     );
                     remapDirtyIdForCycle("rooms", roomEntry.key, res.id);
                     if (roomEntry.oldRoomTempKey != null) {
@@ -4772,8 +5397,9 @@
                     }
                     room.id = res.id;
                     if (res.sort_order != null) room.sort_order = res.sort_order;
+                    recordOrderAppend("rooms", sec, room);
                   }
-                  room._fromServer = true;
+                  markEntitySaved(room);
                 } catch (err) {
                   throw new Error(
                     "Room \"" + room.name + "\" save failed: " + err.message
@@ -4818,7 +5444,7 @@
                     false
                   );
                 }
-                item._fromServer = true;
+                markEntitySaved(item);
               } catch (err) {
                 throw new Error(
                   "Item \"" + (item.name || item.item_code) + "\" save failed: " +
@@ -4839,6 +5465,10 @@
                 return hasData || it._fromServer;
               });
             }
+          }
+
+          if (!(await flushAllOrderScopes())) {
+            throw new Error("Order scope save unresolved");
           }
 
           // FIX-6 Slice D-1: selective, stamp-gated clear. Only entities that
@@ -5087,13 +5717,17 @@
             "section-tab" + (idx === activeSectionIdx ? " active" : "");
           const count = (sec.items || []).length;
           const derivedCode = getDerivedSectionLabel(sec);
-          btn.innerHTML = `<span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(derivedCode)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ""}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
+          const scopeKey = orderScopeKey("sections", null);
+          const token = orderEntityToken(sec);
+          btn.innerHTML = `<button type="button" class="order-handle" aria-label="ترتيب القسم ${escapeAttr(sec.name)}" title="اسحب لترتيب القسم؛ Enter ثم الأسهم للترتيب بلوحة المفاتيح}" data-order-scope="${escapeAttr(scopeKey)}" data-order-entity="${escapeAttr(token)}">☷</button><span class="chip" style="background:${SECTION_COLORS[idx % SECTION_COLORS.length]};width:12px;height:12px;border-radius:4px;display:inline-block;"></span>${escapeAttr(derivedCode)}: ${escapeAttr(sec.name)}${sec.has_rooms ? '<span class="rooms-badge">🏠</span>' : ""}<span class="count">${count > 0 ? "· " + count : ""}</span>`;
           btn.onclick = () => {
             selectActiveSection(idx);
             renderAll();
           };
+          setupOrderHandle(btn.querySelector(".order-handle"), "sections", null, sec, idx, sections.length, btn);
           nav.appendChild(btn);
         });
+        restoreOrderFocus();
         const addBtn = document.createElement("button");
         addBtn.className = "add-section-btn";
         addBtn.textContent = "+ قسم جديد";
@@ -5570,7 +6204,9 @@
             const roomItemCount = allItems.filter(
               (it) => it.room_id === room.id,
             ).length;
-            roomTabs += `<div class="room-tab${activeRoomIdx === rIdx ? " active" : ""}" data-room-idx="${rIdx}"><span class="room-name-text">${escapeAttr(room.name)}</span><span class="count">${roomItemCount || ""}</span><button class="room-copy" data-room-copy="${rIdx}" title="نسخ الغرفة">📋</button><button class="room-edit" data-room-edit="${rIdx}" title="تعديل الاسم">✎</button><button class="room-rm" data-room-del="${rIdx}" title="حذف الغرفة">✕</button></div>`;
+            const roomScopeKey = orderScopeKey("rooms", sec);
+            const roomToken = orderEntityToken(room);
+            roomTabs += `<div class="room-tab${activeRoomIdx === rIdx ? " active" : ""}" data-room-idx="${rIdx}"><button type="button" class="order-handle" aria-label="ترتيب الغرفة ${escapeAttr(room.name)}" title="اسحب لترتيب الغرفة؛ Enter ثم الأسهم للترتيب بلوحة المفاتيح" data-order-scope="${escapeAttr(roomScopeKey)}" data-order-entity="${escapeAttr(roomToken)}">☷</button><span class="room-name-text">${escapeAttr(room.name)}</span><span class="count">${roomItemCount || ""}</span><button class="room-copy" data-room-copy="${rIdx}" title="نسخ الغرفة">📋</button><button class="room-edit" data-room-edit="${rIdx}" title="تعديل الاسم">✎</button><button class="room-rm" data-room-del="${rIdx}" title="حذف الغرفة">✕</button></div>`;
           });
           roomsHtml = `<div class="rooms-nav" id="roomsNav">${roomTabs}<button class="add-room-btn" id="addRoomBtn">+ غرفة</button></div>`;
         } else {
@@ -5769,6 +6405,7 @@
                 e.target.classList.contains("room-rm") ||
                 e.target.classList.contains("room-edit") ||
                 e.target.classList.contains("room-copy") ||
+                e.target.classList.contains("order-handle") ||
                 e.target.tagName === "INPUT"
               )
                 return;
@@ -5798,6 +6435,17 @@
                 openRoomNameModalForEdit(rIdx);
               };
             });
+            const roomIdx = Number(tab.dataset.roomIdx);
+            const room = (sec.rooms || [])[roomIdx];
+            if (room) setupOrderHandle(
+              tab.querySelector(".order-handle"),
+              "rooms",
+              sec,
+              room,
+              roomIdx,
+              (sec.rooms || []).length,
+              tab,
+            );
           });
           // Room delete buttons
           document.querySelectorAll("#roomsNav .room-rm").forEach((btn) => {
@@ -7489,17 +8137,22 @@ deleteBtn.onclick = () => {
               sort_order: sections.length,
             };
             if (currentQuoteId) {
-              const res = await api(`/quotes/${currentQuoteId}/sections`, {
-                method: "POST",
-                body: JSON.stringify({ code, name }),
-              });
+              const res = await enqueueOrderMutation(
+                getOrderScope("sections", null),
+                () => api(`/quotes/${currentQuoteId}/sections`, {
+                  method: "POST",
+                  body: JSON.stringify({ code, name }),
+                }),
+              );
               newSec.id = res.id;
               if (res.sort_order != null) newSec.sort_order = res.sort_order;
+              recordOrderAppend("sections", null, newSec);
             }
             // Only the owning quote/editor may receive the created model: a
             // different quote may have been loaded while pending.
             if (sections === mySections && currentQuoteId === myQuoteId) {
               sections.push(newSec);
+              recordOrderAppend("sections", null, newSec);
               markSectionDirty(newSec);
             }
           }
@@ -7642,12 +8295,12 @@ deleteBtn.onclick = () => {
         const copyRoomSaveBtn = document.getElementById("copyRoomSave");
         if (copyRoomSaveBtn) copyRoomSaveBtn.disabled = true;
         try {
-          const res = await api(
-            `/quotes/${myQuoteId}/rooms/${room.id}/clone`,
-            {
+          const res = await enqueueOrderMutation(
+            getOrderScope("rooms", targetSec),
+            () => api(`/quotes/${myQuoteId}/rooms/${room.id}/clone`, {
               method: "POST",
               body: JSON.stringify({ targetSectionId: targetId }),
-            },
+            }),
           );
           if (!stillOwns()) return;
           const newRoom = { ...res.room, _fromServer: true };
@@ -7666,6 +8319,7 @@ deleteBtn.onclick = () => {
           );
             if (existingRoomIdx === -1) {
               targetSec.rooms.push(newRoom);
+              recordOrderAppend("rooms", targetSec, newRoom);
             }
             for (const it of clonedItems) {
               if (!targetSec.items) targetSec.items = [];
@@ -7771,12 +8425,12 @@ deleteBtn.onclick = () => {
         const copyDirectSaveBtn = document.getElementById("copyDirectSave");
         if (copyDirectSaveBtn) copyDirectSaveBtn.disabled = true;
         try {
-          const res = await api(
-            `/quotes/${myQuoteId}/sections/${sec.id}/clone-direct`,
-            {
+          const res = await enqueueOrderMutation(
+            getOrderScope("sections", null),
+            () => api(`/quotes/${myQuoteId}/sections/${sec.id}/clone-direct`, {
               method: "POST",
               body: JSON.stringify({ code, name }),
-            },
+            }),
           );
           if (!stillOwns()) return;
           const newSec = {
@@ -7790,6 +8444,7 @@ deleteBtn.onclick = () => {
           };
           const previousActiveSection = sections[activeSectionIdx] || null;
           sections.push(newSec);
+          recordOrderAppend("sections", null, newSec);
           selectActiveSection(sections.length - 1, previousActiveSection);
           // Only the owning invocation may close the modal: it may since have
           // been reopened for a different source section.
@@ -9212,9 +9867,9 @@ deleteBtn.onclick = () => {
             let batchOk = false;
             let batchResults = [];
             try {
-              const res = await api(
-                `/quotes/${currentQuoteId}/sections/batch`,
-                {
+              const res = await enqueueOrderMutation(
+                getOrderScope("sections", null),
+                () => api(`/quotes/${currentQuoteId}/sections/batch`, {
                   method: "POST",
                   body: JSON.stringify({
                     sections: newSections.map((sec) => ({
@@ -9222,7 +9877,7 @@ deleteBtn.onclick = () => {
                       name: sec.name,
                     })),
                   }),
-                }
+                }),
               );
               batchOk = true;
               batchResults = res.results || [];
@@ -9236,6 +9891,7 @@ deleteBtn.onclick = () => {
               if (entry.id != null && !entry.error) {
                 sec.id = entry.id;
                 if (entry.sort_order != null) sec.sort_order = entry.sort_order;
+                recordOrderAppend("sections", null, sec);
                 let synced = true;
                 if (sec.has_rooms) {
                   // batch create defaults has_rooms to 0 — keep it in sync
@@ -9256,7 +9912,7 @@ deleteBtn.onclick = () => {
                   }
                 }
                 if (synced) {
-                  sec._fromServer = true;
+                  markEntitySaved(sec);
                   secOutcomes.push({ label: sec.name || sec.code });
                 } else {
                   sec._saveFailed = true;
@@ -9288,7 +9944,7 @@ deleteBtn.onclick = () => {
                     has_rooms: sec.has_rooms ? 1 : 0,
                   }),
                 });
-                sec._fromServer = true;
+                markEntitySaved(sec);
                 return sec;
               })
           );
@@ -9325,14 +9981,17 @@ deleteBtn.onclick = () => {
                 let batchOk = false;
                 let batchResults = [];
                 try {
-                  const res = await api(`/sections/${sec.id}/rooms/batch`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                      rooms: newRooms.map((room) => ({
-                        name: room.name,
-                      })),
+                  const res = await enqueueOrderMutation(
+                    getOrderScope("rooms", sec),
+                    () => api(`/sections/${sec.id}/rooms/batch`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        rooms: newRooms.map((room) => ({
+                          name: room.name,
+                        })),
+                      }),
                     }),
-                  });
+                  );
                   batchOk = true;
                   batchResults = res.results || [];
                   batchReqCount++;
@@ -9345,7 +10004,8 @@ deleteBtn.onclick = () => {
                     const oldId = room.id;
                     room.id = entry.id;
                     if (entry.sort_order != null) room.sort_order = entry.sort_order;
-                    room._fromServer = true;
+                    recordOrderAppend("rooms", sec, room);
+                    markEntitySaved(room);
                     if (oldId && oldId < 0) {
                       roomRemaps.push({ oldId, newId: entry.id, sec });
                     }
@@ -9375,7 +10035,7 @@ deleteBtn.onclick = () => {
                     name: room.name,
                   }),
                 });
-                room._fromServer = true;
+                markEntitySaved(room);
                 return room;
               })());
             }
@@ -9438,7 +10098,7 @@ deleteBtn.onclick = () => {
                         room_id: item.room_id || null,
                       }),
                     });
-                    item._fromServer = true;
+                    markEntitySaved(item);
                     return item;
                   })
                 );
@@ -9478,7 +10138,7 @@ deleteBtn.onclick = () => {
                     if (entry.id != null && !entry.error) {
                       item.id = entry.id;
                       if (entry.sort_order != null) item.sort_order = entry.sort_order;
-                      item._fromServer = true;
+                      markEntitySaved(item);
                       itemOutcomes.push({
                         label: item.name || item.item_code || `#${entry.id}`,
                       });
@@ -9512,11 +10172,13 @@ deleteBtn.onclick = () => {
           const _itemTime = performance.now() - _t0Item;
 
           // --- Collect failures from all waves ---
+          const orderSaved = await flushAllOrderScopes();
           const allFailed = [
             ...secOutcomes.filter((o) => o.error),
             ...roomOutcomes.filter((o) => o.error),
             ...itemOutcomes.filter((o) => o.error),
           ];
+          if (!orderSaved) allFailed.push({ wave: "order", error: true, label: "ترتيب غير محفوظ" });
           const allOk = allFailed.length === 0;
 
           const _totalTime = performance.now() - _t0Q;
@@ -9576,6 +10238,7 @@ deleteBtn.onclick = () => {
       }
 
       function applyQuoteToEditor(quote) {
+        resetOrderScopes();
         currentQuoteId = quote.id;
         state.projectName = quote.project_name || "";
         state.referenceNo = quote.reference_no || "";
@@ -9616,7 +10279,7 @@ deleteBtn.onclick = () => {
           }
           for (const room of s.rooms || []) {
             for (const ri of room.items || []) {
-              ri._fromServer = true;
+              markEntitySaved(ri);
               ri.qty = Number(ri.qty) || 1;
               ri.category_id =
                 ri.category_id != null ? Number(ri.category_id) : null;
@@ -9918,6 +10581,7 @@ deleteBtn.onclick = () => {
       function resetQuote() {
         clearDraft();
         resetDirtyEntities();
+        resetOrderScopes();
         currentQuoteId = null;
         state = {
           projectName: "",
@@ -10624,12 +11288,16 @@ deleteBtn.onclick = () => {
         let saveError = null;
         if (sec.id) {
           try {
-            const res = await api(`/sections/${sec.id}/rooms`, {
-              method: "POST",
-              body: JSON.stringify({ name: name.trim() }),
-            });
+            const res = await enqueueOrderMutation(
+              getOrderScope("rooms", sec),
+              () => api(`/sections/${sec.id}/rooms`, {
+                method: "POST",
+                body: JSON.stringify({ name: name.trim() }),
+              }),
+            );
             newRoom.id = res.id;
             if (res.sort_order != null) newRoom.sort_order = res.sort_order;
+            recordOrderAppend("rooms", sec, newRoom);
           } catch (e) {
             saveError = e;
           }
@@ -10821,11 +11489,15 @@ deleteBtn.onclick = () => {
         // Delete room on server if persisted
         if (roomId && secId) {
           try {
-            await api(`/sections/${secId}/rooms/${roomId}`, {
-              method: "DELETE",
-            });
+            await enqueueOrderMutation(
+              getOrderScope("rooms", sec),
+              () => api(`/sections/${secId}/rooms/${roomId}`, {
+                method: "DELETE",
+              }),
+            );
           } catch {}
         }
+        recordOrderRemoval("rooms", sec, room);
 
         // RECONCILE: find the current section and room by stable identity
         // in the live model. If the user switched to a different quote,
@@ -10881,10 +11553,14 @@ deleteBtn.onclick = () => {
         if (!sec) return;
         try {
           if (currentQuoteId && sec.id) {
-            await api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
-              method: "DELETE",
-            });
+            await enqueueOrderMutation(
+              getOrderScope("sections", null),
+              () => api(`/quotes/${currentQuoteId}/sections/${sec.id}`, {
+                method: "DELETE",
+              }),
+            );
           }
+          recordOrderRemoval("sections", null, sec);
           sections.splice(activeSectionIdx, 1);
           clearSectionDirty(sec);
           if (sections.length > 0) {
@@ -11113,6 +11789,7 @@ deleteBtn.onclick = () => {
             showToast("تم تجاهل مسودة محلية قديمة — توجد بيانات أحدث على الخادم");
           }
         } else if (restoreOutcome.action === "restore") {
+          resetOrderScopes();
           state = draft.state;
           sections = draft.sections;
           currentQuoteId = draft.currentQuoteId || null;
@@ -11172,6 +11849,22 @@ deleteBtn.onclick = () => {
             (sec.rooms || []).forEach((r) => markRoomDirty(r));
             (sec.items || []).forEach((it) => markItemDirty(it));
           });
+          reconcileRestoredOrderScopes(serverQuote);
+          if (draft.activeSectionId != null) {
+            const restoredSectionIndex = sections.findIndex(
+              (section) => String(section.id) === String(draft.activeSectionId),
+            );
+            if (restoredSectionIndex !== -1) activeSectionIdx = restoredSectionIndex;
+          }
+          if (draft.activeRoomId != null) {
+            const restoredSection = sections[activeSectionIdx];
+            activeRoomObj = (restoredSection?.rooms || []).find(
+              (room) => String(room.id) === String(draft.activeRoomId),
+            ) || null;
+            activeRoomIdx = activeRoomObj
+              ? restoredSection.rooms.indexOf(activeRoomObj)
+              : null;
+          }
         }
         loadSavedList();
         await loadPickerCategories();

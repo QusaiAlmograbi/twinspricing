@@ -22,7 +22,7 @@ This feature does not move a room to another section or an item to another room/
 
 ### User Story 1 - Reorder sections with position-based letters (Priority: P1)
 
-A quote editor can move a section earlier or later and immediately see section letters and all descendant quote display codes reflect the new position.
+A quote editor can drag a section to a visible insertion point and immediately see section letters and all descendant quote display codes reflect the new position.
 
 **Why this priority**: Section position controls the prefix for every descendant display code, so it establishes the feature's core ordering model.
 
@@ -70,15 +70,15 @@ A quote editor can reorder direct items or the items in one room, and each item'
 
 ### User Story 4 - Use accessible, recoverable reorder controls (Priority: P2)
 
-A user can reorder with mouse, touch, or keyboard without relying on drag, and can recover clearly from save conflicts or failures.
+A user can reorder primarily by dragging with mouse or touch, or by entering keyboard handle mode, and can recover clearly from save conflicts or failures.
 
 **Why this priority**: Reordering must be usable across supported input methods and must not silently corrupt persisted state.
 
-**Independent Test**: Perform the same move with the up/down controls using pointer and keyboard input, confirm focus remains on the moved entity, then simulate a rejected save and verify the confirmed order remains intact with a visible retry/reload path.
+**Independent Test**: Drag the same move to an insertion point and repeat through keyboard handle mode, confirm focus remains on the moved entity, then simulate a rejected save and verify the confirmed order remains intact with a visible retry/reload path.
 
 **Acceptance Scenarios**:
 
-1. **Given** an entity is not at a scope boundary, **When** its move-up or move-down control is activated by mouse, touch, Enter, or Space, **Then** it moves exactly one position within its allowed scope.
+1. **Given** an entity is not at a scope boundary, **When** its handle is dragged to an insertion point or activated in keyboard handle mode, **Then** it moves within its allowed scope.
 2. **Given** an entity is first or last, **When** controls render, **Then** the impossible direction is disabled and has an understandable accessible name.
 3. **Given** a successful move rerenders its navigation or row, **When** the move completes, **Then** keyboard focus follows the same entity and a non-visual status message announces its new position.
 4. **Given** a stale sibling list or failed request, **When** the save is rejected, **Then** no partial order is confirmed and the user is told that the latest order must be retried or reloaded.
@@ -104,7 +104,7 @@ A user can reorder with mouse, touch, or keyboard without relying on drag, and c
 - **FR-001**: Users MUST be able to move sections up and down within a quote.
 - **FR-002**: Users MUST be able to move rooms up and down only within their current section.
 - **FR-003**: Users MUST be able to move items up and down only within their current direct-item or room group.
-- **FR-004**: Each supported reorder scope MUST provide non-drag controls usable by mouse, touch, and keyboard; item rows MUST also retain a clear reorder/grab affordance.
+- **FR-004**: Section and named-room scopes MUST provide a clear drag handle, visible insertion indicator, and keyboard handle mode usable with mouse, touch, and keyboard; direct-item groups remain fixed in Slice 2.
 - **FR-005**: Section display letters MUST be derived from current section position, beginning with `A`.
 - **FR-006**: Direct items MUST always use group `1`, and group `1` MUST remain reserved even when empty.
 - **FR-007**: Rooms MUST begin at group `2` and use contiguous group numbers in current room order.
@@ -156,7 +156,7 @@ A user can reorder with mouse, touch, or keyboard without relying on drag, and c
 - Spreadsheet-style section lettering (`A`…`Z`, `AA`, `AB`, …) is approved after `Z`.
 - Current quote-section code presentations become read-only derived labels. Stored legacy `sections.code` values remain present and unchanged; new rows receive compatibility values at creation, but those values are not displayed as positional truth.
 - The unused calculate endpoint keeps its existing stored `code` response and receives no `display_code` field.
-- Dragging is an optional direct manipulation path. Up/down controls are the required cross-input and accessibility path.
+- Dragging is the primary section and named-room interaction. The handle's keyboard mode is the accessible alternative; visible earlier/later button pairs are not required or part of Slice 2.
 - Reorder is disabled in a category-filtered item subset until the complete group is visible.
 - Display-code formatting uses one space between the section letter and numeric group (`A 1.1`) as shown in the latest approved rules.
 

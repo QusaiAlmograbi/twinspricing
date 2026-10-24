@@ -1,14 +1,14 @@
 # Implementation Plan: Persistent Quote Ordering
 
-**Branch**: `feature/003-quote-summary-layout` (planning only; do not implement on this branch without separate approval) | **Date**: 2026-10-22 | **Spec**: [spec.md](spec.md)
+**Branch**: `feature/004-persistent-quote-ordering` | **Refined**: 2026-10-24 | **Spec**: [spec.md](spec.md)
 
 **Input**: Approved product direction in `PRICING_TOOL_ENHANCEMENT_SPEC.md` §16.11 and the Feature 004 specification.
 
 ## Summary
 
-Reuse the existing `sort_order` columns and add transactional sibling-scope reorder contracts; no migration is needed. Derive section letters and item display codes through one browser/Node pure helper, make legacy reads deterministic, and add compact up/down controls for every scope plus the required item grab affordance/optional constrained drag. Integrate pending order work with the current manual save, selective autosave, local draft, template/copy, browser print, and server PDF paths without changing save timing or unrelated behavior.
+Reuse the existing `sort_order` columns and add transactional sibling-scope reorder contracts; no migration is needed. Derive section letters and item display codes through one browser/Node pure helper, make legacy reads deterministic, and add drag handles with insertion indicators for sections and named rooms plus an accessible keyboard-handle alternative. Integrate pending order work with the current manual save, selective autosave, local draft, template/copy, browser print, and server PDF paths without changing save timing or unrelated behavior.
 
-Because atomic persistence, hierarchy code derivation, and three UI levels are too risky as one legacy-file patch, deliver three ordered slices and keep only one active at a time. Slice 1 is the proposed first implementation boundary; Slice 2 begins only after Slice 1 review, and Slice 3 only after Slice 2 review.
+Because atomic persistence, hierarchy code derivation, and three UI levels are too risky as one legacy-file patch, deliver three ordered slices and keep only one active at a time. Slice 1 is approved, committed, pushed, and closed. This refinement makes Slice 2 implementation-ready without reopening Slice 1; Slice 3 remains inactive until Slice 2 review.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Because atomic persistence, hierarchy code derivation, and three UI levels are t
 
 **Project Type**: Legacy server-rendered/static web application with JSON API
 
-**Performance Goals**: One reorder request per completed move; linear validation/update in sibling count; no whole-quote rewrite for a one-scope move
+**Performance Goals**: Coalesce rapid local moves to the newest target while serializing requests per exact scope; linear validation/update in sibling count; no whole-quote rewrite for a one-scope move
 
 **Constraints**: No schema/index/dependency/auth/pricing/autosave-timing changes; preserve untracked Feature 001 and other worktrees; never touch localhost:3000 or development/production data
 
@@ -35,7 +35,7 @@ Because atomic persistence, hierarchy code derivation, and three UI levels are t
 ### Pre-design gate
 
 - **Stable Maintenance First**: Pass. Three reviewed slices prevent a broad all-at-once patch; no modernization or unrelated redesign.
-- **Repository Is Source of Truth**: Pass. Findings were re-established at actual HEAD `e3ba0ad…`; the branch was not assumed.
+- **Repository Is Source of Truth**: Pass. Slice 2 findings were re-established at actual HEAD `32ebb95…`; the branch was not assumed.
 - **Analysis and Implementation Are Separate**: Pass. This task produces documents only; implementation remains separately approved OpenCode work.
 - **Smallest Safe Patch**: Pass. Existing columns/transaction utilities are reused; a small additive reorder API is justified by the proven partial-write risk.
 - **Mutation Safety**: Pass by design. Reorder is expected-baseline guarded and transactional; an already-stored target is recognized without a second write, while a stale different target conflicts.
@@ -46,18 +46,19 @@ Because atomic persistence, hierarchy code derivation, and three UI levels are t
 
 Pass. The design adds no schema, dependency, role, global state framework, or whole-quote replacement. The only new external surface is the minimal transactional API required for all-or-nothing sibling ordering.
 
-## Actual Git State at Planning Start
+## Actual Git State at Slice 2 Planning Start
 
-- **HEAD**: `e3ba0ad6d1203eb2dabbd61be2b4aaee13501489`
-- **Current branch**: `feature/003-quote-summary-layout`
-- **Tracked worktree state**: `PRICING_TOOL_ENHANCEMENT_SPEC.md` is modified by this documentation-only Feature 004 planning work; no runtime source is modified.
-- **Preserved untracked paths**: pre-existing `specs/001-prevent-duplicate-mutations/` and Feature 004's `specs/004-persistent-quote-ordering/` planning directory.
-- **Other worktrees**: `integration/duplicate-mutations-t010-t013` at `123292a…`; `hotfix/print-item-name` at `c516b0c…`
-- **Reported deployment**: User reports `e3ba0ad…` deployed; repository inspection proves only local HEAD equality, not production deployment.
+- **HEAD**: `32ebb95270b45a8f9a01f991683f99eff4ae4884`
+- **Current branch**: `feature/004-persistent-quote-ordering`
+- **Remote refs at inspection**: `origin/main`, `origin/feature/004-persistent-quote-ordering`, and `origin/HEAD` all point to the same commit.
+- **Preserved tracked change**: `server.js` is modified by excluded pre-existing work.
+- **Preserved untracked paths**: `debug_test.js` and `specs/001-prevent-duplicate-mutations/` are excluded pre-existing work.
+- **This task**: documentation-only changes under `specs/004-persistent-quote-ordering/`; no runtime source, data, staging, commit, push, deployment, or Git-history change is authorized.
+- **Deployment evidence**: the reported deployed commit equals local HEAD and production static content reportedly matched the Slice 1 helper. Exact Render deployment SHA is unavailable, so production deployment identity is **not runtime-proven** here.
 
 ## Current-Source Findings
 
-All entries are **source-proven at HEAD `e3ba0ad…`** and **not runtime-verified** in this documentation phase.
+The original reconnaissance entries remain the accepted basis for Slice 1. Slice 1 is source-proven at HEAD `32ebb95…`; browser, database, and production behavior were not rerun in this documentation phase.
 
 | Area | Evidence | Consequence |
 |---|---|---|
@@ -96,19 +97,34 @@ All entries are source-proven and must be re-grepped at Slice 1 start because `p
 | Copy/template writers | Room clone appends a room and copies descendant item positions; direct copy appends a section and copies direct item positions (`routes/sections.js:137-340`). Template clone recreates a new hierarchy from serialized positions (`routes/templates.js:36-141`). | Preserve as separate copy behavior. Change only if a focused relative-order test fails; these paths do not become reorder endpoints. |
 | Local recovery | Draft saves the ordered object arrays and current fields (`public/app.html:4369-4445`, restore at `10920-11040`). | Slice 1 preserves existing draft operation. Slice 2/3 add pending expected/target reconstruction with their respective UI scope. |
 
+### Slice 2 reinspection at `32ebb95…`
+
+These points are **source-proven** and define the frontend boundary; none was runtime-verified in this planning task.
+
+| Current source | Slice 2 consequence |
+|---|---|
+| `renderAll()` calls `resolveSectionOrder()`, which sorts both `sections` and every `section.rooms` from mutable `sort_order` on every render (`public/app.html:3946-3964`, `7358-7364`). | A move must update the complete local scope's projected positions before rendering. The exact persisted compare-and-set baseline must live separately in the scope coordinator; it must never be reconstructed from locally projected `sort_order`. |
+| `api()` throws only a message and discards HTTP status and JSON `code` (`public/app.html:3903-3919`). | Add a reorder-only request wrapper (or backward-compatible metadata on the thrown error) that distinguishes definite `409 ORDER_CONFLICT`, definite HTTP rejection, and timeout/network unknown outcome. Do not change unrelated callers. |
+| Section navigation is a horizontal `.sections-nav` of clickable `.section-tab` containers (`public/app.html:219-257`, `5081-5102`). Room navigation is a horizontal `.rooms-nav`; named tabs already contain copy/edit/delete buttons and the direct tab is separate (`public/app.html:274-335`, `5551-5577`, `5766-5842`). | Put controls inside the existing pills; isolate their events from tab click/double-click and existing room actions. No navigation redesign. |
+| Active section is index-based, while the active room also has `activeRoomObj`; `selectActiveSection()` already repairs the room index by object identity when the section object survives (`public/app.html:3986-4036`, `4079-4081`). | Capture active section and room objects before every splice and recompute indexes afterward. Never preserve selection by the moved entity's old index. |
+| Selective autosave uses a stamp, dirty snapshot, shared save lock, retry timing, and section→room→item creation stages (`public/app.html:4094-4400`, `4500-4870`). Manual save batch-creates sections, then rooms, and already retains successful IDs/assigned append positions from partial results (`public/app.html:9138-9565`). | Order state is additive and separate from `dirtyEntities`. Preserve debounce/retry timing. Both save paths must call the same scope flush after required creates and must report the cycle unclean while any applicable order scope remains unresolved. |
+| The draft currently stores hierarchy arrays and active section index only; restore can already fetch the draft's quote for stale-draft comparison (`public/app.html:4402-4453`, `11061-11175`). | Extend the same draft with section/room order baselines and active entity identity. Reuse the already-fetched quote for reconciliation; never overwrite a newer draft or blindly submit a draft baseline that was not checked against server state. |
+| Immediate section/room creation, direct-copy, room-copy, section deletion, and room deletion mutate the same memberships outside the manual/autosave waves (`public/app.html:7422-7533`, `7612-7701`, `7754-7806`, `10613-10648`, `10787-10905`). | Route each membership mutation through the exact scope queue or make it await that queue and refresh its baseline. Copy remains append-only; no copy API redesign. |
+| `applyQuoteToEditor()`, `loadQuote()`, template load, draft restore, and `resetQuote()` can replace the hierarchy root (`public/app.html:9578-9663`, `7937-7944`, `9918-9961`, `11115-11175`). | Increment an editor-generation token and dispose the old scope registry on every hierarchy replacement. Late work may finish on the server but may not mutate the new editor, selection, focus, dirty flags, or announcements. |
+
 ## Proposed Interaction
 
 ### Sections
 
 - Keep existing section tabs and colors.
-- Add a compact reorder cluster to each tab with `نقل القسم للأعلى` and `نقل القسم للأسفل` buttons (direction means earlier/later in logical order, not physical left/right).
-- Up/down buttons work with mouse, touch, Enter, and Space. Disable the impossible boundary direction.
-- Clicking a reorder control stops tab selection; normal tab activation remains unchanged.
+- Add one comfortably sized drag handle inside each existing section pill, with a visible insertion indicator while dragging. The handle supports native mouse/touch dragging and keyboard handle mode; ordinary pill clicks continue to select without initiating a drag.
+- Keyboard handle mode uses Enter/Space to start or cancel, ArrowUp/ArrowDown to move within the section scope, and Escape to cancel. Preserve focus by object identity and announce each projected position through the existing polite status region.
 
 ### Rooms
 
 - Keep the direct tab fixed and non-reorderable as group `1`.
-- Add the same compact earlier/later controls to each named room tab, alongside existing copy/edit/delete actions without changing those actions.
+- Inside each named room pill, place the same drag handle after the room name/count and before copy/edit/delete. The direct pill has no handle and is not counted in named-room positions.
+- Apply the same insertion indicator, keyboard cancellation, focus restoration, announcement, and click/double-click isolation as sections.
 - Reorder is constrained to `sec.rooms`; it never changes `section_id`.
 
 ### Items
@@ -120,10 +136,13 @@ All entries are source-proven and must be re-grepped at Slice 1 start because `p
 
 ### Focus and feedback
 
-- After rerender, restore focus to the same entity's corresponding control using persisted ID or live object identity.
+- Preserve the active section and active named room by live object identity, then recompute `activeSectionIdx` / `activeRoomIdx` after a move. Moving an inactive entity must not change selection.
+- Before rerender, record the moved object and handle mode. After rerender, focus that entity's handle and restore its keyboard state. Resolve persisted objects by ID and unsaved objects through a runtime `WeakMap` token; never use an array index as focus identity.
 - Announce “moved to position X of Y” in one visually hidden polite live region.
-- During a scope save, disable only that scope's reorder controls. Other fields/scopes remain usable under the existing shared save rules.
-- On a definite conflict, read/reconcile the authoritative scope rather than restoring a snapshot that may contain an externally deleted entity. Retain unsaved entity content, display a clear toast, and do not mark the failed scope clean. On timeout/unknown result, retry the identical expected/target payload; never rebase it silently over a newer order.
+- The live region is appended once near the editor root with `role="status"`, `aria-live="polite"`, and `aria-atomic="true"`. Announce the entity name plus one-based position among sections or named rooms only. Do not announce the direct group as room position 1.
+- Order-only requests do not disable the scope: rapid activations update the local target and coalesce behind the in-flight payload. Disable that scope's reorder controls only while membership is being created/deleted/copied or while conflict reconciliation is replacing membership; unrelated scopes and fields stay usable.
+- On a definite conflict, read and merge the authoritative scope rather than replacing the whole editor. Preserve unsaved siblings and local field edits on surviving IDs, drop externally deleted IDs from reorder membership without POSTing them again, insert server-only IDs, retain the local intended relative order where it is still valid, and leave the scope visibly dirty/retryable. Any locally edited externally deleted object is quarantined from automatic create/reorder and retained in the draft until the user reloads or explicitly recreates it; it is never silently resurrected.
+- On timeout/network unknown result, freeze and retry the identical `{ expected, order }` payload. Newer moves may change the displayed desired target but wait behind that frozen payload. Only its `200` or a reconciliation after `409` may advance the persisted baseline.
 - Replace the editable section-code inputs in the section and direct-copy forms with read-only derived next/current labels. Retain stored legacy values and generate a compatibility value for a new section without presenting it as positional truth.
 
 ## Persistence and Display Contract
@@ -141,11 +160,34 @@ All entries are source-proven and must be re-grepped at Slice 1 start because `p
 11. The shared helper is switched in the editor, all-items view, browser print, and server PDF in the same Slice 1 boundary. The PDF renderer consumes nested `room.items` and uses stable section identity for subtotal lookup.
 12. `GET /api/quotes/:id/calculate` remains unchanged and receives no `display_code`.
 
+### Slice 2 frontend state owner
+
+Use one `orderScopes` registry in `public/app.html`; no second copy of pending state may live in autosave, modal handlers, DOM data, or entity dirty sets.
+
+- **Keys**: one quote-section scope keyed by the owning editor generation plus quote identity; one named-room scope keyed by the same generation plus section object/stable section ID. Unsaved parent scopes remain local-only until the parent receives a real ID.
+- **One record per scope**: `kind`, parent/root identity, editor generation, monotonic `version`, exact last-confirmed persisted `baseline: [{id, sort_order}]`, current desired object sequence, frozen in-flight payload/version, status (`clean`, `needs-create`, `sending`, `unknown`, `conflict`), serialized promise tail, and focus request.
+- **Canonical split**: the live arrays and locally projected contiguous `sort_order` values own what the editor renders now. Only the registry baseline owns what the server was last confirmed to store. No save path may rebuild `expected` from locally projected entities.
+- **Rapid moves**: every activation splices the live array, projects positions `0..n-1`, bumps the scope version, preserves active identity, renders/announces/focuses immediately, and schedules one drain. If a request is running, later moves replace only the queued desired target; they never mutate the frozen payload.
+- **Completion rule**: a completion must match editor generation, hierarchy root, quote, parent scope, and frozen request identity. A successful older version may advance that scope's baseline to its returned positions, but it may not replace the newer desired array, focus, selection, dirty state, or announcement; the drain then sends the newest complete target.
+- **Membership serialization**: section create/delete/direct-copy share the quote-section queue. Room create/delete/targeted room-copy share the target section's room queue. Manual/autosave batch creation enters those same queues and records every successful returned ID/append position before any reorder decision.
+- **Partial creation**: if one sibling creation fails, retain successful IDs and assigned positions in the baseline, retain failed objects and their content in the desired array, mark `needs-create`, and send no reorder for that scope. On retry, reconcile current persisted membership, create only still-unsaved siblings in desired order, and issue one complete-scope reorder only after all have real IDs.
+- **Manual/autosave boundary**: preserve the current global save lock, debounce, content dirty snapshot, and retry timing. A save cycle flushes applicable order scopes after its membership-creation stage and is not clean while a scope is `needs-create`, `unknown`, or `conflict`. A manual save waits for its captured scope versions; an edit/new move during the wait stays dirty under the existing stamp gate.
+- **Definite versus unknown failure**: `409/ORDER_CONFLICT` fetches and reconciles; other received `4xx/5xx` responses retain dirty order and report failure without claiming persistence; abort, disconnect, or missing response is unknown and retries only the frozen identical payload. There is never a row-by-row fallback.
+- **Hierarchy replacement**: `applyQuoteToEditor`, successful `loadQuote`, template load, draft adoption, `resetQuote`, and new-quote reset increment the editor generation and dispose the old registry/timers. Stale completions are ignored locally.
+
+### Draft and reconciliation boundary
+
+- Extend the existing draft payload; do not create a second storage key. Persist the current hierarchy array order, active section/room identity, and only the serializable order metadata needed for section/room baselines and unresolved status. Runtime promises, DOM focus nodes, abort controllers, and object tokens are never serialized.
+- On restore with a persisted quote, compare against the already-fetched `serverQuote`. If the draft is accepted, reuse live draft objects for matching IDs so local fields survive, take membership/confirmed positions from the server, retain unsaved objects in draft order, and rebuild dirty scope records. If the fetch is unavailable, show the draft locally but keep persisted order scopes blocked from submission until a later reconciliation succeeds.
+- If server order already equals the draft target, mark that scope confirmed. If membership/baseline equals the saved draft baseline, the normal compare-and-set flush may proceed. Otherwise mark conflict and require the reconciled dirty target to be retried; do not silently invent a baseline and auto-submit the old target.
+- A server-only sibling is inserted using authoritative persisted order. A surviving local sibling keeps its local fields. An unsaved sibling stays adjacent to the same surviving local neighbors where possible. An externally deleted persisted sibling is excluded from target membership and is never recreated automatically.
+- A successful order flush updates entity positions and the persisted baseline, but clears only the matching scope version. Draft/`hasUnsavedWork` cleanup still obeys the existing autosave/manual-save stamp rules and must also require zero unresolved order scopes.
+
 See [data-model.md](data-model.md) and [contracts/reorder-api.md](contracts/reorder-api.md) for exact invariants and request behavior.
 
 ## Ordered Implementation Slices
 
-### Slice 1 — Ordering kernel, deterministic reads, and atomic persistence (ACTIVE AFTER APPROVAL)
+### Slice 1 — Ordering kernel, deterministic reads, and atomic persistence (CLOSED)
 
 **Goal**: Establish and prove the single source of truth before adding user-facing reorder controls.
 
@@ -160,7 +202,7 @@ Exact planned runtime boundary:
 - `test/quote-ordering.test.js`, `test/reorder.test.js`: pure contract, authorization, malformed input, same-membership stale baseline, already-applied retry, newer-order conflict, concurrent create/delete serialization, rollback, reopen, writer ownership, and engine-parity coverage.
 - One focused PDF fixture/test: two direct rows plus room rows in at least two rooms; assert every room row appears exactly once, direct rows remain exactly once and in order, codes match the shared helper, totals are unchanged, and every row still uses the existing renderer/column coordinates and sizing inputs.
 
-Explicit exclusions: no section/room/item reorder control, no drag behavior, no autosave debounce change, no screen/print geometry work, no calculate-endpoint field or response change, no migration/index, and no broad template/copy rewrite without a failing focused test.
+Explicit exclusions: no item reorder control, no autosave debounce change, no screen/print geometry work, no calculate-endpoint field or response change, no migration/index, and no broad template/copy rewrite without a failing focused test.
 
 Acceptance gate:
 
@@ -183,21 +225,51 @@ Stop for independent review before Slice 2.
 
 **Goal**: Deliver complete section and room ordering using the proven kernel.
 
-Planned runtime files:
+Implementation boundary, in dependency order:
 
-- `public/app.html`: compact section/room up/down controls, scope/version ownership guards, focus/live-region feedback, active selection preservation, dedicated pending order state, same-scope mutation queue, append-then-reorder orchestration for unsaved sections/rooms, and manual/autosave/draft coordination. It builds on the Slice 1 writer handoff rather than removing ordinary ownership later.
-- `test/auto-save.test.js` and/or a new focused extracted frontend-core test file only if the state logic is factored into a pure helper.
-- `test/reorder.test.js`: integration assertions for save/reopen and repeated/stale requests.
+1. **Pure movement/reconciliation seams** — extend `public/quote-ordering.js` only with side-effect-free helpers for adjacent movement, projected positions, baseline/target construction, and authoritative-membership merge. Keep async queues, fetch, DOM, and dirty flags out of this shared display helper. Add focused cases to `test/quote-ordering.test.js`.
+2. **Single coordinator and request classification** — in `public/app.html`, add the `orderScopes` registry/editor generation and one reorder-specific request wrapper that preserves `status` and `code`. Do not change endpoint contracts or the generic API behavior for unrelated calls.
+3. **Section controls** — make drag-and-drop the primary interaction for section pills, with a clear comfortably sized handle and visible insertion indicator. Preserve ordinary click selection and prevent accidental dragging. Provide a keyboard alternative through the handle with instructions, cancellation, focus restoration, and live announcements. All input methods call the same coordinator; prove two-section/`Z`→`AA` prefix propagation before adding room controls.
+4. **Section persistence coordination** — put immediate create, batch create, delete, and direct-copy membership changes through the quote-section queue. Integrate section flush with manual save and selective autosave without changing their timing or ordinary content payloads.
+5. **Room controls** — add the same drag/keyboard-handle mechanism to named room pills only. Remove the visible earlier/later pair. Keep direct fixed, preserve `activeRoomObj`, and prove group numbering starts at `2` both with and without direct items.
+6. **Room persistence coordination** — put immediate/batch room creation, room delete, and target room-copy append through that section's room queue. Do not change cross-section copy semantics or allow a room move across sections.
+7. **Draft and hierarchy replacement** — extend the existing draft payload/restore and add generation reset to quote load/reset/template replacement. Reconcile order without replacing surviving edited objects.
+8. **Focused verification and stop** — execute the Slice 2 cases below, run the repository's canonical test command once, inspect the cause-scoped diff, and stop before item controls.
+
+Exact likely files:
+
+- `public/app.html` — required runtime change: styles, controls, live region, scope registry/queue, request classification, save/create/delete/copy hooks, draft serialization/restore, hierarchy-generation guards.
+- `public/quote-ordering.js` — likely small pure additions only; do not change accepted display-code semantics.
+- `test/quote-ordering.test.js` — pure movement, baseline separation, coalescing inputs, and merge cases.
+- `test/auto-save.test.js`, `test/save-batch.test.js`, `test/draft-restore.test.js`, and `test/frontend-ownership.test.js` — only the focused coordination/ownership cases each existing seam directly supports.
+- `test/clone-room.test.js` — only target-room append/baseline non-regression if the room-copy hook changes.
+- `test/reorder.test.js` — a narrow existing-endpoint integration smoke for section/room save/reopen and already-applied retry; accepted backend concurrency/rollback coverage is not repeated.
+- `routes/sections.js`, `routes/rooms.js`, `routes/quotes.js`, `routes/pdf.js`, `db.js`, schema, and dependencies are **not expected to change**. Stop and report evidence before changing one of them.
 
 Acceptance gate:
 
-- Reorder two sections containing direct items and rooms; all prefixes update.
-- Reorder rooms; direct group `1` remains reserved and rooms become `2`, `3` in new order.
-- Save/autosave/reopen, draft recovery, template clone, room/direct copy, browser print, and server PDF agree.
-- Mouse, touch activation, keyboard, focus retention, and async ownership guards pass.
-- Failed/stale requests reconcile authoritative membership/order, retain unsaved content, and remain visibly retryable without resurrecting deleted rows.
+- Drag the first/middle/last section to valid insertion points with mouse/touch; the same section remains active, focus returns inside its moved pill, and the polite announcement reports the new one-based position. Keyboard handle mode provides the same movement, with instructions and cancellation.
+- Reverse populated sections across `Z`/`AA` where practical; editor headings, selectors, summary, all-items, browser print, and the already-shared PDF helper derive the same prefixes. IDs, parentage, stored `sections.code`, catalog `item_code`, content, prices, and totals are unchanged.
+- Reverse named rooms with direct items and with an empty direct group. Direct remains fixed group `1`; named rooms become groups `2`, `3`, and never change `section_id` or descendant membership.
+- Manual save, selective autosave, immediate creation, batch creation, delete, direct-copy append, room-copy append, and reopen all coordinate through the applicable scope; ordinary PUTs never regain order ownership.
+- Move unsaved sections/rooms between persisted siblings, then save: successful creates append and one complete reorder establishes the intended order. Inject one partial batch creation failure: successful IDs/positions remain, failed objects/content remain, and no incomplete reorder is sent.
+- Rapidly activate moves while a reorder is in flight: UI order/focus tracks the newest target, the first frozen payload resolves first, and an older completion cannot overwrite the newer target. A timeout-after-commit retries byte-equivalent expected/order and accepts already-applied success.
+- On same-membership and changed-membership conflicts, scoped reconciliation preserves surviving local edits and unsaved siblings, never resurrects a deleted persisted ID, and leaves the intended order visibly retryable. A received failure or unresolved unknown outcome never clears the draft/order dirty state.
+- Switch quotes, load a template, reset, or replace the same quote hierarchy while create/reorder/reconcile is pending: late completion changes no current arrays, selection, focus, toast, live announcement, or clean/dirty state.
+- Restore a draft containing mixed persisted/unsaved sections and rooms: active identities and local order return; server-equal targets confirm, valid saved baselines may flush, conflicts reconcile, and an unavailable server blocks blind persisted reorder while preserving the draft.
+- In both RTL and a test-only LTR document direction, drag handles are primary, pointer/touch activation does not select/edit/copy/delete, keyboard handle mode uses the same coordinator with cancellation and focus restoration, and insertion indicators/boundaries remain correct.
 
 Stop for independent review before Slice 3.
+
+#### Copilot handoff / stop conditions
+
+- Implement only tasks T020–T035 in [tasks.md](tasks.md), in order. Do not add item controls, schema/index/dependency changes, initialization fixes, manager printing, image work, screen-fit/equal-height work, or unrelated UI refactoring.
+- Treat `public/app.html` and `public/quote-ordering.js` as the expected runtime diff. Before editing any backend/PDF/template file, produce a focused failing test showing why the accepted Slice 1 dependency is insufficient; otherwise stop and report the evidence.
+- Preserve `server.js`, `debug_test.js`, `specs/001-prevent-duplicate-mutations/`, other worktrees, and all databases. Do not use localhost:3000 or application data.
+- Do not stage, commit, push, deploy, or change branches without separate explicit approval. Finish with the report identity and exact evidence required by `AGENTS.md`.
+- Assigned implementation ownership for this Slice 2 repair is OpenCode; independent review remains a separate gate.
+- Closeout record: Codex approved Slice 2 with no blocking findings. Coordinator, conflict recovery, frozen retries, membership coordination, offline draft blocking, keyboard operation, and the tested CDP drag flows passed as documented. Focused evidence is at `/tmp/feature004-slice2-interaction-repair-20261024/verification.txt`; earlier save/retry evidence is at `/tmp/codex-feature004-slice2-repair-20261024-final/focused-verification.txt`. Physical-pointer drag, outside-drop, pointer-cancel, touch, and template/quote-switch tests remain pending rather than failed. The current closeout executor is OpenCode; earlier historical attribution is not inferred.
+- No product question blocks implementation. The concrete control order, direction semantics, pending-state owner, save serialization, partial-create behavior, conflict/unknown-outcome policy, draft reconciliation, active selection, and stale-completion rules are fixed above.
 
 ### Slice 3 — Item reorder controls/persistence and full acceptance
 
@@ -242,25 +314,27 @@ Use `node:test` against `public/quote-ordering.js` (and any deliberately extract
 - Both engines: assert applied `200`, already-applied `200` after an unknown outcome, `409` for the same membership with a stale position baseline, `409` for changed membership, `400` duplicate/foreign scope, transaction rollback, and deterministic legacy read. Run overlapping reorder/reorder, reorder/create, and reorder/delete cases and record which transaction won.
 - SQLite proof must exercise the immediate transaction path. PostgreSQL proof must show the table lock blocks hierarchy-table DML until commit; do not infer either guarantee from source alone.
 
+The preceding engine matrix is accepted Slice 1 evidence. Slice 2 does not change the routes, transaction helpers, or schema, so do **not** rerun that broad SQLite/PostgreSQL concurrency/rollback battery. Run only the narrow section/room endpoint cases needed to prove the new frontend orchestration; if a backend dependency unexpectedly changes, stop and re-scope verification before repeating engine-specific proof.
+
 ### Narrow browser and output checks
 
-Use an isolated server/database and a disposable quote; never localhost:3000 or existing data.
+For implementation verification, use an isolated server/database and a disposable quote; never localhost:3000 or existing data. This documentation task itself starts no server and accesses no application data.
 
-- Section, room, and item controls with mouse click, touch-style pointer activation, Enter, and Space.
-- Boundary disabled states, tab/room selection isolation, focus restoration, `aria-live` announcement, and pending-state disabling.
-- Category filter protection and all-items view parity.
+- Slice 2: section and named-room controls only, with mouse click, touch-style pointer activation, Enter, and Space in RTL and test-only LTR direction. Item controls remain Slice 3.
+- Boundary disabled states, tab/room selection isolation, focus restoration, `aria-live` announcement, rapid moves during order-only requests, and scope-only disabling during membership mutation/reconciliation.
+- All-items view code/order parity; category-filter/item-control behavior remains Slice 3.
 - Move while save is pending, same-scope create/delete queueing, rapid repeated activation, server failure, stale same-membership baseline, changed membership, quote switch, and retry.
 - Timeout-after-commit reconciliation: retry the identical expected/target payload; accept already-applied success, fetch on conflict, and never issue per-row fallback writes or overwrite a newer target.
 - Save/reopen plus local-draft restore for mixed persisted/unsaved entities.
 - Browser print preview/table order/code comparison; no print geometry review.
-- Server PDF focused fixture/text-order comparison: room rows exactly once, direct rows exactly once, totals unchanged, and unchanged existing row-renderer geometry inputs; no broader pagination/design review.
+- Reuse the accepted server-PDF fixture/helper evidence. For Slice 2, compare only the generated hierarchy/code inputs or one focused output fixture if the consumer changed unexpectedly; no broad PDF, pagination, or geometry review.
 - Template save/load and existing room/direct copy order only; do not rerun unrelated dialog-summary batteries.
 
 ### Regression and mechanical checks per modified slice
 
 - `node --check` for modified/new JavaScript; extract the inline script from `public/app.html` if needed.
-- `node --test test/quote-ordering.test.js test/reorder.test.js` plus only directly affected autosave/draft/template tests.
-- At final Slice 3 gate: `node --test test/*.test.js`, reporting exact pass/fail/skipped counts.
+- First run `node --test test/quote-ordering.test.js test/reorder.test.js test/auto-save.test.js test/save-batch.test.js test/draft-restore.test.js test/frontend-ownership.test.js` plus `test/clone-room.test.js` only if room-copy coordination changed.
+- At the Slice 2 stop gate, run the repository canonical `node --test test/*.test.js` once and report exact pass/fail/skipped counts. This is the normal regression gate, not a request to recreate Slice 1's external PostgreSQL/PDF/layout battery.
 - `git diff --check`, route-order/source-consumer grep, and cause-scoped diff review.
 - Explicit assertions that totals and all non-order fields remain byte/value equivalent before/after reorder.
 
@@ -336,8 +410,12 @@ No substantive product-policy decision remains for Feature 004 planning:
 2. Quote-section labels are derived/read-only; stored legacy `sections.code` values remain untouched compatibility data, and catalog `item_code` remains unchanged.
 3. The unused calculate endpoint remains unchanged and receives no `display_code`.
 
-Operational evidence remains unavailable until implementation: a dedicated disposable PostgreSQL environment may or may not be supplied, and browser/PDF behavior is not runtime-verified in this documentation task. If PostgreSQL is unavailable, that limitation must be reported and cannot be converted into a design claim. Direct dragging remains optional; accessible earlier/later controls are mandatory, so no drag-policy decision blocks Slice 1.
+Operational evidence remains unavailable until implementation: a dedicated disposable PostgreSQL environment may or may not be supplied, and browser/PDF behavior is not runtime-verified in this documentation task. If PostgreSQL is unavailable, that limitation must be reported and cannot be converted into a design claim. For Slice 2, drag-and-drop is the primary section/room interaction; the handle's keyboard mode is the accessible alternative, and visible earlier/later button pairs are not part of the contract.
 
 ## Complexity Tracking
+
+Slice 2 correction: drag-and-drop is primary for sections and named rooms; the handle's keyboard mode is the accessible alternative. Visible earlier/later button pairs are not part of the Slice 2 interaction contract.
+
+This Slice 2 correction supersedes any earlier planning sentence that describes dragging as optional or earlier/later controls as mandatory.
 
 No constitution violation. The additive reorder endpoints are necessary because the approved all-or-nothing failure behavior cannot be met by current per-row PUTs. The shared helper is necessary because two proven duplicate implementations already disagree with the approved rules and cannot safely represent multiple unsaved items.
